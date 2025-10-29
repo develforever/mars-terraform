@@ -23,9 +23,9 @@ export function Scene() {
         position={[0, 0.1, 0]}
         args={[100, 100]}
         cellSize={1.0}
-        cellColor="#6f6f6f"
+        cellColor="#cecece"
         sectionSize={5.0}
-        sectionColor="#ff4500"
+        sectionColor="#006eff"
         fadeDistance={50}
         infiniteGrid
       />

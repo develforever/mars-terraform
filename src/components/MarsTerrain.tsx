@@ -5,7 +5,7 @@ export function MarsTerrain() {
   // Ładujemy tekstury z folderu /public
   // Używamy useTexture z 'drei' - to ułatwia ładowanie
   const [colorMap, displacementMap] = useTexture([
-    '/textures/mars_color.jpg',
+    '/textures/mars_color.png',
     '/textures/mars_displacement.png',
   ]);
 
@@ -13,7 +13,7 @@ export function MarsTerrain() {
   [colorMap, displacementMap].forEach((texture) => {
     texture.wrapS = RepeatWrapping;
     texture.wrapT = RepeatWrapping;
-    texture.repeat.set(10, 10); // Powtórz teksturę 10x10 razy na powierzchni
+    texture.repeat.set(1, 1); // Powtórz teksturę 10x10 razy na powierzchni
   });
 
   return (
@@ -30,7 +30,7 @@ export function MarsTerrain() {
       <meshStandardMaterial
         map={colorMap} // Tekstura koloru
         displacementMap={displacementMap} // Tekstura wysokości
-        displacementScale={3.0} // Jak "wysokie" mają być góry (dostosuj wg potrzeb)
+        displacementScale={1.0} // Jak "wysokie" mają być góry (dostosuj wg potrzeb)
         roughness={1} // Mars jest matowy
         metalness={0} // Nie jest metaliczny
       />
