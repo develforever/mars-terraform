@@ -8,6 +8,7 @@ export interface Def {
   prod?: Partial<Record<ResourceKey, number>>;       // produkcja/zużycie na sekundę
   tags?: string[];                                   // np. ["dayScaled"]
   provides?: Partial<{ cap_power: number; cap_water: number; cap_biomass: number }>;
+  glbPath?: null | string;
 }
 
 export interface Placed { id: string; defId: string; x: number; z: number; y: number; }
@@ -25,24 +26,31 @@ export interface MarsState {
   // budowa
   buildDefId: string | null;
   hover: { x: number; z: number } | null;
-  occupied: Record<string, true>;
+  buildMode: 'place' | 'demolish' | null;
+  occupied: Record<string, string>;
 
   setBuildDef(id: string | null): void;
-  setHover(cell: {x:number; z:number} | null): void;
+  setHover(cell: { x: number; z: number } | null): void;
 
   setSun(f: number): void;
   canAfford(defId: string): boolean;
-  placeAt(cell: {x:number; z:number}, heightY?: number): boolean;
+  placeAt(cell: { x: number; z: number }, heightY?: number): boolean;
+
+  toggleBuildPlace(): void;
+  toggleDemolish(): void;
+  cancelBuild(): void;
+
+  demolishAt(cell: { x: number; z: number }): boolean;
 }
 
 const SEED: Def[] = [
-  { id: "hab", name: "Kapsuła", color: "#93c5fd", cost: { power: 5, water: 1 }, prod: { o2: +0.10 } },
-  { id: "greenhouse", name: "Szklarnia", color: "#86efac", cost: { power: 2, water: 2 }, prod: { o2: +0.20, biomass: +0.10, power: -0.05, water: -0.05 } },
-  { id: "solar", name: "Panel", color: "#fde68a", cost: { biomass: 0.5 }, prod: { power: +0.30 }, tags: ["dayScaled"] },
+  { id: "hab", name: "Kapsuła", color: "#93c5fd", cost: { power: 5, water: 1 }, prod: { o2: +0.10 }, glbPath: "/models/habitat.glb" },
+  { id: "greenhouse", name: "Szklarnia", color: "#86efac", cost: { power: 2, water: 2 }, prod: { o2: +0.20, biomass: +0.10, power: -0.05, water: -0.05 }, glbPath: "/models/greenhouse.glb" },
+  { id: "solar", name: "Panel", color: "#fde68a", cost: { biomass: 0.5 }, prod: { power: +0.30 }, tags: ["dayScaled"], glbPath: "/models/solar_panel.glb" },
   { id: "ice", name: "Kolektor lodu", color: "#a5f3fc", cost: { power: 1 }, prod: { water: +0.20, power: -0.05 } },
-  { id: "battery", name: "Magazyn energii", color: "#fbbf24", cost: { biomass: 0.5, water: 0.5 }, provides: { cap_power: 20 } },
+  { id: "battery", name: "Magazyn energii", color: "#fbbf24", cost: { biomass: 0.5, water: 0.5 }, provides: { cap_power: 20 }, glbPath: "/models/energy_station.glb" },
   { id: "watertank", name: "Zbiornik wody", color: "#60a5fa", cost: { power: 1, biomass: 0.2 }, provides: { cap_water: 20 } },
-  { id: "silo", name: "Silos biomasy", color: "#a3e635", cost: { power: 1, water: 0.5 }, provides: { cap_biomass: 15 } },
+  { id: "silo", name: "Silos biomasy", color: "#a3e635", cost: { power: 1, water: 0.5 }, provides: { cap_biomass: 15 }, glbPath: "/models/biomass_silo.glb"  },
   { id: "recycler", name: "Recykler wody", color: "#34d399", cost: { power: 2, biomass: 1 }, prod: { water: +0.08, power: -0.10 } },
   { id: "rtg", name: "RTG", color: "#f472b6", cost: { biomass: 3, water: 1 }, prod: { power: +0.25 } },
 ];
@@ -52,10 +60,11 @@ export const useMars = create<MarsState>((set, get) => ({
   o2: 5, power: 5, water: 3, biomass: 1,
   cap: { power: 10, water: 10, biomass: 10 },
   sun: 1, alive: true,
-  defs: Object.fromEntries(SEED.map(d=>[d.id,d])),
+  defs: Object.fromEntries(SEED.map(d => [d.id, d])),
   placed: [],
   buildDefId: "hab",
   hover: null,
+  buildMode: null,
   occupied: {},
 
   setBuildDef: (id) => set({ buildDefId: id }),
@@ -65,6 +74,53 @@ export const useMars = create<MarsState>((set, get) => ({
   canAfford: (defId) => {
     const def = get().defs[defId]; if (!def?.cost) return true;
     return Object.entries(def.cost).every(([k, v]) => (get()[k as ResourceKey] as number) >= (v ?? 0));
+  },
+
+  toggleBuildPlace: () => {
+    const m = get().buildMode;
+    set({ buildMode: m === 'place' ? null : 'place' });
+  },
+  toggleDemolish: () => {
+    const m = get().buildMode;
+    set({ buildMode: m === 'demolish' ? null : 'demolish' });
+  },
+  cancelBuild: () => set({ buildMode: null }),
+
+  demolishAt: (cell) => {
+    if (!get().alive || get().buildMode !== 'demolish') return false;
+    const key = `${cell.x},${cell.z}`;
+    const bid = get().occupied[key];
+    if (!bid) return false;
+
+    const b = get().placed.find(p => p.id === bid);
+    if (!b) return false;
+
+    // (opcjonalnie) zwrot części kosztu, np. 50%
+    const def = get().defs[b.defId];
+    if (def?.cost) {
+      const deltas: Partial<MarsState> = {};
+      for (const [rk, val] of Object.entries(def.cost)) {
+        const k = rk as ResourceKey;
+        (deltas as any)[k] = (get()[k] as number) + (val ?? 0) * 0.5;
+      }
+      set(deltas as any);
+    }
+    // jeżeli budynek dawał capacity, odejmij:
+    if (def?.provides) {
+      set(s => ({
+        cap: {
+          power: s.cap.power - (def.provides!.cap_power ?? 0),
+          water: s.cap.water - (def.provides!.cap_water ?? 0),
+          biomass: s.cap.biomass - (def.provides!.cap_biomass ?? 0),
+        }
+      }));
+    }
+
+    set(s => ({
+      placed: s.placed.filter(p => p.id !== bid),
+      occupied: Object.fromEntries(Object.entries(s.occupied).filter(([k]) => k !== key))
+    }));
+    return true;
   },
 
   placeAt: (cell, heightY = 0) => {
@@ -112,7 +168,7 @@ function clampAndCheck() {
   const s = useMars.getState();
   const next: Partial<MarsState> = {};
   // clamp
-  (["power","water","biomass"] as const).forEach(k => {
+  (["power", "water", "biomass"] as const).forEach(k => {
     const cap = s.cap[k];
     if (s[k] > cap) (next as any)[k] = cap;
     if (s[k] < 0) (next as any)[k] = 0;
