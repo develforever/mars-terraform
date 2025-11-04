@@ -5,7 +5,7 @@ import { Mesh, Raycaster, Vector3, DirectionalLight } from "three";
 import { usePlacement } from "./usePlacement";
 import { MarsTerrain } from "./MarsTerrain";
 import { GridOverlay } from "./GridOverlay";
-import { Buildings, HoverGhost } from "./Buildings";
+import { Buildings, DemolishGhost, HoverGhost } from "./Buildings";
 import { useMars } from "./store";
 
 /** Wrapper: tylko Canvas */
@@ -24,6 +24,7 @@ function World() {
   const from = new Vector3();
   const down = new Vector3(0, -1, 0);
   const setSun = useMars(s => s.setSun);
+  const buildMode = useMars(s=>s.buildMode);
 
   const getY = (x:number,z:number)=>{ if(!terrainRef.current) return 0; from.set(x,1000,z); ray.set(from,down); return ray.intersectObject(terrainRef.current,true)[0]?.point.y ?? 0; };
   usePlacement({ grid: 1, getHeightAt: getY });
@@ -51,8 +52,9 @@ function World() {
       <GridOverlay />
       <Buildings />
       <HoverGhost />
+      <DemolishGhost />
 
-      <OrbitControls enableDamping dampingFactor={0.05} minDistance={5} maxDistance={50} maxPolarAngle={Math.PI/2.05}/>
+      <OrbitControls enabled={buildMode === null} enableDamping dampingFactor={0.05} minDistance={5} maxDistance={50} maxPolarAngle={Math.PI/2.05}/>
     </>
   );
 }

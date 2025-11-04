@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { devtools } from 'zustand/middleware'
 
 export type ResourceKey = "o2" | "power" | "water" | "biomass";
 
@@ -50,118 +51,142 @@ const SEED: Def[] = [
   { id: "ice", name: "Kolektor lodu", color: "#a5f3fc", cost: { power: 1 }, prod: { water: +0.20, power: -0.05 } },
   { id: "battery", name: "Magazyn energii", color: "#fbbf24", cost: { biomass: 0.5, water: 0.5 }, provides: { cap_power: 20 }, glbPath: "/models/energy_station.glb" },
   { id: "watertank", name: "Zbiornik wody", color: "#60a5fa", cost: { power: 1, biomass: 0.2 }, provides: { cap_water: 20 } },
-  { id: "silo", name: "Silos biomasy", color: "#a3e635", cost: { power: 1, water: 0.5 }, provides: { cap_biomass: 15 }, glbPath: "/models/biomass_silo.glb"  },
+  { id: "silo", name: "Silos biomasy", color: "#a3e635", cost: { power: 1, water: 0.5 }, provides: { cap_biomass: 15 }, glbPath: "/models/biomass_silo.glb" },
   { id: "recycler", name: "Recykler wody", color: "#34d399", cost: { power: 2, biomass: 1 }, prod: { water: +0.08, power: -0.10 } },
   { id: "rtg", name: "RTG", color: "#f472b6", cost: { biomass: 3, water: 1 }, prod: { power: +0.25 } },
 ];
 
-export const useMars = create<MarsState>((set, get) => ({
-  // start
-  o2: 5, power: 5, water: 3, biomass: 1,
-  cap: { power: 10, water: 10, biomass: 10 },
-  sun: 1, alive: true,
-  defs: Object.fromEntries(SEED.map(d => [d.id, d])),
-  placed: [],
-  buildDefId: "hab",
-  hover: null,
-  buildMode: null,
-  occupied: {},
+function keyFromCell(x: number, z: number) {
+  // zaokrąglenie i normalizacja -0 → 0
+  const ix = Math.round(x) || 0;
+  const iz = Math.round(z) || 0;
+  return `${ix},${iz}`;
+}
 
-  setBuildDef: (id) => set({ buildDefId: id }),
-  setHover: (cell) => set({ hover: cell }),
-  setSun: (f) => set({ sun: Math.max(0, Math.min(1, f)) }),
 
-  canAfford: (defId) => {
-    const def = get().defs[defId]; if (!def?.cost) return true;
-    return Object.entries(def.cost).every(([k, v]) => (get()[k as ResourceKey] as number) >= (v ?? 0));
-  },
+export const useMars = create<MarsState>()(
+  devtools((set, get) => ({
+    // start
+    o2: 5, power: 5, water: 3, biomass: 1,
+    cap: { power: 10, water: 10, biomass: 10 },
+    sun: 1, alive: true,
+    defs: Object.fromEntries(SEED.map(d => [d.id, d])),
+    placed: [],
+    buildDefId: "hab",
+    hover: null,
+    buildMode: null,
+    occupied: {},
 
-  toggleBuildPlace: () => {
-    const m = get().buildMode;
-    set({ buildMode: m === 'place' ? null : 'place' });
-  },
-  toggleDemolish: () => {
-    const m = get().buildMode;
-    set({ buildMode: m === 'demolish' ? null : 'demolish' });
-  },
-  cancelBuild: () => set({ buildMode: null }),
+    setBuildDef: (id) => set({ buildDefId: id }),
+    setHover: (cell) => set({ hover: cell }),
+    setSun: (f) => set({ sun: Math.max(0, Math.min(1, f)) }),
 
-  demolishAt: (cell) => {
-    if (!get().alive || get().buildMode !== 'demolish') return false;
-    const key = `${cell.x},${cell.z}`;
-    const bid = get().occupied[key];
-    if (!bid) return false;
+    canAfford: (defId) => {
+      const def = get().defs[defId]; if (!def?.cost) return true;
+      return Object.entries(def.cost).every(([k, v]) => (get()[k as ResourceKey] as number) >= (v ?? 0));
+    },
 
-    const b = get().placed.find(p => p.id === bid);
-    if (!b) return false;
+    toggleBuildPlace: () => {
+      const m = get().buildMode;
+      set({ buildMode: m === 'place' ? null : 'place' });
+    },
+    toggleDemolish: () => {
+      const m = get().buildMode;
+      set({ buildMode: m === 'demolish' ? null : 'demolish' });
+    },
+    cancelBuild: () => set({ buildMode: null }),
 
-    // (opcjonalnie) zwrot części kosztu, np. 50%
-    const def = get().defs[b.defId];
-    if (def?.cost) {
-      const deltas: Partial<MarsState> = {};
-      for (const [rk, val] of Object.entries(def.cost)) {
-        const k = rk as ResourceKey;
-        (deltas as any)[k] = (get()[k] as number) + (val ?? 0) * 0.5;
-      }
-      set(deltas as any);
-    }
-    // jeżeli budynek dawał capacity, odejmij:
-    if (def?.provides) {
-      set(s => ({
-        cap: {
-          power: s.cap.power - (def.provides!.cap_power ?? 0),
-          water: s.cap.water - (def.provides!.cap_water ?? 0),
-          biomass: s.cap.biomass - (def.provides!.cap_biomass ?? 0),
+    demolishAt: (cell) => {
+      if (!get().alive || get().buildMode !== 'demolish') return false;
+
+      const keyFromCell = (x: number, z: number) => `${Math.round(x) || 0},${Math.round(z) || 0}`;
+      const key = keyFromCell(cell.x, cell.z);
+
+      return set((s) => {
+        // znajdź budynek po occupied albo „blisko”
+        let bid = s.occupied[key];
+        if (!bid) {
+          const cx = Math.round(cell.x), cz = Math.round(cell.z);
+          const near = s.placed.find(p => Math.abs(p.x - cx) < 0.51 && Math.abs(p.z - cz) < 0.51);
+          if (near) bid = near.id;
         }
-      }));
-    }
+        if (!bid) return {}; // nic do zrobienia
 
-    set(s => ({
-      placed: s.placed.filter(p => p.id !== bid),
-      occupied: Object.fromEntries(Object.entries(s.occupied).filter(([k]) => k !== key))
-    }));
-    return true;
-  },
+        const idx = s.placed.findIndex(p => p.id === bid);
+        if (idx === -1) return {};
 
-  placeAt: (cell, heightY = 0) => {
-    if (!get().alive) return false;
-    const defId = get().buildDefId;
-    if (!defId || !get().canAfford(defId)) return false;
+        const b = s.placed[idx];
+        const def = s.defs[b.defId];
 
-    const key = `${cell.x},${cell.z}`;
-    if (get().occupied[key]) return false; // zajęte
+        // nowy stan: usuń z placed, z occupied (po kluczu i po id), skoryguj limity/zwroty
+        const placed = s.placed.slice(0, idx).concat(s.placed.slice(idx + 1));
+        const occupied = { ...s.occupied };
+        // usuń wpis pozycji
+        delete occupied[keyFromCell(b.x, b.z)];
+        // oraz każdy ewentualny wpis wskazujący na ten sam id (ostrożnie)
+        for (const k of Object.keys(occupied)) if (occupied[k] === bid) delete occupied[k];
 
-    // zapłać koszt
-    const def = get().defs[defId];
-    if (def?.cost) {
-      const deltas: Partial<MarsState> = {};
-      for (const [rk, val] of Object.entries(def.cost)) {
-        const keyR = rk as ResourceKey;
-        (deltas as any)[keyR] = (get()[keyR] as number) - (val ?? 0);
-      }
-      set(deltas as any);
-    }
-
-    // zastosuj stałe provide (limity)
-    if (def?.provides) {
-      set(s => ({
-        cap: {
-          power: s.cap.power + (def.provides!.cap_power ?? 0),
-          water: s.cap.water + (def.provides!.cap_water ?? 0),
-          biomass: s.cap.biomass + (def.provides!.cap_biomass ?? 0),
+        const cap = { ...s.cap };
+        if (def?.provides) {
+          cap.power -= def.provides.cap_power ?? 0;
+          cap.water -= def.provides.cap_water ?? 0;
+          cap.biomass -= def.provides.cap_biomass ?? 0;
         }
+
+        // opcjonalny zwrot 50% kosztów
+        const delta: Partial<MarsState> = {};
+        if (def?.cost) {
+          for (const [rk, val] of Object.entries(def.cost)) {
+            const k = rk as ResourceKey;
+            (delta as any)[k] = (s as any)[k] + (val ?? 0) * 0.5;
+          }
+        }
+
+        return { placed, occupied, cap, ...delta };
+      }, false, "demolishAt");
+    },
+
+
+    placeAt: (cell, heightY = 0) => {
+      if (!get().alive) return false;
+      const defId = get().buildDefId;
+      if (!defId || !get().canAfford(defId)) return false;
+
+      const key = keyFromCell(cell.x, cell.z);
+      if (get().occupied[key]) return false; // zajęte
+
+      // zapłać koszt
+      const def = get().defs[defId];
+      if (def?.cost) {
+        const deltas: Partial<MarsState> = {};
+        for (const [rk, val] of Object.entries(def.cost)) {
+          const keyR = rk as ResourceKey;
+          (deltas as any)[keyR] = (get()[keyR] as number) - (val ?? 0);
+        }
+        set(deltas as any);
+      }
+
+      // zastosuj stałe provide (limity)
+      if (def?.provides) {
+        set(s => ({
+          cap: {
+            power: s.cap.power + (def.provides!.cap_power ?? 0),
+            water: s.cap.water + (def.provides!.cap_water ?? 0),
+            biomass: s.cap.biomass + (def.provides!.cap_biomass ?? 0),
+          }
+        }));
+      }
+
+      // dodaj budynek i zaznacz zajętość
+      set(s => ({
+        placed: s.placed.concat({ id: crypto.randomUUID(), defId, x: cell.x, z: cell.z, y: heightY }),
+        occupied: { ...s.occupied, [key]: true }
       }));
+
+      return true;
     }
-
-    // dodaj budynek i zaznacz zajętość
-    set(s => ({
-      placed: s.placed.concat({ id: crypto.randomUUID(), defId, x: cell.x, z: cell.z, y: heightY }),
-      occupied: { ...s.occupied, [key]: true }
-    }));
-
-    return true;
-  }
-}));
+  }), { name: "MarsStore", enabled: true, })  // <- nazwa w DevTools
+);
 
 /** Clamp do limitów + game-over */
 function clampAndCheck() {
@@ -180,7 +205,8 @@ function clampAndCheck() {
 }
 
 /** Ekonomia – tick co 1s: produkcja/zużycie + konsumpcja załogi + skalowanie słońcem */
-setInterval(() => {
+const globalResFn = () => {
+  clearTimeout(globalResInt);
   const s = useMars.getState();
   if (!s.alive) return;
 
@@ -202,4 +228,6 @@ setInterval(() => {
 
   if (Object.keys(delta).length) useMars.setState(delta as any);
   clampAndCheck();
-}, 1000);
+  globalResInt = setTimeout(globalResFn, 1000);
+}
+let globalResInt = setTimeout(globalResFn, 1000);
