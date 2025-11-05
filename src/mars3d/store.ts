@@ -110,7 +110,10 @@ export const useMars = create<MarsState>()(
           const near = s.placed.find(p => Math.abs(p.x - cx) < 0.51 && Math.abs(p.z - cz) < 0.51);
           if (near) bid = near.id;
         }
-        if (!bid) return {}; // nic do zrobienia
+        if (!bid) {
+          console.log("no bid");
+          return {}; // nic do zrobienia
+        }
 
         const idx = s.placed.findIndex(p => p.id === bid);
         if (idx === -1) return {};
@@ -178,9 +181,10 @@ export const useMars = create<MarsState>()(
       }
 
       // dodaj budynek i zaznacz zajętość
+      const newOne = { id: crypto.randomUUID(), defId, x: cell.x, z: cell.z, y: heightY };
       set(s => ({
-        placed: s.placed.concat({ id: crypto.randomUUID(), defId, x: cell.x, z: cell.z, y: heightY }),
-        occupied: { ...s.occupied, [key]: true }
+        placed: s.placed.concat(newOne),
+        occupied: { ...s.occupied, [key]: newOne.id }
       }));
 
       return true;
