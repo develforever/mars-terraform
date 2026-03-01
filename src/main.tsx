@@ -1,9 +1,12 @@
-import React from "react";
+
 import ReactDOM from "react-dom/client";
-import MarsView from "./app/MarsView";
+
+import "./main.scss";
+import { BrowserRouter } from "react-router";
+import App from "./app/App";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <MarsView />
-  </React.StrictMode>
+    <BrowserRouter>
+        <App />
+    </BrowserRouter>,
 );

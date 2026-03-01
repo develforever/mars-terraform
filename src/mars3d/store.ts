@@ -30,6 +30,8 @@ export interface MarsState {
   buildMode: 'place' | 'demolish' | null;
   occupied: Record<string, string>;
 
+  terrainSize: { x: number; z: number };
+
   setBuildDef(id: string | null): void;
   setHover(cell: { x: number; z: number } | null): void;
 
@@ -76,6 +78,7 @@ export const useMars = create<MarsState>()(
     hover: null,
     buildMode: null,
     occupied: {},
+    terrainSize: { x: 100, z: 50 },
 
     setBuildDef: (id) => set({ buildDefId: id }),
     setHover: (cell) => set({ hover: cell }),
@@ -99,7 +102,6 @@ export const useMars = create<MarsState>()(
     demolishAt: (cell) => {
       if (!get().alive || get().buildMode !== 'demolish') return false;
 
-      const keyFromCell = (x: number, z: number) => `${Math.round(x) || 0},${Math.round(z) || 0}`;
       const key = keyFromCell(cell.x, cell.z);
 
       return set((s) => {

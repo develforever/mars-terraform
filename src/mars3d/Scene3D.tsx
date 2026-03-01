@@ -24,9 +24,9 @@ function World() {
   const from = new Vector3();
   const down = new Vector3(0, -1, 0);
   const setSun = useMars(s => s.setSun);
-  const buildMode = useMars(s=>s.buildMode);
+  const buildMode = useMars(s => s.buildMode);
 
-  const getY = (x:number,z:number)=>{ if(!terrainRef.current) return 0; from.set(x,1000,z); ray.set(from,down); return ray.intersectObject(terrainRef.current,true)[0]?.point.y ?? 0; };
+  const getY = (x: number, z: number) => { if (!terrainRef.current) return 0; from.set(x, 1000, z); ray.set(from, down); return ray.intersectObject(terrainRef.current, true)[0]?.point.y ?? 0; };
   usePlacement({ grid: 1, getHeightAt: getY });
 
   // animacja słońca + obliczenie współczynnika dnia 0..1 (0 noc, 1 południe)
@@ -54,7 +54,7 @@ function World() {
       <HoverGhost />
       <DemolishGhost />
 
-      <OrbitControls enabled={buildMode === null} enableDamping dampingFactor={0.05} minDistance={5} maxDistance={50} maxPolarAngle={Math.PI/2.05}/>
+      <OrbitControls enabled={buildMode === null} enableDamping dampingFactor={0.05} minDistance={5} maxDistance={500} maxPolarAngle={Math.PI / 2.05} />
     </>
   );
 }
