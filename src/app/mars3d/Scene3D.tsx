@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { Mesh, Raycaster, Vector3, DirectionalLight } from "three";
 import { usePlacement } from "./usePlacement";
 import { MarsTerrain } from "./MarsTerrain";
@@ -11,7 +11,11 @@ import { useMars } from "./store";
 /** Wrapper: tylko Canvas */
 export function Scene3D() {
   return (
-    <Canvas className="main-canvas" camera={{ fov: 60, position: [12, 14, 12] }}>
+    <Canvas className="main-canvas" camera={{
+      type: "PerspectiveCamera",
+      fov: 60,
+      position: [0, 60, 25],
+    }}>
       <World />
     </Canvas>
   );
@@ -43,18 +47,35 @@ function World() {
     }
   });
 
+  const terrainSize = useRef({ x: 100, z: 50 });
+
+  const target = useMemo<[number, number, number]>(() => {
+    return [0, 0, 0];
+  }, []);
+
   return (
     <>
       <ambientLight intensity={0.25} />
       <directionalLight ref={sunRef} position={[10, 15, 5]} intensity={1.2} castShadow />
 
-      <MarsTerrain ref={terrainRef} />
-      <GridOverlay />
+      <MarsTerrain ref={terrainRef} terrainSize={terrainSize.current} />
+      <GridOverlay terrainSize={terrainSize.current} />
       <Buildings />
       <HoverGhost />
       <DemolishGhost />
 
-      <OrbitControls enabled={buildMode === null} enableDamping dampingFactor={0.05} minDistance={5} maxDistance={500} maxPolarAngle={Math.PI / 2.05} />
+      <OrbitControls
+        enabled={buildMode === null}
+        enableDamping
+        dampingFactor={0.05}
+        minDistance={5}
+        maxDistance={500}
+        minPolarAngle={Math.PI / 4}
+        maxPolarAngle={Math.PI / 2.15}
+        minAzimuthAngle={-Math.PI / 2}
+        maxAzimuthAngle={Math.PI / 2}
+        target={target}
+      />
     </>
   );
 }

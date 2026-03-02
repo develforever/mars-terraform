@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { useMars } from "../app/mars3d/store";
-import "./HUD.scss";
+import { useMars } from "../store";
+import "./HUD.css";
 
 export function HUD() {
   const { o2, power, water, biomass, cap, buildDefId, setBuildDef, canAfford, sun, alive,

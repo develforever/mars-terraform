@@ -1,10 +1,9 @@
 import { useTexture } from "@react-three/drei";
 import { RepeatWrapping, Mesh } from "three";
-import { useMars } from "./store";
 
-export const MarsTerrain = ({ ref }: { ref?: React.Ref<Mesh> }) => {
+export const MarsTerrain = ({ ref, terrainSize }: { ref?: React.Ref<Mesh>, terrainSize: { x: number; z: number } }) => {
 
-  const terrainSize = useMars(s => s.terrainSize);
+
 
   const [colorMap, dispMap] = useTexture([
     "/textures/mars_colorx1.png",

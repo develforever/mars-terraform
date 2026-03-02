@@ -1,8 +1,7 @@
 import { Grid } from "@react-three/drei";
-import { useMars } from "./store";
-export function GridOverlay() {
 
-  const terrainSize = useMars(s => s.terrainSize);
+export function GridOverlay({ terrainSize }: { terrainSize: { x: number; z: number } }) {
+
 
   return (
     <Grid position={[0, 0.06, 0]} args={[terrainSize.x, terrainSize.z]} cellSize={1} cellThickness={0.4}

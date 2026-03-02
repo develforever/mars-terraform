@@ -1,14 +1,16 @@
+@reference "tailwindcss";
+
 .hud {
   position: absolute; inset: 0;
-  z-index: 2;                     /* HUD ponad Canvasem */
-  pointer-events: none;           /* tło HUD nie przechwytuje myszki */
+  z-index: 2; 
+  pointer-events: none; 
   font-family: system-ui, Segoe UI, Roboto, sans-serif;
 
   .bar {
     position: absolute; left: 16px; top: 16px;
     display: flex; gap: 12px; padding: 8px 12px; color: #fff;
     background: rgba(0,0,0,.45); border-radius: 10px;
-    pointer-events: auto;         /* panel klikalny */
+    pointer-events: auto; 
   }
 
   .build {
@@ -17,17 +19,26 @@
     background: rgba(0,0,0,.35); border-radius: 10px;
     pointer-events: auto;
 
-    &-actions{
-      bottom: 99px;
-    }
-
+    /* Dzieci elementu .build zagnieżdżamy normalnie (np. bez ampersandu lub z nim, ale jako pełne selektory) */
     button {
       padding: 8px 12px; border: none; border-radius: 8px;
       background: #1f2937; color: #fff; cursor: pointer;
+      
+      /* Pseudo-klasy w natywnym CSS z użyciem & działają poprawnie */
       &:hover { background: #2b3850; }
       &.active { outline: 2px solid #ff5c1a; }
       &:disabled { opacity: .5; cursor: not-allowed; }
     }
+  }
+
+  /* Zamiast &-actions, definiujemy pełną nazwę klasy (Blok-Element w BEM) */
+  .build-actions {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    pointer-events: auto;
+    @apply bottom-27;
   }
 
   .overlay {
@@ -37,6 +48,7 @@
 
     .panel {
       background:#111827; color:#fff; padding:16px 20px; border-radius:12px; min-width:280px; text-align:center;
+      
       .title { font-size:22px; margin-bottom:8px; }
       .reason { opacity:.9; margin-bottom:12px; }
       button { padding:6px 12px; border-radius:8px; background:#2563eb; color:#fff; border:none; cursor:pointer; }

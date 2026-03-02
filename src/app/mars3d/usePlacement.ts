@@ -5,19 +5,19 @@ import { useMars } from "./store";
 
 const RAY = new THREE.Raycaster();
 const MOUSE = new THREE.Vector2();
-const UP = new THREE.Vector3(0,1,0);
+const UP = new THREE.Vector3(0, 1, 0);
 
-export function usePlacement({ grid=1, getHeightAt }: { grid?: number; getHeightAt?: (x:number,z:number)=>number }) {
+export function usePlacement({ grid = 1, getHeightAt }: { grid?: number; getHeightAt?: (x: number, z: number) => number }) {
   const { camera, gl } = useThree();
-  const setHover = useMars(s=>s.setHover);
-  const placeAt = useMars(s=>s.placeAt);
-  const demolishAt = useMars(s=>s.demolishAt);
-  const buildMode = useMars(s=>s.buildMode);
+  const setHover = useMars(s => s.setHover);
+  const placeAt = useMars(s => s.placeAt);
+  const demolishAt = useMars(s => s.demolishAt);
+  const buildMode = useMars(s => s.buildMode);
   const plane = useRef(new THREE.Plane(UP, 0));
-  const latest = useRef<{x:number; z:number} | null>(null);
+  const latest = useRef<{ x: number; z: number } | null>(null);
 
   // do wykrywania drag vs click
-  const downPos = useRef<{x:number; y:number} | null>(null);
+  const downPos = useRef<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
   const DRAG_THRESH = 5; // px
 
@@ -32,7 +32,7 @@ export function usePlacement({ grid=1, getHeightAt }: { grid?: number; getHeight
       if (downPos.current) {
         const dx = e.clientX - downPos.current.x;
         const dy = e.clientY - downPos.current.y;
-        dragging.current = (dx*dx + dy*dy) > (DRAG_THRESH*DRAG_THRESH);
+        dragging.current = (dx * dx + dy * dy) > (DRAG_THRESH * DRAG_THRESH);
       }
     }
 
