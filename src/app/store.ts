@@ -3,12 +3,14 @@ import { devtools } from 'zustand/middleware'
 
 export interface AppState {
   [key: string]: any;
+  title: string;
 }
 
 
 export const useAppStore = create<AppState>()(
   devtools((set, get) => ({
-
+    title: "Mars Terraform",
+    setTitle: (title: string) => set({ title }),
   }), { name: "AppStore", enabled: true, })
 );
 
