@@ -8,7 +8,7 @@ export interface AppState {
 
 
 export const useAppStore = create<AppState>()(
-  devtools((set, get) => ({
+  devtools((set) => ({
     title: "Mars Terraform",
     setTitle: (title: string) => set({ title }),
   }), { name: "AppStore", enabled: true, })
