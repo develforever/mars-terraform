@@ -9,7 +9,7 @@ export interface AppState {
 
 export const useAppStore = create<AppState>()(
   devtools((set) => ({
-    title: "Mars Terraform",
+    title: "Mars Terraform - ThreeJS WebGL Game",
     setTitle: (title: string) => set({ title }),
   }), { name: "AppStore", enabled: true, })
 );

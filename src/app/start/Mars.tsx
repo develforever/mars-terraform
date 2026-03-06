@@ -1,7 +1,7 @@
 import { useTexture } from "@react-three/drei";
 import { RepeatWrapping, Mesh } from "three";
 
-export const Mars = ({ ref }: { ref?: React.Ref<Mesh> }) => {
+export const Mars = ({ ref, onClick }: { ref?: React.Ref<Mesh>, onClick?: () => void }) => {
 
   const sphereSize = { x: 20, z: 20 };
 
@@ -12,7 +12,16 @@ export const Mars = ({ ref }: { ref?: React.Ref<Mesh> }) => {
   [colorMap, dispMap].forEach(t => { t.wrapS = t.wrapT = RepeatWrapping; t.repeat.set(1, 1); });
 
   return (
-    <mesh ref={ref as any} rotation-x={-Math.PI / 2} receiveShadow>
+    <mesh
+      ref={ref as any}
+      receiveShadow
+      onClick={(e) => {
+        e.stopPropagation(); // Zapobiega kliknięciu w obiekty za Marsem
+        onClick?.();
+      }}
+      onPointerOver={() => (document.body.style.cursor = 'pointer')}
+      onPointerOut={() => (document.body.style.cursor = 'auto')}
+    >
       <sphereGeometry args={[sphereSize.x, sphereSize.z, 256, 256]} />
       <meshStandardMaterial
         map={colorMap}
