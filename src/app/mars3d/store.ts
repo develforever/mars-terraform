@@ -3,6 +3,9 @@ import { devtools } from 'zustand/middleware'
 
 export type ResourceKey = "o2" | "power" | "water" | "biomass";
 
+/** Typ dla delta zmian zasobów - eliminuje użycie `any` */
+export type ResourceDelta = Partial<Record<ResourceKey, number>>;
+
 export interface Def {
   id: string; name: string; color?: string;
   cost?: Partial<Record<ResourceKey, number>>;
@@ -56,26 +59,28 @@ const SEED: Def[] = [
   { id: "rtg", name: "RTG", color: "#f472b6", cost: { biomass: 3, water: 1 }, prod: { power: +0.25 } },
 ];
 
-function keyFromCell(x: number, z: number) {
+export function keyFromCell(x: number, z: number) {
   // zaokrąglenie i normalizacja -0 → 0
   const ix = Math.round(x) || 0;
   const iz = Math.round(z) || 0;
   return `${ix},${iz}`;
 }
 
+export const INITIAL_STATE = {
+  o2: 5, power: 5, water: 3, biomass: 1,
+  cap: { power: 10, water: 10, biomass: 10 },
+  sun: 1, alive: true,
+  defs: Object.fromEntries(SEED.map(d => [d.id, d])),
+  placed: [],
+  buildDefId: "hab" as string | null,
+  hover: null as { x: number; z: number } | null,
+  buildMode: null as 'place' | 'demolish' | null,
+  occupied: {} as Record<string, string>,
+};
 
 export const useMars = create<MarsState>()(
   devtools((set, get) => ({
-    // start
-    o2: 5, power: 5, water: 3, biomass: 1,
-    cap: { power: 10, water: 10, biomass: 10 },
-    sun: 1, alive: true,
-    defs: Object.fromEntries(SEED.map(d => [d.id, d])),
-    placed: [],
-    buildDefId: "hab",
-    hover: null,
-    buildMode: null,
-    occupied: {},
+    ...INITIAL_STATE,
 
     setBuildDef: (id) => set({ buildDefId: id }),
     setHover: (cell) => set({ hover: cell }),
@@ -136,11 +141,11 @@ export const useMars = create<MarsState>()(
         }
 
         // opcjonalny zwrot 50% kosztów
-        const delta: Partial<MarsState> = {};
+        const delta: ResourceDelta = {};
         if (def?.cost) {
           for (const [rk, val] of Object.entries(def.cost)) {
             const k = rk as ResourceKey;
-            (delta as any)[k] = (s as any)[k] + (val ?? 0) * 0.5;
+            delta[k] = (s[k] as number) + (val ?? 0) * 0.5;
           }
         }
 
@@ -160,12 +165,12 @@ export const useMars = create<MarsState>()(
       // zapłać koszt
       const def = get().defs[defId];
       if (def?.cost) {
-        const deltas: Partial<MarsState> = {};
+        const deltas: ResourceDelta = {};
         for (const [rk, val] of Object.entries(def.cost)) {
           const keyR = rk as ResourceKey;
-          (deltas as any)[keyR] = (get()[keyR] as number) - (val ?? 0);
+          deltas[keyR] = (get()[keyR] as number) - (val ?? 0);
         }
-        set(deltas as any);
+        set(deltas);
       }
 
       // zastosuj stałe provide (limity)
@@ -194,26 +199,28 @@ export const useMars = create<MarsState>()(
 /** Clamp do limitów + game-over */
 function clampAndCheck() {
   const s = useMars.getState();
-  const next: Partial<MarsState> = {};
+  const next: ResourceDelta = {};
   // clamp
   (["power", "water", "biomass"] as const).forEach(k => {
     const cap = s.cap[k];
-    if (s[k] > cap) (next as any)[k] = cap;
-    if (s[k] < 0) (next as any)[k] = 0;
+    if (s[k] > cap) next[k] = cap;
+    if (s[k] < 0) next[k] = 0;
   });
   if (s.o2 < 0) next.o2 = 0;
   // game over
-  if (s.alive && (s.o2 <= 0)) next.alive = false;
-  if (Object.keys(next).length) useMars.setState(next as any);
+  if (s.alive && (s.o2 <= 0)) (next as Partial<MarsState>).alive = false;
+  if (Object.keys(next).length) useMars.setState(next as Partial<MarsState>);
 }
 
 /** Ekonomia – tick co 1s: produkcja/zużycie + konsumpcja załogi + skalowanie słońcem */
+let globalResInt: ReturnType<typeof setTimeout> | null = null;
+
 const globalResFn = () => {
-  clearTimeout(globalResInt);
+  if (globalResInt) clearTimeout(globalResInt);
   const s = useMars.getState();
   if (!s.alive) return;
 
-  const delta: Partial<MarsState> = {};
+  const delta: ResourceDelta = {};
   const sun = s.sun; // 0..1
   // budynki
   for (const b of s.placed) {
@@ -223,14 +230,36 @@ const globalResFn = () => {
       let vv = val ?? 0;
       if (def.tags?.includes("dayScaled") && rk === "power") vv *= sun;
       const key = rk as ResourceKey;
-      (delta as any)[key] = ((delta as any)[key] ?? s[key]) + vv;
+      delta[key] = ((delta[key] ?? s[key]) as number) + vv;
     }
   }
   // konsumpcja O2 przez załogę (MVP: 1 astronauta)
   delta.o2 = (delta.o2 ?? s.o2) - 0.05;
 
-  if (Object.keys(delta).length) useMars.setState(delta as any);
+  if (Object.keys(delta).length) useMars.setState(delta as Partial<MarsState>);
   clampAndCheck();
   globalResInt = setTimeout(globalResFn, 1000);
 }
-let globalResInt = setTimeout(globalResFn, 1000);
+/** Kontrola timera ekonomii - zewnętrzna (np. z komponentu) */
+let timerRunning = false;
+
+export function startEconomyTimer() {
+  if (timerRunning) return;
+  timerRunning = true;
+  globalResInt = setTimeout(globalResFn, 1000);
+}
+
+export function stopEconomyTimer() {
+  timerRunning = false;
+  if (globalResInt) clearTimeout(globalResInt);
+  globalResInt = null;
+}
+
+export function resetGame() {
+  stopEconomyTimer();
+  useMars.setState({
+    ...INITIAL_STATE,
+    defs: INITIAL_STATE.defs, // zachowaj definicje budynków
+  });
+  startEconomyTimer();
+}

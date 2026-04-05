@@ -1,9 +1,17 @@
 
 import { useModalStore } from "./store";
+import { useState } from "react";
 
 export default function ModalManager() {
 
     const { isOpen, close, onOk, onCancel } = useModalStore();
+    const [colonyName, setColonyName] = useState("");
+
+    const handleOk = () => {
+        if (!colonyName.trim()) return; // walidacja - nie pozwól na pustą nazwę
+        onOk?.();
+        close();
+    };
 
     return (
         <>
@@ -21,12 +29,19 @@ export default function ModalManager() {
                                 <p className="text-gray-400">
                                     Wprowadź nazwę koloni i rozpocznij eksplorację Marsa.
                                 </p>
-                                <input type="text" placeholder="Nazwa koloni" className="w-full p-2 border border-gray-400 rounded-lg text-white" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Nazwa koloni" 
+                                    value={colonyName}
+                                    onChange={(e) => setColonyName(e.target.value)}
+                                    className="w-full p-2 border border-gray-400 rounded-lg text-white bg-gray-800 mt-2" 
+                                />
                             </div>
                             <div className="flex justify-between">
                                 <button
-                                    onClick={() => { onOk?.(); close(); }}
-                                    className="bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg font-bold transition-colors p-1"
+                                    onClick={handleOk}
+                                    disabled={!colonyName.trim()}
+                                    className="bg-orange-600 hover:bg-orange-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-3 rounded-lg font-bold transition-colors p-1"
                                 >
                                     Rozpocznij Kolonizację
                                 </button>

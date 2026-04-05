@@ -19,8 +19,6 @@ export const Mars = ({ ref, onClick }: { ref?: React.Ref<Mesh>, onClick?: () => 
         e.stopPropagation(); // Zapobiega kliknięciu w obiekty za Marsem
         onClick?.();
       }}
-      onPointerOver={() => (document.body.style.cursor = 'pointer')}
-      onPointerOut={() => (document.body.style.cursor = 'auto')}
     >
       <sphereGeometry args={[sphereSize.x, sphereSize.z, 256, 256]} />
       <meshStandardMaterial

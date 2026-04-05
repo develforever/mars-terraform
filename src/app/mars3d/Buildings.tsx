@@ -1,7 +1,7 @@
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useEffect } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { Group } from "three";
-import { useMars } from "./store";
+import { useMars, keyFromCell } from "./store";
 
 // cache/preload – możesz dorzucić inne ścieżki
 useGLTF.preload("/models/biomass_silo.glb");
@@ -11,10 +11,25 @@ useGLTF.preload("/models/habitat.glb");
 useGLTF.preload("/models/solar_panel.glb");
 
 function Model({ path, scale = 1 }: { path: string; scale?: number }) {
-  const gltf = useGLTF(path) as any;
-  // 🔑 Każda instancja dostaje własnego klona sceny
+  const gltf = useGLTF(path) as { scene: Group };
+  // Każda instancja dostaje własnego klona sceny
   const sceneClone = useMemo<Group>(() => gltf.scene.clone(true), [gltf.scene]);
-  return <primitive object={sceneClone} scale={scale} dispose={null} />;
+  
+  // Cleanup przy odmontowaniu komponentu
+  useEffect(() => {
+    return () => {
+      sceneClone.traverse((child) => {
+        if ((child as any).geometry) (child as any).geometry.dispose();
+        if ((child as any).material) {
+          const mat = (child as any).material;
+          if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+          else mat.dispose();
+        }
+      });
+    };
+  }, [sceneClone]);
+  
+  return <primitive object={sceneClone} scale={scale} />;
 }
 
 function BuildingMesh({ defId }: { defId: string }) {
@@ -82,7 +97,7 @@ export function DemolishGhost() {
   const occ = useMars(s => s.occupied);
   const mode = useMars(s => s.buildMode);
   if (!hover || mode !== 'demolish') return null;
-  const key = `${Math.round(hover.x)},${Math.round(hover.z)}`;
+  const key = keyFromCell(hover.x, hover.z);
   const isOccupied = !!occ[key];
   if (!isOccupied) return null;
   return (
