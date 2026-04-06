@@ -1,0 +1,26 @@
+@reference "tailwindcss";
+
+.top-menu {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0;
+    margin: 0;
+}
+
+.top-menu__item-link {
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: #6b7280;
+    transition: color 0.2s;
+}
+
+.top-menu__item-link:hover {
+    color: #374151;
+}
+
+.top-menu__item-link.active {
+    color: #ff5c1a;
+    font-weight: 600;
+}

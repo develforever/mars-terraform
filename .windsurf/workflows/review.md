@@ -14,6 +14,7 @@ Your task is to find all potential bugs and code improvements in the code change
 7. API contract violations
 8. Incorrect caching behavior, including cache staleness issues, cache key-related bugs, incorrect cache invalidation, and ineffective caching
 9. Violations of existing code patterns or conventions
+10. Secrets exposure
 
 Make sure to:
 1. If exploring the codebase, call multiple tools in parallel for increased efficiency. Do not spend too much time exploring.

@@ -1,23 +1,21 @@
 import { create } from "zustand";
-import { devtools } from 'zustand/middleware'
+import { devtools } from "zustand/middleware";
 
-export interface AppState {
-    [key: string]: any;
+export type ModalType = "colony-name" | null;
+
+export interface ModalState {
     isOpen: boolean;
-    onOk?: () => void;
-    onCancel?: () => void;
-    open: (onOk?: () => void, onCancel?: () => void) => void;
+    modalType: ModalType;
+    open: (type: ModalType) => void;
     close: () => void;
 }
 
-
-export const useModalStore = create<AppState>()(
+export const useModalStore = create<ModalState>()(
     devtools((set) => ({
         isOpen: false,
-        onOk: () => { },
-        onCancel: () => { },
-        open: (onOk?: () => void, onCancel?: () => void) => set({ isOpen: true, onOk, onCancel }),
-        close: () => set({ isOpen: false }),
-    }), { name: "ModalStore", enabled: true, })
+        modalType: null,
+        open: (type: ModalType) => set({ isOpen: true, modalType: type }),
+        close: () => set({ isOpen: false, modalType: null }),
+    }), { name: "ModalStore", enabled: true })
 );
 

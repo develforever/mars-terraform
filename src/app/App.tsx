@@ -1,8 +1,8 @@
 import { Route, Routes } from "react-router";
-import StartView from "./start/StartView";
-import MarsView from "./mars3d/MarsView";
-import TopMenu from "../ui/TopMenu";
-import ModalManager from "../ui/ModalManager/ModalManager";
+import StartView from "../presentation/pages/StartView";
+import MarsView from "../presentation/pages/MarsView";
+import TopMenu from "../presentation/components/ui/TopMenu";
+import ModalManager from "../presentation/components/ui/ModalManager";
 
 export default function App() {
 
