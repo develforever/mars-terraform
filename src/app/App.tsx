@@ -8,7 +8,7 @@ export default function App() {
 
 
     return (
-        <>
+        <div data-testid="app" className="w-full h-full">
             <TopMenu />
             <div className="mars-root">
                 <Routes>
@@ -17,6 +17,6 @@ export default function App() {
                 </Routes>
             </div>
             <ModalManager />
-        </>
+        </div>
     );
 }

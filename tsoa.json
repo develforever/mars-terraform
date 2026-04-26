@@ -1,0 +1,14 @@
+{
+  "entryFile": "src_backend/index.ts",
+  "noImplicitAdditionalProperties": "throw-on-extras",
+  "controllerPathGlobs": ["src_backend/controller/**/*.ts"],
+  "spec": {
+    "outputDirectory": "src_backend/api",
+    "specVersion": 3
+  },
+  "routes": {
+    "routesDir": "src_backend/routes",
+    "basePath": "/api",
+    "authenticationModule": "src_backend/middleware/authMiddleware.ts"
+  }
+}
