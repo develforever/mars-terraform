@@ -22,7 +22,7 @@ export interface GameState {
   // Actions
   setSun: (factor: number) => void;
   setColonyName: (name: string) => void;
-  placeBuilding: (cell: { x: number; z: number }, heightY: number) => boolean;
+  placeBuilding: (cell: { x: number; z: number }, heightY: number, definitionId: string) => boolean;
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
   applyEconomyTick: () => void;
   resetGame: () => void;
@@ -47,9 +47,9 @@ export const useGameStore = create<GameState>()(
         set({ colonyName: name });
       },
 
-      placeBuilding: (cell, heightY) => {
+      placeBuilding: (cell, heightY, definitionId) => {
         const state = get();
-        const definition = BUILDING_DEFINITIONS[state.placed.length === 0 ? "hab" : ""]; // Default to hab or use external selection
+        const definition = BUILDING_DEFINITIONS[definitionId];
         
         if (!definition) return false;
 

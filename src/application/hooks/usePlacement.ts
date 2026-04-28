@@ -17,6 +17,7 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
   const { camera, gl } = useThree();
   const setHoverCell = useUIStore((s) => s.setHoverCell);
   const buildMode = useUIStore((s) => s.buildMode);
+  const selectedBuildingId = useUIStore((s) => s.selectedBuildingId);
   const placeBuilding = useGameStore((s) => s.placeBuilding);
   const demolishBuilding = useGameStore((s) => s.demolishBuilding);
   const plane = useRef(new THREE.Plane(UP, 0));
@@ -58,8 +59,9 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
 
       const { x, z } = latest.current;
       if (buildMode === "place") {
+        if (!selectedBuildingId) return;
         const y = getHeightAt ? getHeightAt(x, z) : 0;
-        placeBuilding({ x, z }, y);
+        placeBuilding({ x, z }, y, selectedBuildingId);
       } else if (buildMode === "demolish") {
         demolishBuilding({ x, z });
       }
@@ -73,7 +75,7 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointerup", onPointerUp);
     };
-  }, [gl.domElement, buildMode, placeBuilding, demolishBuilding, getHeightAt]);
+  }, [gl.domElement, buildMode, selectedBuildingId, placeBuilding, demolishBuilding, getHeightAt]);
 
   useFrame(() => {
     RAY.setFromCamera(MOUSE, camera);

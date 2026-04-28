@@ -2,9 +2,18 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { fileURLToPath } from 'node:url'
+
+const threePath = fileURLToPath(new URL('./node_modules/three', import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      three: threePath,
+    },
+    dedupe: ['three'],
+  },
   server: {
     proxy: {
       '/api': 'http://localhost:3000'

@@ -41,6 +41,81 @@
     @apply bottom-27;
   }
 
+  /* Tooltip wrapper around each building button */
+  .tooltip-wrapper {
+    position: relative;
+  }
+
+  .tooltip-panel {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #111827;
+    color: #e5e7eb;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    min-width: 200px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.6);
+    pointer-events: none;
+    z-index: 10;
+    white-space: nowrap;
+  }
+
+  .tooltip-wrapper:hover .tooltip-panel {
+    display: block;
+  }
+
+  .tooltip-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+
+  .tooltip-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6px;
+  }
+
+  .tooltip-table th {
+    text-align: left;
+    font-weight: 500;
+    color: #9ca3af;
+    padding: 2px 6px;
+    border-bottom: 1px solid #374151;
+  }
+
+  .tooltip-table td {
+    padding: 2px 6px;
+  }
+
+  .tooltip-table tr.deficit td {
+    color: #f87171;
+  }
+
+  .tooltip-section {
+    margin-top: 6px;
+    border-top: 1px solid #374151;
+    padding-top: 4px;
+  }
+
+  .tooltip-subtitle {
+    font-weight: 600;
+    color: #9ca3af;
+    font-size: 11px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .prod-positive { color: #4ade80; }
+  .prod-negative { color: #f87171; }
+
   .overlay {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     background: rgba(0,0,0,.35); backdrop-filter: blur(3px);
