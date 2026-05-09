@@ -19,6 +19,7 @@ export interface UIState {
   toggleBuildMode: () => void;
   toggleDemolishMode: () => void;
   cancelBuild: () => void;
+  resetUI: () => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -46,6 +47,13 @@ export const useUIStore = create<UIState>()(
       },
 
       cancelBuild: () => set({ buildMode: null }),
+
+      resetUI: () =>
+        set({
+          buildMode: null,
+          selectedBuildingId: "hab",
+          hoverCell: null,
+        }),
     }),
     { name: "UIStore", enabled: true }
   )

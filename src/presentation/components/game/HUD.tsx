@@ -17,6 +17,8 @@ export function HUD() {
     const toggleBuildMode = useUIStore((state) => state.toggleBuildMode);
     const toggleDemolishMode = useUIStore((state) => state.toggleDemolishMode);
     const cancelBuild = useUIStore((state) => state.cancelBuild);
+    const resetGame = useGameStore((state) => state.resetGame);
+    const resetUI = useUIStore((state) => state.resetUI);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -150,7 +152,15 @@ export function HUD() {
                     <div className="panel">
                         <div className="title">KONIEC GRY</div>
                         <div className="reason">Zabrakło tlenu.</div>
-                        <button onClick={() => location.reload()}>Nowa gra</button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                resetGame();
+                                resetUI();
+                            }}
+                        >
+                            Nowa gra
+                        </button>
                     </div>
                 </div>
             )}

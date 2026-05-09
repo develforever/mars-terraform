@@ -1,19 +1,17 @@
-import { useTexture } from "@react-three/drei";
-import { RepeatWrapping, Mesh } from "three";
+import { Mesh, type Texture } from "three";
 import { forwardRef } from "react";
+import { RepeatWrapping } from "three";
+import { TERRAIN_DISPLACEMENT_SCALE } from "../../utils/terrainDisplacement";
 
 interface MarsTerrainProps {
     terrainSize: { x: number; z: number };
+    colorMap: Texture;
+    displacementMap: Texture;
 }
 
 export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
-    ({ terrainSize }, ref) => {
-        const [colorMap, dispMap] = useTexture([
-            "/textures/mars_colorx1.png",
-            "/textures/mars_displacementx1.png",
-        ]);
-        
-        [colorMap, dispMap].forEach((t) => {
+    ({ terrainSize, colorMap, displacementMap }, ref) => {
+        [colorMap, displacementMap].forEach((t) => {
             t.wrapS = t.wrapT = RepeatWrapping;
             t.repeat.set(1, 1);
         });
@@ -23,8 +21,8 @@ export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
                 <planeGeometry args={[terrainSize.x, terrainSize.z, 32, 32]} />
                 <meshStandardMaterial
                     map={colorMap}
-                    displacementMap={dispMap}
-                    displacementScale={1.2}
+                    displacementMap={displacementMap}
+                    displacementScale={TERRAIN_DISPLACEMENT_SCALE}
                     roughness={1}
                     metalness={0}
                 />

@@ -1,75 +1,49 @@
-# React + TypeScript + Vite
+# Mars Terraform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Gra przeglądarkowa 3D (React + Three.js / React Three Fiber) o terraformacji Marsa: widok „Home” z planetą oraz widok kolonii z budową struktur zużywających i produkujących zasoby.
 
-Currently, two official plugins are available:
+## Uruchamianie
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Wymaga Node.js z npm.
 
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Frontend (Vite):
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev:front
 ```
+
+Backend Express (API użytkowników/grup, JWT — osobny moduł, nie spięty z logiką gry w UI):
+
+```bash
+npm run dev:back
+```
+
+Oba procesy naraz:
+
+```bash
+npm run dev
+```
+
+Domyślny frontend: adres z konsoli Vite (zwykle `http://localhost:5173`). Konfiguracja backendu przez zmienne środowiskowe (np. `.env.local`).
+
+## Nawigacja w aplikacji
+
+- **`/`** — start: obracająca się Mars, klik otwiera modal nazwy kolonii.
+- **`/mars`** — scena pola terraformacji z siatką terenu, HUD (zasoby ☀️, O₂, energia, woda, biomasa), tryby budowy / rozbiórki (również klawisze **B**, **X**, **Esc**).
+
+Ekonomia gry wywoływana jest co około **1 sekundę** podczas gry na trasie `/mars` (tick w `useEconomy`; po **game over** pętla się zatrzymuje i startuje ponownie po **„Nowa gra”**, bez przeładowania strony).
+
+## Skrypty przydatne w dev
+
+- `npm run build` — build produkcyjny frontu  
+- `npm run test` — testy frontend + backend Vitest  
+- `npm run tsoa:gen` — regeneracja tras OpenAPI dla backendu (Tsoa)  
+- `npm run db:push` — schemat bazy Drizzle  
+
+## Repo
+
+Część plików w `src/app/mars3d/` to starsza lub równoległa ścieżka; aktywna gra i routing korzystają z **`src/app/App.tsx`** oraz komponentów w **`src/presentation/`**.

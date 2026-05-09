@@ -6,6 +6,7 @@ import { useUIStore } from "../../../application/store/useUIStore";
 import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 import { keyFromCell } from "../../../domain/entities/Position";
 import { BuildingService } from "../../../domain/services/BuildingService";
+import { useTerrainHeight } from "./TerrainHeightContext";
 
 // Preload models
 useGLTF.preload("/models/biomass_silo.glb");
@@ -96,14 +97,16 @@ export function HoverGhost() {
     const selectedBuildingId = useUIStore((state) => state.selectedBuildingId);
     const buildMode = useUIStore((state) => state.buildMode);
     const resources = useGameStore((state) => state.resources);
+    const terrainY = useTerrainHeight();
 
     if (!hoverCell || !selectedBuildingId || buildMode !== "place") return null;
 
     const def = BUILDING_DEFINITIONS[selectedBuildingId];
     const canAfford = def ? BuildingService.canAfford(def.cost, resources) : false;
+    const baseY = terrainY(hoverCell.x, hoverCell.z) + 0.51;
 
     return (
-        <mesh position={[hoverCell.x, 0.51, hoverCell.z]}>
+        <mesh position={[hoverCell.x, baseY, hoverCell.z]}>
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color={canAfford ? "#00ff88" : "#ff3355"} transparent opacity={0.35} />
         </mesh>
@@ -114,6 +117,7 @@ export function DemolishGhost() {
     const hoverCell = useUIStore((state) => state.hoverCell);
     const buildMode = useUIStore((state) => state.buildMode);
     const occupied = useGameStore((state) => state.occupied);
+    const terrainY = useTerrainHeight();
 
     if (!hoverCell || buildMode !== "demolish") return null;
 
@@ -122,8 +126,12 @@ export function DemolishGhost() {
 
     if (!isOccupied) return null;
 
+    const cx = Math.round(hoverCell.x);
+    const cz = Math.round(hoverCell.z);
+    const baseY = terrainY(cx, cz) + 0.51;
+
     return (
-        <mesh position={[Math.round(hoverCell.x), 0.51, Math.round(hoverCell.z)]}>
+        <mesh position={[cx, baseY, cz]}>
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial color="#ff3355" transparent opacity={0.35} />
         </mesh>
