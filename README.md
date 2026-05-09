@@ -44,6 +44,8 @@ Ekonomia gry wywoływana jest co około **1 sekundę** podczas gry na trasie `/m
 - `npm run tsoa:gen` — regeneracja tras OpenAPI dla backendu (Tsoa)  
 - `npm run db:push` — schemat bazy Drizzle  
 
-## Repo
+## Struktura kodu
 
-Część plików w `src/app/mars3d/` to starsza lub równoległa ścieżka; aktywna gra i routing korzystają z **`src/app/App.tsx`** oraz komponentów w **`src/presentation/`**.
+- Routing i `App` są w **`src/app/`** (`App.tsx`).  
+- Widoki 3D i HUD gry: **`src/presentation/`**.  
+- Stan gry (Zustand) i domena: **`src/application/`**, **`src/domain/`**.

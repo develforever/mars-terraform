@@ -1,5 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
+import { Texture } from "three";
 import {
+  heightFromDisplacement,
   heightFromDisplacementRaster,
   TERRAIN_DISPLACEMENT_SCALE,
 } from "./terrainDisplacement";
@@ -55,5 +57,90 @@ describe("heightFromDisplacementRaster", () => {
   it("respects a custom displacement scale override", () => {
     const raster = rgbaRaster(2, 2, () => 255);
     expect(heightFromDisplacementRaster(0, 0, TERRAIN, raster, 2)).toBeCloseTo(2, 10);
+  });
+});
+
+describe("heightFromDisplacement (THREE.Texture)", () => {
+  let getContextSpy: MockInstance<
+    CanvasRenderingContext2D | ImageBitmapRenderingContext | null,
+    [contextId: string, ...arguments: unknown[]]
+  >;
+
+  beforeEach(() => {
+    getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+      function (this: HTMLCanvasElement, contextId: string) {
+        if (contextId !== "2d") return null;
+        const w = Math.max(this.width | 0, 1);
+        const h = Math.max(this.height | 0, 1);
+        const { width, height, data } = rgbaRaster(w, h, () => 255);
+
+        const ctx = {
+          drawImage: vi.fn(),
+          getImageData: () =>
+            ({
+              width,
+              height,
+              data,
+              colorSpace: "srgb",
+            }),
+        };
+
+        return ctx as unknown as CanvasRenderingContext2D;
+      }
+    );
+  });
+
+  afterEach(() => {
+    getContextSpy.mockRestore();
+  });
+
+  it("decodes displacement via canvas helpers and samples like the raster path", () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 8;
+    canvas.height = 8;
+    const tex = new Texture(canvas);
+
+    expect(heightFromDisplacement(0, 0, TERRAIN, tex)).toBeCloseTo(TERRAIN_DISPLACEMENT_SCALE, 10);
+  });
+
+  it("matches known red channel height at terrain center (Texture path)", () => {
+    const w = 8;
+    const h = 8;
+    const cx = Math.floor(w / 2);
+    const cy = Math.floor(h / 2);
+    const targetR = 200;
+
+    getContextSpy.mockRestore();
+    getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(
+      function (this: HTMLCanvasElement, contextId: string) {
+        if (contextId !== "2d") return null;
+        const rw = Math.max(this.width | 0, 1);
+        const rh = Math.max(this.height | 0, 1);
+        const { width, height, data } = rgbaRaster(rw, rh, (x, y) =>
+          x === cx && y === cy ? targetR : 0
+        );
+
+        return {
+          drawImage: vi.fn(),
+          getImageData: () =>
+            ({
+              width,
+              height,
+              data,
+              colorSpace: "srgb",
+            }),
+        } as unknown as CanvasRenderingContext2D;
+      }
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const tex = new Texture(canvas);
+
+    expect(heightFromDisplacement(0, 0, TERRAIN, tex)).toBeCloseTo(
+      (targetR / 255) * TERRAIN_DISPLACEMENT_SCALE,
+      10
+    );
   });
 });
