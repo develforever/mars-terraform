@@ -35,7 +35,8 @@ Here are some guidelines for coding in this project:
 
 The project is structured using the principles of clean architecture. The main directories include:
 
-- `src`: contains the source code for the application
+- `src`: contains the frontend source code for the application
+- `src_backend`: contains the backend source code for the application
 - `public/models`: contains 3d models
 - `public/textures`: contains textures
 - `src/ui`: contains React components for the user interface

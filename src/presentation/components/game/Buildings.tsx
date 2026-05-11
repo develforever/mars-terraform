@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useEffect } from "react";
+import { Suspense, useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { Group } from "three";
 import { useGameStore } from "../../../application/store/useGameStore";
@@ -23,22 +23,6 @@ interface ModelProps {
 function Model({ path, scale = 1 }: ModelProps) {
     const gltf = useGLTF(path) as { scene: Group };
     const sceneClone = useMemo<Group>(() => gltf.scene.clone(true), [gltf.scene]);
-
-    useEffect(() => {
-        return () => {
-            sceneClone.traverse((child) => {
-                const mesh = child as { geometry?: { dispose: () => void }; material?: { dispose: () => void } | { dispose: () => void }[] };
-                if (mesh.geometry) mesh.geometry.dispose();
-                if (mesh.material) {
-                    if (Array.isArray(mesh.material)) {
-                        mesh.material.forEach((m) => m.dispose());
-                    } else {
-                        mesh.material.dispose();
-                    }
-                }
-            });
-        };
-    }, [sceneClone]);
 
     return <primitive object={sceneClone} scale={scale} />;
 }

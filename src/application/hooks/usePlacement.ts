@@ -81,14 +81,18 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
     RAY.setFromCamera(MOUSE, camera);
     const hit = new THREE.Vector3();
     if (!RAY.ray.intersectPlane(plane.current, hit)) {
-      setHoverCell(null);
-      latest.current = null;
+      if (latest.current !== null) {
+        setHoverCell(null);
+        latest.current = null;
+      }
       return;
     }
     const x = Math.round(hit.x / grid) * grid;
     const z = Math.round(hit.z / grid) * grid;
-    const cell = { x, z };
-    latest.current = cell;
-    setHoverCell(cell);
+    if (!latest.current || latest.current.x !== x || latest.current.z !== z) {
+      const cell = { x, z };
+      latest.current = cell;
+      setHoverCell(cell);
+    }
   });
 }

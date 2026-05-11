@@ -23,6 +23,8 @@ export function HUD() {
     // Keyboard shortcuts
     useEffect(() => {
         function onKey(e: KeyboardEvent) {
+            const target = e.target as HTMLElement;
+            if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
             if (e.key === "b" || e.key === "B") toggleBuildMode();
             if (e.key === "x" || e.key === "X") toggleDemolishMode();
             if (e.key === "Escape") cancelBuild();

@@ -15,10 +15,12 @@ export const Mars = forwardRef<Mesh, MarsProps>(({ onClick }, ref) => {
         "/textures/mars_displacementx1.png",
     ]);
 
-    [colorMap, dispMap].forEach((t) => {
-        t.wrapS = t.wrapT = RepeatWrapping;
-        t.repeat.set(1, 1);
-    });
+    useMemo(() => {
+        [colorMap, dispMap].forEach((t) => {
+            t.wrapS = t.wrapT = RepeatWrapping;
+            t.repeat.set(1, 1);
+        });
+    }, [colorMap, dispMap]);
 
     return (
         <mesh

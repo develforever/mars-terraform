@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Texture } from "three";
 import {
   heightFromDisplacement,
@@ -61,10 +61,7 @@ describe("heightFromDisplacementRaster", () => {
 });
 
 describe("heightFromDisplacement (THREE.Texture)", () => {
-  let getContextSpy: MockInstance<
-    CanvasRenderingContext2D | ImageBitmapRenderingContext | null,
-    [contextId: string, ...arguments: unknown[]]
-  >;
+  let getContextSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(

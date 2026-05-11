@@ -35,10 +35,7 @@ export const useUIStore = create<UIState>()(
 
       toggleBuildMode: () => {
         const current = get().buildMode;
-        set({ 
-          buildMode: current === "place" ? null : "place",
-          selectedBuildingId: current === null ? get().selectedBuildingId : get().selectedBuildingId
-        });
+        set({ buildMode: current === "place" ? null : "place" });
       },
 
       toggleDemolishMode: () => {

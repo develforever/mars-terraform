@@ -1,6 +1,5 @@
-import { Mesh, type Texture } from "three";
-import { forwardRef } from "react";
-import { RepeatWrapping } from "three";
+import { Mesh, type Texture, RepeatWrapping } from "three";
+import { forwardRef, useMemo } from "react";
 import { TERRAIN_DISPLACEMENT_SCALE } from "../../utils/terrainDisplacement";
 
 interface MarsTerrainProps {
@@ -11,10 +10,12 @@ interface MarsTerrainProps {
 
 export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
     ({ terrainSize, colorMap, displacementMap }, ref) => {
-        [colorMap, displacementMap].forEach((t) => {
-            t.wrapS = t.wrapT = RepeatWrapping;
-            t.repeat.set(1, 1);
-        });
+        useMemo(() => {
+            [colorMap, displacementMap].forEach((t) => {
+                t.wrapS = t.wrapT = RepeatWrapping;
+                t.repeat.set(1, 1);
+            });
+        }, [colorMap, displacementMap]);
 
         return (
             <mesh ref={ref} rotation-x={-Math.PI / 2} receiveShadow>
