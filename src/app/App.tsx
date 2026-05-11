@@ -8,7 +8,7 @@ export default function App() {
 
 
     return (
-        <div data-testid="app" className="w-full h-full">
+        <div data-testid="app" className="app-root w-full h-full min-h-0">
             <TopMenu />
             <div className="mars-root">
                 <Routes>

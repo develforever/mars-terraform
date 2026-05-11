@@ -1,26 +1,45 @@
 @reference "tailwindcss";
 
+.top-menu-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    padding: 10px 14px 8px;
+    pointer-events: none;
+}
+
 .top-menu {
     display: flex;
     justify-content: flex-start;
     align-items: center;
-    gap: 1rem;
+    gap: 0.25rem;
     padding: 0;
     margin: 0;
+    list-style: none;
+    pointer-events: auto;
 }
 
 .top-menu__item-link {
-    padding: 0.5rem 1rem;
+    padding: 0.35rem 0.75rem;
     text-decoration: none;
-    color: #6b7280;
-    transition: color 0.2s;
+    color: #9ca3af;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
 }
 
 .top-menu__item-link:hover {
-    color: #374151;
+    color: #e5e7eb;
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .top-menu__item-link.active {
-    color: #ff5c1a;
+    color: #ff7a3d;
     font-weight: 600;
+    background: rgba(255, 92, 26, 0.12);
+    box-shadow: inset 0 -2px 0 #ff5c1a;
 }

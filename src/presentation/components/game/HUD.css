@@ -1,132 +1,274 @@
 @reference "tailwindcss";
 
+:root {
+    --hud-accent: #ff5c1a;
+    --hud-accent-dim: rgba(255, 92, 26, 0.35);
+    --hud-glass: rgba(8, 12, 20, 0.78);
+    --hud-border: rgba(255, 255, 255, 0.08);
+    --hud-text: #e8eaef;
+    --hud-muted: #8b92a1;
+}
+
 .hud {
-  position: absolute; inset: 0;
-  z-index: 2; 
-  pointer-events: none; 
-  font-family: system-ui, Segoe UI, Roboto, sans-serif;
-
-  .bar {
-    position: absolute; left: 16px; top: 16px;
-    display: flex; gap: 12px; padding: 8px 12px; color: #fff;
-    background: rgba(0,0,0,.45); border-radius: 10px;
-    pointer-events: auto; 
-  }
-
-  .build {
-    position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
-    display: flex; gap: 10px; padding: 8px;
-    background: rgba(0,0,0,.35); border-radius: 10px;
-    pointer-events: auto;
-
-    /* Dzieci elementu .build zagnieżdżamy normalnie (np. bez ampersandu lub z nim, ale jako pełne selektory) */
-    button {
-      padding: 8px 12px; border: none; border-radius: 8px;
-      background: #1f2937; color: #fff; cursor: pointer;
-      
-      /* Pseudo-klasy w natywnym CSS z użyciem & działają poprawnie */
-      &:hover { background: #2b3850; }
-      &.active { outline: 2px solid #ff5c1a; }
-      &:disabled { opacity: .5; cursor: not-allowed; }
-    }
-  }
-
-  /* Zamiast &-actions, definiujemy pełną nazwę klasy (Blok-Element w BEM) */
-  .build-actions {
     position: absolute;
+    inset: 0;
+    z-index: 12;
+    pointer-events: none;
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+    color: var(--hud-text);
+    font-size: 13px;
+}
+
+/* Pasek zasobów — pod stałym menu, styl panelu taktycznego */
+.hud .bar {
+    position: absolute;
+    left: 14px;
+    top: 48px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    padding: 8px 14px;
+    color: var(--hud-text);
+    background: var(--hud-glass);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--hud-border);
+    border-radius: 10px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    pointer-events: auto;
+}
+
+.hud .bar span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    font-size: 12px;
+    color: #d1d5db;
+}
+
+.hud .bar span:not(:last-child) {
+    padding-right: 10px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Jedna konsola HUD u dołu ekranu */
+.hud-dock {
+    position: absolute;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    display: flex;
+    width: max-content;
+    max-width: calc(100vw - 24px);
+    padding: 10px 14px 14px;
     pointer-events: auto;
-    @apply bottom-27;
-  }
 
-  /* Tooltip wrapper around each building button */
-  .tooltip-wrapper {
+    background: linear-gradient(
+        180deg,
+        rgba(10, 14, 22, 0.55) 0%,
+        rgba(6, 8, 12, 0.92) 40%,
+        rgba(5, 6, 10, 0.96) 100%
+    );
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--hud-border);
+    border-bottom: none;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 0 0 1px var(--hud-accent-dim);
+}
+
+.hud-dock__row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+.hud-dock__row--tools {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hud-dock__row--palette {
+    gap: 6px;
+    max-height: none;
+}
+
+.hud-dock button {
     position: relative;
-  }
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(24, 32, 46, 0.95);
+    color: var(--hud-text);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
 
-  .tooltip-panel {
+.hud-dock button:hover:not(:disabled) {
+    background: rgba(36, 48, 68, 0.98);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.hud-dock button.active {
+    border-color: var(--hud-accent);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--hud-accent), inset 0 0 16px rgba(255, 92, 26, 0.12);
+    background: rgba(40, 28, 20, 0.95);
+    color: #fff;
+}
+
+.hud-dock button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.hud-dock__row--palette button {
+    padding: 6px 10px;
+    font-size: 10px;
+    min-width: 0;
+}
+
+.tooltip-wrapper {
+    position: relative;
+}
+
+.tooltip-panel {
     display: none;
     position: absolute;
-    bottom: calc(100% + 8px);
+    bottom: calc(100% + 10px);
     left: 50%;
     transform: translateX(-50%);
-    background: #111827;
+    background: rgba(12, 16, 24, 0.97);
     color: #e5e7eb;
     padding: 10px 12px;
     border-radius: 10px;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.5;
     min-width: 200px;
-    box-shadow: 0 4px 20px rgba(0,0,0,.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--hud-accent-dim);
     pointer-events: none;
-    z-index: 10;
+    z-index: 40;
     white-space: nowrap;
-  }
+}
 
-  .tooltip-wrapper:hover .tooltip-panel {
+.tooltip-wrapper:hover .tooltip-panel {
     display: block;
-  }
+}
 
-  .tooltip-title {
-    font-size: 15px;
+.tooltip-title {
+    font-size: 14px;
     font-weight: 600;
     color: #fff;
     margin-bottom: 6px;
     text-align: center;
-  }
+    letter-spacing: 0.03em;
+}
 
-  .tooltip-table {
+.tooltip-table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 6px;
-  }
+}
 
-  .tooltip-table th {
+.tooltip-table th {
     text-align: left;
     font-weight: 500;
-    color: #9ca3af;
+    color: var(--hud-muted);
     padding: 2px 6px;
-    border-bottom: 1px solid #374151;
-  }
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-  .tooltip-table td {
+.tooltip-table td {
     padding: 2px 6px;
-  }
+}
 
-  .tooltip-table tr.deficit td {
+.tooltip-table tr.deficit td {
     color: #f87171;
-  }
+}
 
-  .tooltip-section {
+.tooltip-section {
     margin-top: 6px;
-    border-top: 1px solid #374151;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 4px;
-  }
+}
 
-  .tooltip-subtitle {
+.tooltip-subtitle {
     font-weight: 600;
-    color: #9ca3af;
-    font-size: 11px;
+    color: var(--hud-muted);
+    font-size: 10px;
     text-transform: uppercase;
     margin-bottom: 2px;
-  }
+    letter-spacing: 0.06em;
+}
 
-  .prod-positive { color: #4ade80; }
-  .prod-negative { color: #f87171; }
+.prod-positive {
+    color: #4ade80;
+}
+.prod-negative {
+    color: #f87171;
+}
 
-  .overlay {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,.35); backdrop-filter: blur(3px);
+.overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
     pointer-events: auto;
+    z-index: 80;
+}
 
-    .panel {
-      background:#111827; color:#fff; padding:16px 20px; border-radius:12px; min-width:280px; text-align:center;
-      
-      .title { font-size:22px; margin-bottom:8px; }
-      .reason { opacity:.9; margin-bottom:12px; }
-      button { padding:6px 12px; border-radius:8px; background:#2563eb; color:#fff; border:none; cursor:pointer; }
-    }
-  }
+.overlay .panel {
+    background: rgba(14, 18, 26, 0.98);
+    color: #fff;
+    padding: 20px 24px;
+    border-radius: 14px;
+    min-width: 280px;
+    text-align: center;
+    border: 1px solid var(--hud-accent-dim);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.65);
+}
+
+.overlay .panel .title {
+    font-size: 22px;
+    margin-bottom: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.overlay .panel .reason {
+    opacity: 0.9;
+    margin-bottom: 14px;
+    color: #c4c9d4;
+}
+
+.overlay .panel button {
+    padding: 8px 18px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ff6b2c 0%, #e04d12 100%);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.overlay .panel button:hover {
+    filter: brightness(1.06);
 }
