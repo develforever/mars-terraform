@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-export type ModalType = "colony-name" | null;
+export type ModalType = "colony-name" | "login" | "register" | "forgot-password" | "reset-password" | "verify-email" | null;
 
 export interface ModalState {
     isOpen: boolean;

@@ -3,6 +3,7 @@ export interface UserResponse {
   name: string;
   email: string;
   authProvider: string;
+  emailVerifiedAt: Date | null;
   createdAt: Date | null;
 }
 
@@ -45,4 +46,21 @@ export interface CreateGroupRequest {
 
 export interface AddMemberRequest {
   userId: number;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
 }

@@ -1,4 +1,6 @@
-import { config } from "./src_backend/config";
+import dotenv from "dotenv-flow";
+dotenv.config();
+
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
@@ -6,7 +8,7 @@ export default defineConfig({
   schema: "./src_backend/db/schema.ts",
   dialect: "turso",
   dbCredentials: {
-    url: config.tursoUrl,
-    authToken: config.tursoToken,
+    url: process.env.turso_url ?? "",
+    authToken: process.env.turso_token ?? "",
   },
 });
