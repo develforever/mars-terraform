@@ -1,10 +1,4 @@
-import type { ResourceCost, ResourceProduction } from "./Resources";
-
-export interface ResourceCapacity {
-  power?: number;
-  water?: number;
-  biomass?: number;
-}
+import type { ResourceCost, ResourceProduction, ResourceCapacity } from "./Resources";
 
 export interface BuildingDefinition {
   id: string;
@@ -13,7 +7,7 @@ export interface BuildingDefinition {
   cost: ResourceCost;
   production?: ResourceProduction;
   tags?: string[];
-  capacity?: ResourceCapacity;
+  capacity?: Partial<ResourceCapacity>;
   modelPath?: string;
 }
 

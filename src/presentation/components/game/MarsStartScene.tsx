@@ -6,7 +6,7 @@ interface Scene3DProps {
     onClick: () => void;
 }
 
-export function Scene3D({ onClick }: Scene3DProps) {
+export function StartScene3D({ onClick }: Scene3DProps) {
     return (
         <Canvas className="main-canvas" camera={{ fov: 60, position: [12, 14, 12] }}>
             <World onClick={onClick} />

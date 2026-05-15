@@ -64,14 +64,13 @@ export const useGameStore = create<GameState>()(
         if (!result.success || !result.building) return false;
 
         // Apply cost
+        const newResources = { ...state.resources };
         if (result.costDelta) {
-          const newResources = { ...state.resources };
           for (const [key, value] of Object.entries(result.costDelta)) {
             if (value !== undefined) {
               newResources[key as keyof Resources] += value;
             }
           }
-          set({ resources: newResources });
         }
 
         // Apply capacity
@@ -84,6 +83,7 @@ export const useGameStore = create<GameState>()(
         // Add building
         const key = `${Math.round(cell.x)},${Math.round(cell.z)}`;
         set({
+          resources: newResources,
           placed: [...state.placed, result.building],
           occupied: { ...state.occupied, [key]: result.building.id },
           capacity: newCapacity,
@@ -110,14 +110,13 @@ export const useGameStore = create<GameState>()(
         if (!result.success) return false;
 
         // Apply refund
+        const newResources = { ...state.resources };
         if (result.refundDelta) {
-          const newResources = { ...state.resources };
           for (const [key, value] of Object.entries(result.refundDelta)) {
             if (value !== undefined) {
               newResources[key as keyof Resources] += value;
             }
           }
-          set({ resources: newResources });
         }
 
         // Remove capacity
@@ -133,6 +132,7 @@ export const useGameStore = create<GameState>()(
         delete newOccupied[key];
 
         set({
+          resources: newResources,
           placed: state.placed.filter(b => b.id !== building.id),
           occupied: newOccupied,
           capacity: newCapacity,
@@ -156,19 +156,13 @@ export const useGameStore = create<GameState>()(
           BUILDING_DEFINITIONS
         );
 
-        const newResources: Resources = {
-          o2: state.resources.o2 + (tickResult.delta.o2 ?? 0),
-          power: state.resources.power + (tickResult.delta.power ?? 0),
-          water: state.resources.water + (tickResult.delta.water ?? 0),
-          biomass: state.resources.biomass + (tickResult.delta.biomass ?? 0),
-        };
-
-        // Clamp resources
-        const clamped = EconomyService.clampResources(newResources, state.capacity);
-        const finalResources = { ...newResources, ...clamped };
-
         set({
-          resources: finalResources,
+          resources: {
+            o2: state.resources.o2 + (tickResult.delta.o2 ?? 0),
+            power: state.resources.power + (tickResult.delta.power ?? 0),
+            water: state.resources.water + (tickResult.delta.water ?? 0),
+            biomass: state.resources.biomass + (tickResult.delta.biomass ?? 0),
+          },
           alive: !tickResult.gameOver,
         });
       },

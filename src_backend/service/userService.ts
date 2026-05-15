@@ -9,6 +9,7 @@ const getById = async (id: number) => {
       name: usersTable.name,
       email: usersTable.email,
       authProvider: usersTable.authProvider,
+      emailVerifiedAt: usersTable.emailVerifiedAt,
       createdAt: usersTable.createdAt,
       updatedAt: usersTable.updatedAt,
     })
@@ -25,6 +26,7 @@ const list = async () => {
       name: usersTable.name,
       email: usersTable.email,
       authProvider: usersTable.authProvider,
+      emailVerifiedAt: usersTable.emailVerifiedAt,
       createdAt: usersTable.createdAt,
     })
     .from(usersTable)

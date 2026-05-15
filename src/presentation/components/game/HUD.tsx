@@ -17,10 +17,14 @@ export function HUD() {
     const toggleBuildMode = useUIStore((state) => state.toggleBuildMode);
     const toggleDemolishMode = useUIStore((state) => state.toggleDemolishMode);
     const cancelBuild = useUIStore((state) => state.cancelBuild);
+    const resetGame = useGameStore((state) => state.resetGame);
+    const resetUI = useUIStore((state) => state.resetUI);
 
     // Keyboard shortcuts
     useEffect(() => {
         function onKey(e: KeyboardEvent) {
+            const target = e.target as HTMLElement;
+            if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
             if (e.key === "b" || e.key === "B") toggleBuildMode();
             if (e.key === "x" || e.key === "X") toggleDemolishMode();
             if (e.key === "Escape") cancelBuild();
@@ -66,13 +70,28 @@ export function HUD() {
                 <span>🧪 {resources.biomass.toFixed(1)} / {capacity.biomass}</span>
             </div>
 
-            <div className="build build-actions">
-                <button className={placeActive ? "active" : ""} onClick={toggleBuildMode}>🛠️ Buduj (B)</button>
-                <button className={demolishActive ? "active" : ""} onClick={toggleDemolishMode}>🗑️ Rozbiórka (X)</button>
-                <button onClick={cancelBuild}>✖ Anuluj (Esc)</button>
-            </div>
+            <div className="hud-dock">
+                <div className="hud-dock__row hud-dock__row--tools">
+                    <button
+                        type="button"
+                        className={placeActive ? "active" : ""}
+                        onClick={toggleBuildMode}
+                    >
+                        Buduj <span aria-hidden="true">&nbsp;(B)</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={demolishActive ? "active" : ""}
+                        onClick={toggleDemolishMode}
+                    >
+                        Rozbiórka <span aria-hidden="true">&nbsp;(X)</span>
+                    </button>
+                    <button type="button" onClick={cancelBuild}>
+                        Anuluj <span aria-hidden="true">&nbsp;(Esc)</span>
+                    </button>
+                </div>
 
-            <div className="build build-items">
+                <div className="hud-dock__row hud-dock__row--palette">
                 {buttons.map((b) => {
                     const active = selectedBuildingId === b.id;
                     const ok = canAfford(b.id);
@@ -92,11 +111,13 @@ export function HUD() {
                     return (
                         <div key={b.id} className="tooltip-wrapper">
                             <button
+                                type="button"
                                 className={active ? "active" : ""}
                                 disabled={!ok || demolishActive}
                                 onClick={() => setSelectedBuilding(b.id)}
                             >
-                                {b.label}{ok ? "" : " (braki)"}
+                                {b.label}
+                                {ok ? "" : " · braki"}
                             </button>
                             <div className="tooltip-panel">
                                 <div className="tooltip-title">{def?.name ?? b.label}</div>
@@ -143,6 +164,7 @@ export function HUD() {
                         </div>
                     );
                 })}
+                </div>
             </div>
 
             {!alive && (
@@ -150,7 +172,15 @@ export function HUD() {
                     <div className="panel">
                         <div className="title">KONIEC GRY</div>
                         <div className="reason">Zabrakło tlenu.</div>
-                        <button onClick={() => location.reload()}>Nowa gra</button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                resetGame();
+                                resetUI();
+                            }}
+                        >
+                            Nowa gra
+                        </button>
                     </div>
                 </div>
             )}

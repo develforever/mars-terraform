@@ -1,4 +1,4 @@
-import { Scene3D } from "../components/game/MarsStartScene";
+import { StartScene3D } from "../components/game/MarsStartScene";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useModalStore } from "../../ui/ModalManager/store";
 
@@ -9,7 +9,7 @@ export default function StartView() {
 
     return (
         <>
-            <Scene3D onClick={() => {
+            <StartScene3D onClick={() => {
                 open("colony-name");
             }} />
         </>

@@ -7,9 +7,12 @@ import {
   Body,
   Request,
   Security,
+  Query,
 } from "tsoa";
 import { authService } from "../service/authService";
 import { userService } from "../service/userService";
+import { oauthService } from "../service/oauthService";
+import { config } from "../config";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import {
   RegisterRequest,
@@ -17,6 +20,10 @@ import {
   ChangePasswordRequest,
   AuthResponse,
   UserResponse,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  VerifyEmailRequest,
+  ResendVerificationRequest,
 } from "../model/types";
 
 @Route("auth")
@@ -25,9 +32,9 @@ export class AuthController extends Controller {
   @Post("register")
   public async register(
     @Body() body: RegisterRequest,
-  ): Promise<UserResponse> {
+  ): Promise<{ message: string; userId: number; email: string }> {
     const user = await authService.registerLocal(body.email, body.password, body.name);
-    return { id: user.id, email: user.email, name: "", authProvider: "local", createdAt: null };
+    return { message: "Registration successful. Please check your email to verify your account.", userId: user.id, email: user.email };
   }
 
   @Post("login")
@@ -55,5 +62,59 @@ export class AuthController extends Controller {
   ): Promise<{ message: string }> {
     await authService.changePassword(req.user!.userId, body.oldPassword, body.newPassword);
     return { message: "Password changed successfully" };
+  }
+
+  @Post("forgot-password")
+  public async forgotPassword(@Body() body: ForgotPasswordRequest): Promise<{ message: string }> {
+    await authService.requestPasswordReset(body.email);
+    return { message: "If an account with that email exists, a reset link has been sent." };
+  }
+
+  @Post("reset-password")
+  public async resetPassword(@Body() body: ResetPasswordRequest): Promise<{ message: string }> {
+    await authService.resetPassword(body.token, body.newPassword);
+    return { message: "Password has been reset successfully." };
+  }
+
+  @Post("verify-email")
+  public async verifyEmail(@Body() body: VerifyEmailRequest): Promise<{ message: string }> {
+    await authService.verifyEmail(body.token);
+    return { message: "Email verified successfully." };
+  }
+
+  @Post("resend-verification")
+  public async resendVerification(@Body() body: ResendVerificationRequest): Promise<{ message: string }> {
+    await authService.resendVerification(body.email);
+    return { message: "Verification email has been sent." };
+  }
+
+  @Get("google")
+  public async googleAuth(): Promise<{ url: string }> {
+    const url = oauthService.getGoogleAuthUrl();
+    return { url };
+  }
+
+  @Get("google/callback")
+  public async googleCallback(@Query() code: string): Promise<void> {
+    const userInfo = await oauthService.exchangeGoogleCode(code);
+    const result = await oauthService.findOrCreateUser("google", userInfo);
+    this.setStatus(302);
+    this.setHeader("Location", `${config.frontendUrl}/?token=${result.token}`);
+    return;
+  }
+
+  @Get("github")
+  public async githubAuth(): Promise<{ url: string }> {
+    const url = oauthService.getGithubAuthUrl();
+    return { url };
+  }
+
+  @Get("github/callback")
+  public async githubCallback(@Query() code: string): Promise<void> {
+    const userInfo = await oauthService.exchangeGithubCode(code);
+    const result = await oauthService.findOrCreateUser("github", userInfo);
+    this.setStatus(302);
+    this.setHeader("Location", `${config.frontendUrl}/?token=${result.token}`);
+    return;
   }
 }

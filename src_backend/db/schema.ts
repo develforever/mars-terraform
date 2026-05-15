@@ -7,6 +7,7 @@ export const usersTable = sqliteTable("users", {
   email: text().notNull().unique(),
   authProvider: text("auth_provider").notNull().default("local"),
   providerId: text("provider_id"),
+  emailVerifiedAt: integer("email_verified_at", { mode: "timestamp" }),
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -49,3 +50,27 @@ export const userGroupsTable = sqliteTable("user_groups", {
 }, (table) => [
   primaryKey({ columns: [table.userId, table.groupId] }),
 ]);
+
+export const passwordResetsTable = sqliteTable("password_resets", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => usersTable.id),
+  token: text().notNull().unique(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+export const emailVerificationsTable = sqliteTable("email_verifications", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => usersTable.id),
+  token: text().notNull().unique(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
