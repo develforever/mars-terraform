@@ -19,7 +19,8 @@
     "db:studio": "drizzle-kit studio",
     "tsoa:routes": "tsoa routes",
     "tsoa:spec": "tsoa spec",
-    "tsoa:gen": "tsoa spec-and-routes"
+    "tsoa:gen": "tsoa spec-and-routes",
+    "repomix": "npx repomix"
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
