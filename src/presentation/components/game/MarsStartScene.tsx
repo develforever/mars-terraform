@@ -1,6 +1,7 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { Mars } from "./Mars";
+import { MarsEnvironment } from "./MarsEnvironment";
 
 interface Scene3DProps {
     onClick: () => void;
@@ -17,8 +18,7 @@ export function StartScene3D({ onClick }: Scene3DProps) {
 function World({ onClick }: Scene3DProps) {
     return (
         <>
-            <ambientLight intensity={0.25} />
-            <directionalLight position={[10, 15, 5]} intensity={1.2} castShadow />
+            <MarsEnvironment />
 
             <Mars onClick={onClick} />
 

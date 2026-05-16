@@ -19,13 +19,13 @@ export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
 
         return (
             <mesh ref={ref} rotation-x={-Math.PI / 2} receiveShadow>
-                <planeGeometry args={[terrainSize.x, terrainSize.z, 32, 32]} />
+                <planeGeometry args={[terrainSize.x, terrainSize.z, 128, 128]} />
                 <meshStandardMaterial
                     map={colorMap}
                     displacementMap={displacementMap}
                     displacementScale={TERRAIN_DISPLACEMENT_SCALE}
-                    roughness={1}
-                    metalness={0}
+                    roughness={0.9}
+                    metalness={0.1}
                 />
             </mesh>
         );
