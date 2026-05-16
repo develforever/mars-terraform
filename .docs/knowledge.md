@@ -11,6 +11,7 @@ Model powinien posiadać wiedzę o następujących technologiach wykorzystywanyc
 - **Baza Danych:** Relacyjna (zarządzana przez Drizzle), systemy migracji.
 - **Autoryzacja:** JWT (1h expiry), OAuth2, Logowanie Social, SSO, Brak sesji po stronie serwera (stateless).
 - **Struktura:** Monorepo/Multi-module z podziałem na `src` (frontend) oraz `src_backend`.
+- **Development URL:** http://localhost:5173/
 
 ## 3. Zakres Wiedzy (Knowledge Scope)
 Baza wiedzy obejmuje:
