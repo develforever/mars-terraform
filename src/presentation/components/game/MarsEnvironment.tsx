@@ -3,12 +3,13 @@ import { Stars, Sky } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useGameStore } from "../../../application/store/useGameStore";
+import { Sun } from "./Sun";
 
 export function MarsEnvironment() {
     const sunRef = useRef<THREE.DirectionalLight>(null);
     const setSun = useGameStore((state: { setSun: (f: number) => void }) => state.setSun);
     
-    const sunT = useRef(0);
+    const sunT = useRef(Math.PI * 1.2); // Start w pozycji widocznej w tle
     const skySunPosition = useRef<THREE.Vector3>(new THREE.Vector3());
     const dayFogColor = useMemo(() => new THREE.Color("#452a2a"), []);
     const nightFogColor = useMemo(() => new THREE.Color("#020205"), []);
@@ -18,23 +19,25 @@ export function MarsEnvironment() {
     const starsRef = useRef<any>(null);
 
     useFrame((state, delta) => {
-        sunT.current += delta * 0.05;
-        const angle = sunT.current % (Math.PI * 2);
+        // Przyspieszony czas dla demonstracji i wymuszenie pozycji słońca na start
+        sunT.current += delta * 0.1;
+        const angle = sunT.current; // Usunięto % Math.PI*2 by nie resetować pozycji zbyt często
         const y = Math.cos(angle);
         const dayFactor = Math.max(0, y);
         setSun(dayFactor);
         
-        // Obliczanie pozycji słońca dla nieba i oświetlenia
+        // Obliczanie pozycji słońca dla nieba i oświetlenia - słońce w oddali (400 jednostek dla testu)
+        const distance = 400;
         const sunPos = new THREE.Vector3(
-            Math.sin(angle) * 200,
-            20 + 200 * dayFactor,
-            Math.cos(angle) * 200
+            Math.sin(angle) * distance,
+            20 + distance * dayFactor,
+            Math.cos(angle) * distance
         );
         skySunPosition.current.copy(sunPos);
 
         if (sunRef.current) {
             sunRef.current.position.copy(sunPos);
-            sunRef.current.intensity = 0.5 + 2.0 * dayFactor;
+            sunRef.current.intensity = 1.0 + 3.0 * dayFactor;
         }
 
         // Dynamiczna atmosfera i tło
@@ -86,6 +89,8 @@ export function MarsEnvironment() {
                 fade 
                 speed={1} 
             />
+
+            <Sun position={skySunPosition.current} />
         </>
     );
 }

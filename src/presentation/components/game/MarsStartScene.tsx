@@ -9,7 +9,7 @@ interface Scene3DProps {
 
 export function StartScene3D({ onClick }: Scene3DProps) {
     return (
-        <Canvas className="main-canvas" camera={{ fov: 60, position: [12, 14, 12] }}>
+        <Canvas className="main-canvas" camera={{ fov: 60, position: [12, 14, 12], far: 2000 }}>
             <World onClick={onClick} />
         </Canvas>
     );
@@ -28,9 +28,9 @@ function World({ onClick }: Scene3DProps) {
                 dampingFactor={0.05}
                 autoRotate={true}
                 target={[0, 0, 0]}
-                minDistance={60}
-                maxDistance={500}
-                maxPolarAngle={Math.PI / 1.05}
+                minDistance={40}
+                maxDistance={1000}
+                maxPolarAngle={Math.PI}
             />
         </>
     );
