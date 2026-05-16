@@ -19,25 +19,28 @@ export function MarsEnvironment() {
     const starsRef = useRef<any>(null);
 
     useFrame((state, delta) => {
-        // Przyspieszony czas dla demonstracji i wymuszenie pozycji słońca na start
-        sunT.current += delta * 0.1;
-        const angle = sunT.current; // Usunięto % Math.PI*2 by nie resetować pozycji zbyt często
-        const y = Math.cos(angle);
-        const dayFactor = Math.max(0, y);
-        setSun(dayFactor);
+        // Normalna prędkość czasu
+        sunT.current += delta * 0.05;
+        const angle = sunT.current;
         
-        // Obliczanie pozycji słońca dla nieba i oświetlenia - słońce w oddali (400 jednostek dla testu)
-        const distance = 400;
+        // Pełna orbita 3D wokół Marsa
+        const distance = 800;
         const sunPos = new THREE.Vector3(
             Math.sin(angle) * distance,
-            20 + distance * dayFactor,
+            Math.sin(angle * 0.5) * distance * 0.5, // Lekkie nachylenie orbity
             Math.cos(angle) * distance
         );
+        
         skySunPosition.current.copy(sunPos);
+
+        // Obliczanie jasności na podstawie pozycji słońca (kiedy jest nad horyzontem Marsa względem środka)
+        // Dla uproszczenia w kosmosie sun jest zawsze jasny, ale oświetlenie planety zależy od kąta.
+        const dayFactor = Math.max(0, sunPos.y / distance + 0.5);
+        setSun(dayFactor);
 
         if (sunRef.current) {
             sunRef.current.position.copy(sunPos);
-            sunRef.current.intensity = 1.0 + 3.0 * dayFactor;
+            sunRef.current.intensity = 0.5 + 2.5 * dayFactor;
         }
 
         // Dynamiczna atmosfera i tło

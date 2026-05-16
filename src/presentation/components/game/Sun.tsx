@@ -29,15 +29,15 @@ export function Sun({ position }: SunProps) {
 
     return (
         <group ref={sunRef}>
-            {/* Główne ciało słońca - EKSTREMALNIE JASNE I DUŻE (radius 100) */}
+            {/* Główne ciało słońca - Jasne, widoczne z oddali */}
             <mesh>
-                <sphereGeometry args={[100, 32, 32]} />
+                <sphereGeometry args={[40, 32, 32]} />
                 <meshBasicMaterial color="#ffffff" />
             </mesh>
 
             {/* Wewnętrzna gorąca korona */}
             <mesh ref={glowRef}>
-                <sphereGeometry args={[30, 32, 32]} />
+                <sphereGeometry args={[45, 32, 32]} />
                 <meshBasicMaterial 
                     color="#fff5bb" 
                     transparent 
@@ -48,11 +48,11 @@ export function Sun({ position }: SunProps) {
 
             {/* Główna poświata (aura) */}
             <mesh>
-                <sphereGeometry args={[60, 32, 32]} />
+                <sphereGeometry args={[80, 32, 32]} />
                 <meshBasicMaterial 
                     color="#ffcc33" 
                     transparent 
-                    opacity={0.4} 
+                    opacity={0.5} 
                     blending={THREE.AdditiveBlending}
                     side={THREE.BackSide}
                 />
@@ -60,22 +60,22 @@ export function Sun({ position }: SunProps) {
 
             {/* Szeroka atmosfera słoneczna */}
             <mesh>
-                <sphereGeometry args={[120, 32, 32]} />
+                <sphereGeometry args={[160, 32, 32]} />
                 <meshBasicMaterial 
                     color="#ff6600" 
                     transparent 
-                    opacity={0.15} 
+                    opacity={0.2} 
                     blending={THREE.AdditiveBlending}
                     side={THREE.BackSide}
                 />
             </mesh>
             
-            {/* Efekt "halo" - duży płaski billboard */}
+            {/* Efekt "halo" / Flara - bardzo duży, by dawać efekt blasku na całą scenę */}
             <mesh>
-                <planeGeometry args={[500, 500]} />
+                <planeGeometry args={[800, 800]} />
                 <meshBasicMaterial
                     transparent
-                    opacity={0.08}
+                    opacity={0.15}
                     color="#ffddaa"
                     blending={THREE.AdditiveBlending}
                     depthWrite={false}

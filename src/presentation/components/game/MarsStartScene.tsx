@@ -27,6 +27,7 @@ function World({ onClick }: Scene3DProps) {
                 enableDamping
                 dampingFactor={0.05}
                 autoRotate={true}
+                autoRotateSpeed={0.5}
                 target={[0, 0, 0]}
                 minDistance={40}
                 maxDistance={1000}
