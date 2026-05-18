@@ -5,6 +5,7 @@ import { BUILDING_DEFINITIONS, BUILDING_SEED } from "../../../domain/config/buil
 import { BuildingService } from "../../../domain/services/BuildingService";
 import type { ResourceKey } from "../../../domain/entities/Resources";
 import type { BuildingDefinition } from "../../../domain/entities/Building";
+import { WeatherAlert } from "./WeatherAlert";
 import "./HUD.css";
 
 export function HUD() {
@@ -74,6 +75,7 @@ export function HUD() {
 
     return (
         <div className="hud">
+            <WeatherAlert />
             <div className="bar">
                 <span>☀️ {sun.toFixed(2)}</span>
                 <span>💨 O₂ {resources.o2.toFixed(1)}</span>

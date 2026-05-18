@@ -22,7 +22,7 @@ export interface GameState {
 
   // Weather
   weather: {
-    type: "clear" | "sandstorm";
+    type: "clear" | "warning" | "sandstorm";
     intensity: number;
     remainingTicks: number;
   };

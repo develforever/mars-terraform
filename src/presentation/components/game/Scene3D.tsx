@@ -10,6 +10,8 @@ import { Buildings, DemolishGhost, HoverGhost } from "./Buildings";
 import { TerrainHeightContext } from "./TerrainHeightContext";
 import { heightFromDisplacement } from "../../utils/terrainDisplacement";
 import { MarsEnvironment } from "./MarsEnvironment";
+import { VisibilitySystem } from "./VisibilitySystem";
+import { useState } from "react";
 
 export function Scene3D() {
     return (
@@ -44,18 +46,26 @@ function World() {
 
     const target = useMemo<[number, number, number]>(() => [0, 0, 0], []);
 
+    const [visibilityMap, setVisibilityMap] = useState<THREE.CanvasTexture | null>(null);
+
     return (
         <TerrainHeightContext.Provider value={getTerrainY}>
             <>
                 <MarsEnvironment />
+                
+                <VisibilitySystem 
+                    terrainSize={terrainSize} 
+                    onVisibilityMapCreated={setVisibilityMap} 
+                />
 
                 <MarsTerrain
                     ref={terrainRef}
                     terrainSize={terrainSize}
                     colorMap={colorMap}
                     displacementMap={dispMap}
+                    visibilityMap={visibilityMap}
                 />
-                <GridOverlay terrainSize={terrainSize} />
+                <GridOverlay terrainSize={terrainSize} visibilityMap={visibilityMap} />
                 <Buildings />
                 <HoverGhost />
                 <DemolishGhost />

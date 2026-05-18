@@ -51,6 +51,9 @@ export function MarsEnvironment() {
         if (weather.type === "sandstorm") {
             const stormFactor = weather.intensity;
             currentAtmosphereColor.lerp(sandstormColor, stormFactor * 0.7);
+        } else if (weather.type === "warning") {
+            // Delikatne zmatowienie atmosfery przed burzą
+            currentAtmosphereColor.lerp(sandstormColor, 0.2);
         }
 
         state.scene.background = currentAtmosphereColor;

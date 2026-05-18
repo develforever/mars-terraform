@@ -1,0 +1,78 @@
+/* Weather Alert Toast */
+.weather-alert {
+    position: absolute;
+    top: 100px;
+    right: 20px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: rgba(20, 10, 5, 0.95);
+    border: 1px solid #ff5c1a;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 92, 26, 0.2);
+    color: #fff;
+    min-width: 250px;
+    pointer-events: auto;
+    animation: alert-slide-in 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+@keyframes alert-slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.weather-alert.warning {
+    border-color: #ffcc00;
+    background: rgba(30, 25, 5, 0.95);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 204, 0, 0.2);
+}
+
+.weather-alert.sandstorm {
+    border-color: #ff3300;
+    background: rgba(40, 10, 5, 0.95);
+    animation: alert-pulse 2s infinite ease-in-out;
+}
+
+@keyframes alert-pulse {
+    0%, 100% { transform: scale(1); border-color: #ff3300; }
+    50% { transform: scale(1.02); border-color: #ff6633; }
+}
+
+.weather-alert__icon {
+    font-size: 24px;
+}
+
+.weather-alert__title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.weather-alert__subtitle {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-top: 2px;
+}
+
+.weather-alert__progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+}
+
+.weather-alert__progress-fill {
+    height: 100%;
+    background: #ffcc00;
+    transition: width 1s linear;
+}
+
+.weather-alert.sandstorm .weather-alert__progress-fill {
+    background: #ff3300;
+}

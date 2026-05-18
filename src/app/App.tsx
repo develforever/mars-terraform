@@ -16,11 +16,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
-            navigate("/", { replace: true });
-        } else if (!isLoading && isAuthenticated && !colonyName) {
-            navigate("/", { replace: true });
-            open("colony-name");
+        if (!isLoading) {
+            if (!isAuthenticated) {
+                navigate("/", { replace: true });
+                open("login");
+            } else if (!colonyName) {
+                navigate("/", { replace: true });
+                open("colony-name");
+            }
         }
     }, [isAuthenticated, isLoading, colonyName, navigate, open]);
 
@@ -29,6 +32,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
     return <>{children}</>;
 }
+
 
 function AuthRouteHandler() {
     const [searchParams] = useSearchParams();
@@ -63,12 +67,25 @@ function AuthRouteHandler() {
     return null;
 }
 
+import { useEconomy } from "../application/hooks/useEconomy";
+
 export default function App() {
     const { fetchUser } = useAuthStore();
+    const alive = useGameStore(state => state.alive);
+    const { start, stop } = useEconomy();
 
     useEffect(() => {
         fetchUser();
     }, [fetchUser]);
+
+    useEffect(() => {
+        if (alive) {
+            start();
+        } else {
+            stop();
+        }
+        return () => stop();
+    }, [alive, start, stop]);
 
     return (
         <div data-testid="app" className="app-root w-full h-full min-h-0">
