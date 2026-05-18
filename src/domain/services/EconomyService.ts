@@ -13,7 +13,8 @@ export class EconomyService {
   static calculateProduction(
     buildings: PlacedBuilding[],
     definitions: Record<string, BuildingDefinition>,
-    sunFactor: number
+    sunFactor: number,
+    productionModifier: number = 1
   ): ResourceProduction {
     const production: ResourceProduction = {};
 
@@ -28,6 +29,8 @@ export class EconomyService {
         if (def.tags?.includes("dayScaled") && resourceKey === "power") {
           adjustedValue *= sunFactor;
         }
+
+        adjustedValue *= productionModifier;
 
         const key = resourceKey as keyof Resources;
         production[key] = (production[key] ?? 0) + adjustedValue;
@@ -111,9 +114,10 @@ export class EconomyService {
   static tick(
     colony: ColonyState,
     buildings: PlacedBuilding[],
-    definitions: Record<string, BuildingDefinition>
+    definitions: Record<string, BuildingDefinition>,
+    productionModifier: number = 1
   ): EconomyTickResult {
-    const production = this.calculateProduction(buildings, definitions, colony.sun);
+    const production = this.calculateProduction(buildings, definitions, colony.sun, productionModifier);
     const consumption = this.calculateConsumption(buildings.length);
     
     // Merge production and consumption

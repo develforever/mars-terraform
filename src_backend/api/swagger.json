@@ -112,6 +112,20 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"ColonyData": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"state": {}
+				},
+				"required": [
+					"name",
+					"state"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"RegisterRequest": {
 				"properties": {
 					"email": {
@@ -589,6 +603,116 @@
 						"schema": {
 							"format": "double",
 							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/colony": {
+			"post": {
+				"operationId": "SaveColony",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"id": {
+											"type": "number",
+											"format": "double"
+										}
+									},
+									"required": [
+										"message",
+										"id"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"description": "Saves or updates a colony state for the authenticated user.",
+				"tags": [
+					"Colony"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ColonyData"
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"operationId": "ListColonies",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {},
+									"type": "array"
+								}
+							}
+						}
+					}
+				},
+				"description": "Lists all colonies for the authenticated user.",
+				"tags": [
+					"Colony"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/colony/{name}": {
+			"get": {
+				"operationId": "GetColony",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"description": "Retrieves a specific colony by name for the authenticated user.",
+				"tags": [
+					"Colony"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "name",
+						"required": true,
+						"schema": {
+							"type": "string"
 						}
 					}
 				]

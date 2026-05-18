@@ -24,6 +24,16 @@ export class BuildingService {
     });
   }
 
+  static hasRequirements(
+    definition: BuildingDefinition,
+    placed: PlacedBuilding[]
+  ): boolean {
+    if (!definition.dependsOn || definition.dependsOn.length === 0) return true;
+    
+    const placedDefIds = new Set(placed.map(b => b.definitionId));
+    return definition.dependsOn.every(reqId => placedDefIds.has(reqId));
+  }
+
   static calculateCost(cost: ResourceCost | undefined): ResourceDelta {
     if (!cost) return {};
     const delta: ResourceDelta = {};
@@ -51,7 +61,8 @@ export class BuildingService {
     cell: { x: number; z: number },
     heightY: number,
     resources: Resources,
-    occupied: Record<string, string>
+    occupied: Record<string, string>,
+    placedBuildings: PlacedBuilding[]
   ): BuildResult {
     const key = keyFromCell(cell.x, cell.z);
     
@@ -61,6 +72,11 @@ export class BuildingService {
 
     if (!this.canAfford(definition.cost, resources)) {
       return { success: false, error: "Cannot afford building" };
+    }
+
+    if (!this.hasRequirements(definition, placedBuildings)) {
+      const names = definition.dependsOn?.join(", ") ?? "";
+      return { success: false, error: `Requires: ${names}` };
     }
 
     const building: PlacedBuilding = {

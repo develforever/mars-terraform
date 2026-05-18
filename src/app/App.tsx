@@ -6,7 +6,29 @@ import TopMenu from "../presentation/components/ui/TopMenu";
 import ModalManager from "../presentation/components/ui/ModalManager";
 import { useAuthStore } from "../application/store/useAuthStore";
 import { useModalStore } from "../ui/ModalManager/store";
+import { useGameStore } from "../application/store/useGameStore";
 import { authClient } from "../application/service/authService";
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated, isLoading } = useAuthStore();
+    const colonyName = useGameStore(state => state.colonyName);
+    const { open } = useModalStore();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            navigate("/", { replace: true });
+        } else if (!isLoading && isAuthenticated && !colonyName) {
+            navigate("/", { replace: true });
+            open("colony-name");
+        }
+    }, [isAuthenticated, isLoading, colonyName, navigate, open]);
+
+    if (isLoading) return <div className="h-screen w-screen flex items-center justify-center bg-black text-white">Loading...</div>;
+    if (!isAuthenticated || !colonyName) return null;
+
+    return <>{children}</>;
+}
 
 function AuthRouteHandler() {
     const [searchParams] = useSearchParams();
@@ -26,13 +48,13 @@ function AuthRouteHandler() {
         }
 
         if (path === "/reset-password" && token) {
-            open("reset-password");
+            open("reset-password", { token });
             navigate("/", { replace: true });
             return;
         }
 
         if (path === "/verify-email" && token) {
-            open("verify-email");
+            open("verify-email", { token });
             navigate("/", { replace: true });
             return;
         }
@@ -54,7 +76,14 @@ export default function App() {
             <div className="mars-root">
                 <Routes>
                     <Route path="/" element={<StartView />} />
-                    <Route path="/mars" element={<MarsView />} />
+                    <Route 
+                        path="/mars" 
+                        element={
+                            <ProtectedRoute>
+                                <MarsView />
+                            </ProtectedRoute>
+                        } 
+                    />
                     <Route path="/reset-password" element={<AuthRouteHandler />} />
                     <Route path="/verify-email" element={<AuthRouteHandler />} />
                 </Routes>

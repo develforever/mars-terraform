@@ -74,3 +74,18 @@ export const emailVerificationsTable = sqliteTable("email_verifications", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+export const coloniesTable = sqliteTable("colonies", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => usersTable.id),
+  name: text().notNull(),
+  state: text().notNull(), // JSON string representing the game state
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});

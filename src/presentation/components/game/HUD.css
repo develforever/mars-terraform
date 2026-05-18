@@ -96,9 +96,36 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.hud-dock__categories {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.hud-dock__category-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.category-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--hud-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding-left: 4px;
+    border-left: 2px solid var(--hud-accent-dim);
+}
+
 .hud-dock__row--palette {
     gap: 6px;
-    max-height: none;
+    justify-content: flex-start;
+}
+
+.hud-dock button.locked {
+    opacity: 0.3;
+    filter: grayscale(1);
 }
 
 .hud-dock button {

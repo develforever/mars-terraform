@@ -17,6 +17,8 @@ export function MarsEnvironment() {
 
     const ambientRef = useRef<THREE.AmbientLight>(null);
     const starsRef = useRef<any>(null);
+    const weather = useGameStore(state => state.weather);
+    const sandstormColor = useMemo(() => new THREE.Color("#8b5a2b"), []);
 
     useFrame((state, delta) => {
         // Normalna prędkość czasu
@@ -33,8 +35,7 @@ export function MarsEnvironment() {
         
         skySunPosition.current.copy(sunPos);
 
-        // Obliczanie jasności na podstawie pozycji słońca (kiedy jest nad horyzontem Marsa względem środka)
-        // Dla uproszczenia w kosmosie sun jest zawsze jasny, ale oświetlenie planety zależy od kąta.
+        // Obliczanie jasności na podstawie pozycji słońca
         const dayFactor = Math.max(0, sunPos.y / distance + 0.5);
         setSun(dayFactor);
 
@@ -45,9 +46,31 @@ export function MarsEnvironment() {
 
         // Dynamiczna atmosfera i tło
         currentAtmosphereColor.copy(nightFogColor).lerp(dayFogColor, dayFactor);
+        
+        // Modyfikacja koloru i gęstości przez pogodę (burza piaskowa)
+        if (weather.type === "sandstorm") {
+            const stormFactor = weather.intensity;
+            currentAtmosphereColor.lerp(sandstormColor, stormFactor * 0.7);
+        }
+
         state.scene.background = currentAtmosphereColor;
+        
         if (state.scene.fog) {
             state.scene.fog.color.copy(currentAtmosphereColor);
+            
+            // Zwiększenie gęstości mgły podczas burzy
+            const baseDensity = 0.012;
+            const stormDensity = 0.04;
+            const targetDensity = weather.type === "sandstorm" 
+                ? baseDensity + (stormDensity - baseDensity) * weather.intensity 
+                : baseDensity;
+            
+            // Płynne przejście gęstości
+            (state.scene.fog as THREE.FogExp2).density = THREE.MathUtils.lerp(
+                (state.scene.fog as THREE.FogExp2).density,
+                targetDensity,
+                delta * 2
+            );
         }
 
         // Dynamiczne oświetlenie otoczenia i gwiazdy
@@ -55,7 +78,8 @@ export function MarsEnvironment() {
             ambientRef.current.intensity = 0.1 + 0.3 * dayFactor;
         }
         if (starsRef.current) {
-            starsRef.current.visible = dayFactor < 0.2;
+            // Ukryj gwiazdy podczas burzy
+            starsRef.current.visible = dayFactor < 0.2 && weather.type !== "sandstorm";
             starsRef.current.rotation.y += delta * 0.01;
         }
     });

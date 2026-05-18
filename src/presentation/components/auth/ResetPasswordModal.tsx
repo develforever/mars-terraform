@@ -4,9 +4,9 @@ import { useModalStore } from "../../../ui/ModalManager/store";
 import { authClient } from "../../../application/service/authService";
 
 export default function ResetPasswordModal() {
-  const { open } = useModalStore();
+  const { open, modalData } = useModalStore();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") ?? "";
+  const token = modalData?.token || (searchParams.get("token") ?? "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");

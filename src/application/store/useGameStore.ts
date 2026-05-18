@@ -6,6 +6,7 @@ import { INITIAL_COLONY_STATE } from "../../domain/entities/Colony";
 import { BUILDING_DEFINITIONS } from "../../domain/config/buildings";
 import { BuildingService } from "../../domain/services/BuildingService";
 import { EconomyService } from "../../domain/services/EconomyService";
+import { WeatherService } from "../../domain/services/WeatherService";
 
 export interface GameState {
   // Resources and colony state
@@ -19,6 +20,13 @@ export interface GameState {
   placed: PlacedBuilding[];
   occupied: Record<string, string>;
 
+  // Weather
+  weather: {
+    type: "clear" | "sandstorm";
+    intensity: number;
+    remainingTicks: number;
+  };
+
   // Actions
   setSun: (factor: number) => void;
   setColonyName: (name: string) => void;
@@ -26,6 +34,8 @@ export interface GameState {
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
   applyEconomyTick: () => void;
   resetGame: () => void;
+  saveGame: () => Promise<boolean>;
+  loadGame: (name: string) => Promise<boolean>;
 }
 
 export const useGameStore = create<GameState>()(
@@ -38,6 +48,7 @@ export const useGameStore = create<GameState>()(
       colonyName: "",
       placed: [],
       occupied: {},
+      weather: { type: "clear", intensity: 0, remainingTicks: 0 },
 
       setSun: (factor) => {
         set({ sun: Math.max(0, Math.min(1, factor)) });
@@ -58,7 +69,8 @@ export const useGameStore = create<GameState>()(
           cell,
           heightY,
           state.resources,
-          state.occupied
+          state.occupied,
+          state.placed
         );
 
         if (!result.success || !result.building) return false;
@@ -141,31 +153,37 @@ export const useGameStore = create<GameState>()(
         return true;
       },
 
-      applyEconomyTick: () => {
-        const state = get();
-        if (!state.alive) return;
+  applyEconomyTick: () => {
+    const state = get();
+    if (!state.alive) return;
 
-        const tickResult = EconomyService.tick(
-          {
-            resources: state.resources,
-            capacity: state.capacity,
-            sun: state.sun,
-            alive: state.alive,
-          },
-          state.placed,
-          BUILDING_DEFINITIONS
-        );
+    // Tick Weather
+    const newWeather = WeatherService.tick(state.weather);
+    const productionModifier = WeatherService.getProductionModifier(newWeather);
 
-        set({
-          resources: {
-            o2: state.resources.o2 + (tickResult.delta.o2 ?? 0),
-            power: state.resources.power + (tickResult.delta.power ?? 0),
-            water: state.resources.water + (tickResult.delta.water ?? 0),
-            biomass: state.resources.biomass + (tickResult.delta.biomass ?? 0),
-          },
-          alive: !tickResult.gameOver,
-        });
+    const tickResult = EconomyService.tick(
+      {
+        resources: state.resources,
+        capacity: state.capacity,
+        sun: state.sun,
+        alive: state.alive,
       },
+      state.placed,
+      BUILDING_DEFINITIONS,
+      productionModifier
+    );
+
+    set({
+      weather: newWeather,
+      resources: {
+        o2: state.resources.o2 + (tickResult.delta.o2 ?? 0),
+        power: state.resources.power + (tickResult.delta.power ?? 0),
+        water: state.resources.water + (tickResult.delta.water ?? 0),
+        biomass: state.resources.biomass + (tickResult.delta.biomass ?? 0),
+      },
+      alive: !tickResult.gameOver,
+    });
+  },
 
       resetGame: () => {
         set({
@@ -177,6 +195,61 @@ export const useGameStore = create<GameState>()(
           placed: [],
           occupied: {},
         });
+      },
+
+      saveGame: async () => {
+        const state = get();
+        if (!state.colonyName) return false;
+
+        try {
+          const response = await fetch("/api/colony", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${localStorage.getItem("token")}`
+            },
+            body: JSON.stringify({
+              name: state.colonyName,
+              state: {
+                resources: state.resources,
+                capacity: state.capacity,
+                placed: state.placed,
+                occupied: state.occupied,
+              }
+            })
+          });
+          return response.ok;
+        } catch (error) {
+          console.error("Save game failed", error);
+          return false;
+        }
+      },
+
+      loadGame: async (name: string) => {
+        try {
+          const response = await fetch(`/api/colony/${name}`, {
+            headers: {
+              "Authorization": `Bearer ${localStorage.getItem("token")}`
+            }
+          });
+          if (!response.ok) return false;
+          
+          const data = await response.json();
+          const gameState = data.state;
+
+          set({
+            colonyName: data.name,
+            resources: gameState.resources,
+            capacity: gameState.capacity,
+            placed: gameState.placed,
+            occupied: gameState.occupied,
+            alive: true
+          });
+          return true;
+        } catch (error) {
+          console.error("Load game failed", error);
+          return false;
+        }
       },
     }),
     { name: "GameStore", enabled: true }

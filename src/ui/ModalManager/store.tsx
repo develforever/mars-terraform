@@ -6,7 +6,8 @@ export type ModalType = "colony-name" | "login" | "register" | "forgot-password"
 export interface ModalState {
     isOpen: boolean;
     modalType: ModalType;
-    open: (type: ModalType) => void;
+    modalData?: any;
+    open: (type: ModalType, data?: any) => void;
     close: () => void;
 }
 
@@ -14,8 +15,9 @@ export const useModalStore = create<ModalState>()(
     devtools((set) => ({
         isOpen: false,
         modalType: null,
-        open: (type: ModalType) => set({ isOpen: true, modalType: type }),
-        close: () => set({ isOpen: false, modalType: null }),
+        modalData: null,
+        open: (type: ModalType, data?: any) => set({ isOpen: true, modalType: type, modalData: data }),
+        close: () => set({ isOpen: false, modalType: null, modalData: null }),
     }), { name: "ModalStore", enabled: true })
 );
 
