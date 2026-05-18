@@ -83,6 +83,7 @@ export class BuildingService {
       id: crypto.randomUUID(),
       definitionId: definition.id,
       position: { x: cell.x, y: heightY, z: cell.z },
+      condition: 100,
     };
 
     return {

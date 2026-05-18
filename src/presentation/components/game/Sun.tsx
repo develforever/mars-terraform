@@ -70,15 +70,35 @@ export function Sun({ position }: SunProps) {
                 />
             </mesh>
             
-            {/* Efekt "halo" / Flara - bardzo duży, by dawać efekt blasku na całą scenę */}
+            {/* Efekt "halo" / Flara - Proceduralna poświata radialna */}
             <mesh>
                 <planeGeometry args={[800, 800]} />
-                <meshBasicMaterial
+                <shaderMaterial
                     transparent
-                    opacity={0.15}
-                    color="#ffddaa"
-                    blending={THREE.AdditiveBlending}
                     depthWrite={false}
+                    blending={THREE.AdditiveBlending}
+                    uniforms={{
+                        uColor: { value: new THREE.Color("#ffccaabb") },
+                        uOpacity: { value: 0.15 }
+                    }}
+                    vertexShader={`
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `}
+                    fragmentShader={`
+                        varying vec2 vUv;
+                        uniform vec3 uColor;
+                        uniform float uOpacity;
+                        void main() {
+                            float dist = distance(vUv, vec2(0.5));
+                            float glow = smoothstep(0.5, 0.0, dist);
+                            glow = pow(glow, 2.0); // Bardziej miękkie przejście
+                            gl_FragColor = vec4(uColor, glow * uOpacity);
+                        }
+                    `}
                 />
             </mesh>
         </group>

@@ -13,12 +13,16 @@ export interface UIState {
   // Hover state for placement
   hoverCell: { x: number; z: number } | null;
   
+  // Inspection state
+  inspectedInstanceId: string | null;
+  
   // Actions
   setSelectedBuilding: (id: string | null) => void;
   setHoverCell: (cell: { x: number; z: number } | null) => void;
   toggleBuildMode: () => void;
   toggleDemolishMode: () => void;
   cancelBuild: () => void;
+  setInspectedInstance: (id: string | null) => void;
   resetUI: () => void;
 }
 
@@ -28,6 +32,7 @@ export const useUIStore = create<UIState>()(
       selectedBuildingId: "hab",
       buildMode: null,
       hoverCell: null,
+      inspectedInstanceId: null,
 
       setSelectedBuilding: (id) => set({ selectedBuildingId: id }),
       
@@ -45,11 +50,14 @@ export const useUIStore = create<UIState>()(
 
       cancelBuild: () => set({ buildMode: null }),
 
+      setInspectedInstance: (id) => set({ inspectedInstanceId: id }),
+
       resetUI: () =>
         set({
           buildMode: null,
           selectedBuildingId: "hab",
           hoverCell: null,
+          inspectedInstanceId: null,
         }),
     }),
     { name: "UIStore", enabled: true }

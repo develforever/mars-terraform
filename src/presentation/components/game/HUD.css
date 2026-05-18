@@ -299,3 +299,98 @@
 .overlay .panel button:hover {
     filter: brightness(1.06);
 }
+
+/* Building Popover (3D Overlay) */
+.building-popover {
+    background: var(--hud-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--hud-accent-dim);
+    border-radius: 12px;
+    padding: 12px;
+    min-width: 180px;
+    color: var(--hud-text);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--hud-border);
+    pointer-events: auto;
+    animation: popover-fade-in 0.2s ease-out;
+}
+
+@keyframes popover-fade-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.popover-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--hud-accent);
+    border-bottom: 1px solid var(--hud-border);
+    padding-bottom: 4px;
+}
+
+.popover-stat {
+    margin-bottom: 12px;
+}
+
+.stat-label {
+    font-size: 10px;
+    color: var(--hud-muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.progress-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.progress-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.stat-value {
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 30px;
+}
+
+.popover-section {
+    border-top: 1px solid var(--hud-border);
+    padding-top: 8px;
+}
+
+.section-title {
+    font-size: 10px;
+    color: var(--hud-muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.production-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+
+.res-name {
+    color: #d1d5db;
+}
+
+.res-val {
+    color: #4ade80;
+    font-weight: 600;
+}

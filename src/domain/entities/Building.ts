@@ -17,4 +17,5 @@ export interface PlacedBuilding {
   id: string;
   definitionId: string;
   position: { x: number; y: number; z: number };
+  condition: number; // 0-100%
 }
