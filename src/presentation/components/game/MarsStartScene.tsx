@@ -31,7 +31,8 @@ function World({ onClick }: Scene3DProps) {
                 target={[0, 0, 0]}
                 minDistance={40}
                 maxDistance={1000}
-                maxPolarAngle={Math.PI}
+                minPolarAngle={Math.PI / 4}
+                maxPolarAngle={Math.PI * 3 / 4}
             />
         </>
     );

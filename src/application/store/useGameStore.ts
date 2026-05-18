@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import type { PlacedBuilding } from "../../domain/entities/Building";
-import type { Resources, ResourceCapacity } from "../../domain/entities/Resources";
+import type { Resources, ResourceCapacity, ResourceDelta } from "../../domain/entities/Resources";
 import { INITIAL_COLONY_STATE } from "../../domain/entities/Colony";
 import { BUILDING_DEFINITIONS } from "../../domain/config/buildings";
 import { BuildingService } from "../../domain/services/BuildingService";
@@ -12,6 +12,7 @@ export interface GameState {
   // Resources and colony state
   resources: Resources;
   capacity: ResourceCapacity;
+  lastDelta?: ResourceDelta;
   sun: number;
   alive: boolean;
   colonyName: string;
@@ -43,6 +44,7 @@ export const useGameStore = create<GameState>()(
     (set, get) => ({
       resources: INITIAL_COLONY_STATE.resources,
       capacity: INITIAL_COLONY_STATE.capacity,
+      lastDelta: {},
       sun: INITIAL_COLONY_STATE.sun,
       alive: INITIAL_COLONY_STATE.alive,
       colonyName: "",
@@ -175,6 +177,7 @@ export const useGameStore = create<GameState>()(
 
     set({
       weather: newWeather,
+      lastDelta: tickResult.delta,
       resources: {
         o2: state.resources.o2 + (tickResult.delta.o2 ?? 0),
         power: state.resources.power + (tickResult.delta.power ?? 0),

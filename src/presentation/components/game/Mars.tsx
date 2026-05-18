@@ -8,7 +8,7 @@ interface MarsProps {
 }
 
 export const Mars = forwardRef<Mesh, MarsProps>(({ onClick }, ref) => {
-    const sphereSize = useMemo(() => ({ x: 20, z: 20 }), []);
+    const sphereRadius = 20;
 
     const [colorMap, dispMap] = useTexture([
         "/textures/mars_colorx1.png",
@@ -31,7 +31,7 @@ export const Mars = forwardRef<Mesh, MarsProps>(({ onClick }, ref) => {
                 onClick?.();
             }}
         >
-            <sphereGeometry args={[sphereSize.x, sphereSize.z, 256, 256]} />
+            <sphereGeometry args={[sphereRadius, 128, 128]} />
             <meshStandardMaterial
                 map={colorMap}
                 displacementMap={dispMap}

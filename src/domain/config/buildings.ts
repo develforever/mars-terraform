@@ -8,7 +8,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     category: "living",
     color: "#93c5fd",
     cost: { power: 5, water: 1 },
-    production: { o2: 0.15 },
+    production: { o2: 0.15, power: -0.10, water: -0.05 },
     modelPath: "/models/mars/structure_detailed.glb",
   },
   {
@@ -23,6 +23,16 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   },
 
   // PRODUCTION
+  {
+    id: "o2-gen",
+    name: "Generator Tlenu",
+    category: "production",
+    color: "#67e8f9",
+    cost: { power: 4, water: 2 },
+    production: { o2: 0.60, power: -0.15 },
+    modelPath: "/models/mars/machine_generator.glb",
+    dependsOn: ["hab"],
+  },
   {
     id: "solar",
     name: "Generator Solarny",
@@ -94,6 +104,18 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     capacity: { biomass: 40 },
     modelPath: "/models/mars/machine_barrelLarge.glb",
     dependsOn: ["miner"],
+  },
+
+  // INFRASTRUCTURE
+  {
+    id: "lab",
+    name: "Laboratorium",
+    category: "infrastructure",
+    color: "#d8b4fe",
+    cost: { power: 10, biomass: 5 },
+    production: { power: -0.40, water: -0.20, biomass: 0.10 },
+    modelPath: "/models/mars/machine_wireless.glb",
+    dependsOn: ["hab", "rtg"],
   },
 
   // DEFENSE

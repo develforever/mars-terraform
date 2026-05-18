@@ -5,12 +5,14 @@ import { BUILDING_DEFINITIONS, BUILDING_SEED } from "../../../domain/config/buil
 import { BuildingService } from "../../../domain/services/BuildingService";
 import type { ResourceKey } from "../../../domain/entities/Resources";
 import type { BuildingDefinition } from "../../../domain/entities/Building";
+import { HintService } from "../../../domain/services/HintService";
 import { WeatherAlert } from "./WeatherAlert";
 import "./HUD.css";
 
 export function HUD() {
     const resources = useGameStore((state) => state.resources);
     const capacity = useGameStore((state) => state.capacity);
+    const lastDelta = useGameStore((state) => state.lastDelta);
     const sun = useGameStore((state) => state.sun);
     const alive = useGameStore((state) => state.alive);
     const selectedBuildingId = useUIStore((state) => state.selectedBuildingId);
@@ -73,18 +75,35 @@ export function HUD() {
         return BuildingService.hasRequirements(def, placedBuildings);
     };
 
+    const hint = useMemo(() => {
+        if (!lastDelta) return null;
+        return HintService.getSuggestion(resources, capacity, lastDelta);
+    }, [resources, capacity, lastDelta]);
+
+    const renderDelta = (val: number | undefined) => {
+        if (!val || val === 0) return null;
+        if (val > 0) return <span className="delta-positive">▲{val.toFixed(1)}</span>;
+        return <span className="delta-negative">▼{Math.abs(val).toFixed(1)}</span>;
+    };
+
     return (
         <div className="hud">
             <WeatherAlert />
             <div className="bar">
                 <span>☀️ {sun.toFixed(2)}</span>
-                <span>💨 O₂ {resources.o2.toFixed(1)}</span>
-                <span>⚡ {resources.power.toFixed(1)} / {capacity.power}</span>
-                <span>💧 {resources.water.toFixed(1)} / {capacity.water}</span>
-                <span>🧪 {resources.biomass.toFixed(1)} / {capacity.biomass}</span>
+                <span>💨 O₂ {resources.o2.toFixed(1)} {renderDelta(lastDelta?.o2)}</span>
+                <span>⚡ {resources.power.toFixed(1)} / {capacity.power} {renderDelta(lastDelta?.power)}</span>
+                <span>💧 {resources.water.toFixed(1)} / {capacity.water} {renderDelta(lastDelta?.water)}</span>
+                <span>🧪 {resources.biomass.toFixed(1)} / {capacity.biomass} {renderDelta(lastDelta?.biomass)}</span>
             </div>
 
             <div className="hud-dock">
+                {hint && (
+                    <div className={`hint-panel ${hint.critical ? "critical" : ""}`}>
+                        <span className="hint-icon">{hint.icon}</span>
+                        <span className="hint-text">{hint.message}</span>
+                    </div>
+                )}
                 <div className="hud-dock__row hud-dock__row--tools">
                     <button
                         type="button"

@@ -78,7 +78,7 @@ export function Sun({ position }: SunProps) {
                     depthWrite={false}
                     blending={THREE.AdditiveBlending}
                     uniforms={{
-                        uColor: { value: new THREE.Color("#ffccaabb") },
+                        uColor: { value: new THREE.Color("#ffccaa") },
                         uOpacity: { value: 0.15 }
                     }}
                     vertexShader={`
