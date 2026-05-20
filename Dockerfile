@@ -6,7 +6,7 @@ ENV NODE_ENV=production
 # --- ETAP 2: Budowanie (Kompilacja TypeScript i Vite) ---
 FROM base AS build
 # Narzędzia systemowe przydatne przy kompilacji niektórych paczek npm (np. bcrypt)
-RUN apt-get update -qq && apt-get install -y build-essential pkg-config python-is-python3
+RUN apk add --no-cache make gcc g++ python3 pkgconfig
 
 COPY package-lock.json package.json ./
 RUN npm ci --include=dev
