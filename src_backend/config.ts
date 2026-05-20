@@ -31,7 +31,7 @@ class Config {
   constructor() {
     this.tursoUrl = this.getRequired("turso_url");
     this.tursoToken = this.getRequired("turso_token");
-    this.port = parseInt(this.getOptional("port", "3000"), 10);
+    this.port = parseInt(process.env.PORT || process.env.port || "3000", 10);
     this.jwtSecret = this.getRequired("jwt_secret");
     this.jwtExpiresIn = this.getOptional("jwt_expires_in", "1h");
     this.frontendUrl = this.getOptional("frontend_url", "http://localhost:5173");
