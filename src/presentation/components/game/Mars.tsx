@@ -1,18 +1,22 @@
 import { useTexture } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
 import { RepeatWrapping } from "three";
-import { forwardRef, useMemo } from "react";
+import { forwardRef, useMemo, useRef, useImperativeHandle } from "react";
 import type { Mesh } from "three";
 
 interface MarsProps {
     onClick?: () => void;
 }
 
-export const Mars = forwardRef<Mesh, MarsProps>(({ onClick }, ref) => {
+export const Mars = forwardRef<Mesh, MarsProps>(({ onClick }, forwardedRef) => {
     const sphereRadius = 20;
+    const localRef = useRef<Mesh>(null);
+
+    useImperativeHandle(forwardedRef, () => localRef.current!);
 
     const [colorMap, dispMap] = useTexture([
-        "/textures/mars_colorx1.png",
-        "/textures/mars_displacementx1.png",
+        "/textures/2k_mars.jpg",
+        "/textures/2k_mars_displacement.jpg",
     ]);
 
     useMemo(() => {
@@ -22,9 +26,16 @@ export const Mars = forwardRef<Mesh, MarsProps>(({ onClick }, ref) => {
         });
     }, [colorMap, dispMap]);
 
+    // Obrót wokół własnej osi
+    useFrame((_, delta) => {
+        if (localRef.current) {
+            localRef.current.rotation.y += delta * 0.05;
+        }
+    });
+
     return (
         <mesh
-            ref={ref}
+            ref={localRef}
             receiveShadow
             onClick={(e) => {
                 e.stopPropagation();

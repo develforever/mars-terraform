@@ -6,10 +6,9 @@ import { useGameStore } from "../../../application/store/useGameStore";
 import { Sun } from "./Sun";
 
 export function MarsEnvironment() {
-    const sunRef = useRef<THREE.DirectionalLight>(null);
+    const sunRef = useRef<THREE.PointLight>(null);
     const setSun = useGameStore((state: { setSun: (f: number) => void }) => state.setSun);
     
-    const sunT = useRef(Math.PI * 1.2); // Start w pozycji widocznej w tle
     const skySunPosition = useRef<THREE.Vector3>(new THREE.Vector3());
     const dayFogColor = useMemo(() => new THREE.Color("#452a2a"), []);
     const nightFogColor = useMemo(() => new THREE.Color("#020205"), []);
@@ -21,31 +20,21 @@ export function MarsEnvironment() {
     const sandstormColor = useMemo(() => new THREE.Color("#8b5a2b"), []);
 
     useFrame((state, delta) => {
-        // Normalna prędkość czasu
-        sunT.current += delta * 0.05;
-        const angle = sunT.current;
-        
-        // Pełna orbita 3D wokół Marsa
-        const distance = 800;
-        const sunPos = new THREE.Vector3(
-            Math.sin(angle) * distance,
-            Math.sin(angle * 0.5) * distance * 0.5, // Lekkie nachylenie orbity
-            Math.cos(angle) * distance
-        );
-        
-        skySunPosition.current.copy(sunPos);
+        const sunPos = new THREE.Vector3(0, 150, -800);
+        // Pozycja słońca dla tła nieba - wektor kierunkowy od kamery do słońca
+        skySunPosition.current.copy(sunPos).sub(state.camera.position).normalize();
 
-        // Obliczanie jasności na podstawie pozycji słońca
-        const dayFactor = Math.max(0, sunPos.y / distance + 0.5);
+        // Stały dayFactor dla poprawnej widoczności
+        const dayFactor = 1.0;
         setSun(dayFactor);
 
         if (sunRef.current) {
             sunRef.current.position.copy(sunPos);
-            sunRef.current.intensity = 0.5 + 2.5 * dayFactor;
+            sunRef.current.intensity = 3.0;
         }
 
-        // Dynamiczna atmosfera i tło
-        currentAtmosphereColor.copy(nightFogColor).lerp(dayFogColor, dayFactor);
+        // Atmosfera uśredniona
+        currentAtmosphereColor.copy(nightFogColor).lerp(dayFogColor, 0.5);
         
         // Modyfikacja koloru i gęstości przez pogodę (burza piaskowa)
         if (weather.type === "sandstorm") {
@@ -78,11 +67,11 @@ export function MarsEnvironment() {
 
         // Dynamiczne oświetlenie otoczenia i gwiazdy
         if (ambientRef.current) {
-            ambientRef.current.intensity = 0.1 + 0.3 * dayFactor;
+            ambientRef.current.intensity = 0.4;
         }
         if (starsRef.current) {
             // Ukryj gwiazdy podczas burzy
-            starsRef.current.visible = dayFactor < 0.2 && weather.type !== "sandstorm";
+            starsRef.current.visible = weather.type !== "sandstorm";
             starsRef.current.rotation.y += delta * 0.01;
         }
     });
@@ -90,12 +79,14 @@ export function MarsEnvironment() {
     return (
         <>
             <ambientLight ref={ambientRef} intensity={0.2} />
-            <directionalLight 
+            <pointLight 
                 ref={sunRef} 
-                position={[10, 15, 5]} 
-                intensity={1.5} 
+                position={[0, 150, -800]} 
+                intensity={3.0} 
                 castShadow 
-                shadow-mapSize={[1024, 1024]} 
+                shadow-mapSize={[2048, 2048]} 
+                distance={0}
+                decay={0}
             />
 
             <fogExp2 attach="fog" args={["#000000", 0.012]} />
@@ -111,16 +102,16 @@ export function MarsEnvironment() {
 
             <Stars 
                 ref={starsRef} 
-                radius={150} 
-                depth={50} 
-                count={5000} 
-                factor={4} 
+                radius={20000} 
+                depth={5000} 
+                count={15000} 
+                factor={20} 
                 saturation={0} 
                 fade 
                 speed={1} 
             />
 
-            <Sun position={skySunPosition.current} />
+            <Sun position={new THREE.Vector3(0, 150, -800)} />
         </>
     );
 }

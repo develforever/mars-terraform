@@ -1,5 +1,6 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
+import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
 interface SunProps {
@@ -9,6 +10,18 @@ interface SunProps {
 export function Sun({ position }: SunProps) {
     const sunRef = useRef<THREE.Group>(null);
     const glowRef = useRef<THREE.Mesh>(null);
+
+    const [colorMap, dispMap] = useTexture([
+        "/textures/2k_sun.jpg",
+        "/textures/2k_sun_displacement.jpg",
+    ]);
+
+    useMemo(() => {
+        [colorMap, dispMap].forEach((t) => {
+            t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            t.repeat.set(1, 1);
+        });
+    }, [colorMap, dispMap]);
 
     useEffect(() => {
         console.log("Sun component mounted at", position);
@@ -31,8 +44,18 @@ export function Sun({ position }: SunProps) {
         <group ref={sunRef}>
             {/* Główne ciało słońca - Jasne, widoczne z oddali */}
             <mesh>
-                <sphereGeometry args={[40, 32, 32]} />
-                <meshBasicMaterial color="#ffffff" />
+                <sphereGeometry args={[40, 128, 128]} />
+                <meshStandardMaterial
+                    map={colorMap}
+                    displacementMap={dispMap}
+                    displacementScale={0.6}
+                    emissive={new THREE.Color("#ffffff")}
+                    emissiveMap={colorMap}
+                    emissiveIntensity={2}
+                    roughness={1}
+                    metalness={0}
+                    fog={false}
+                />
             </mesh>
 
             {/* Wewnętrzna gorąca korona */}
@@ -43,6 +66,7 @@ export function Sun({ position }: SunProps) {
                     transparent 
                     opacity={0.8} 
                     blending={THREE.AdditiveBlending}
+                    fog={false}
                 />
             </mesh>
 
@@ -55,6 +79,7 @@ export function Sun({ position }: SunProps) {
                     opacity={0.5} 
                     blending={THREE.AdditiveBlending}
                     side={THREE.BackSide}
+                    fog={false}
                 />
             </mesh>
 
@@ -67,6 +92,7 @@ export function Sun({ position }: SunProps) {
                     opacity={0.2} 
                     blending={THREE.AdditiveBlending}
                     side={THREE.BackSide}
+                    fog={false}
                 />
             </mesh>
             
@@ -77,6 +103,7 @@ export function Sun({ position }: SunProps) {
                     transparent
                     depthWrite={false}
                     blending={THREE.AdditiveBlending}
+                    fog={false}
                     uniforms={{
                         uColor: { value: new THREE.Color("#ffccaa") },
                         uOpacity: { value: 0.15 }
