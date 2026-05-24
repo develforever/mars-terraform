@@ -1029,6 +1029,40 @@
 				}
 			}
 		},
+		"/auth/providers": {
+			"get": {
+				"operationId": "Providers",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"github": {
+											"type": "boolean"
+										},
+										"google": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"github",
+										"google"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Auth"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
 		"/auth/google": {
 			"get": {
 				"operationId": "GoogleAuth",

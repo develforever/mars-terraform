@@ -8,27 +8,21 @@ import { useAuthStore } from "../application/store/useAuthStore";
 import { useModalStore } from "../ui/ModalManager/store";
 import { useGameStore } from "../application/store/useGameStore";
 import { authClient } from "../application/service/authService";
+import { useEconomy } from "../application/hooks/useEconomy";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated, isLoading } = useAuthStore();
     const colonyName = useGameStore(state => state.colonyName);
     const { open } = useModalStore();
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!isLoading) {
-            if (!isAuthenticated) {
-                navigate("/", { replace: true });
-                open("login");
-            } else if (!colonyName) {
-                navigate("/", { replace: true });
-                open("colony-name");
-            }
+        if (!colonyName) {
+            navigate("/", { replace: true });
+            open("colony-name");
         }
-    }, [isAuthenticated, isLoading, colonyName, navigate, open]);
+    }, [colonyName, navigate, open]);
 
-    if (isLoading) return <div className="h-screen w-screen flex items-center justify-center bg-black text-white">Loading...</div>;
-    if (!isAuthenticated || !colonyName) return null;
+    if (!colonyName) return null;
 
     return <>{children}</>;
 }
@@ -66,8 +60,6 @@ function AuthRouteHandler() {
 
     return null;
 }
-
-import { useEconomy } from "../application/hooks/useEconomy";
 
 export default function App() {
     const { fetchUser } = useAuthStore();

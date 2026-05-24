@@ -1,51 +1,220 @@
 # Mars Terraform
 
-Gra przeglądarkowa 3D (React + Three.js / React Three Fiber) o terraformacji Marsa: widok „Home” z planetą oraz widok kolonii z budową struktur zużywających i produkujących zasoby.
+**Mars Terraform** is a browser-based 3D strategy game and fullstack portfolio project built with React, TypeScript, Three.js and Node.js.
 
-## Uruchamianie
+The player starts a Mars colony, manages resources, builds terraforming infrastructure and tries to keep the settlement alive while the planet slowly becomes more habitable.
 
-Wymaga Node.js z npm.
+## Why this project exists
+
+This project is designed as a portfolio showcase of:
+
+- React application architecture
+- TypeScript-first frontend and backend development
+- Three.js / React Three Fiber 3D rendering
+- game state management with Zustand
+- fullstack authentication with JWT and OAuth
+- REST API design with tsoa
+- database schema management with Drizzle ORM
+- automated tests with Vitest
+
+## Features
+
+- 3D Mars start scene
+- playable anonymous mode
+- optional account system
+- Google and GitHub OAuth login when configured
+- colony naming flow
+- terrain grid for building structures
+- resource economy tick
+- game over and new game flow
+- weather alert UI
+- REST backend with authentication, users and groups
+
+## Tech stack
+
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- Three.js / React Three Fiber
+- Zustand
+- TailwindCSS
+- Vitest
+- React Testing Library
+
+### Backend
+
+- Node.js
+- TypeScript
+- Express
+- tsoa
+- JWT authentication
+- Drizzle ORM
+- drizzle-kit
+- Vitest
+
+## Gameplay
+
+The game can be played anonymously. Authentication is optional and is used for account-related features.
+
+Main routes:
+
+- `/` - start scene with interactive Mars
+- `/mars` - terraform gameplay view
+- `/reset-password` - password reset callback
+- `/verify-email` - email verification callback
+
+## Authentication
+
+The application supports:
+
+- local email/password registration
+- email verification
+- password reset
+- JWT sessions
+- optional Google OAuth
+- optional GitHub OAuth
+
+Social login buttons are displayed only when the backend reports that the provider is configured.
+
+Provider status endpoint:
+
+```http
+GET /api/auth/providers
+```
+
+Example response:
+
+```json
+{
+  "google": true,
+  "github": false
+}
+```
+
+## Running locally
+
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-Frontend (Vite):
+Run frontend:
 
 ```bash
 npm run dev:front
 ```
 
-Backend Express (API użytkowników/grup, JWT — osobny moduł, nie spięty z logiką gry w UI):
+Run backend:
 
 ```bash
 npm run dev:back
 ```
 
-Oba procesy naraz:
+Run both:
 
 ```bash
 npm run dev
 ```
 
-Domyślny frontend: adres z konsoli Vite (zwykle `http://localhost:5173`). Konfiguracja backendu przez zmienne środowiskowe (np. `.env.local`).
+Default frontend URL:
 
-## Nawigacja w aplikacji
+```txt
+http://localhost:5173
+```
 
-- **`/`** — start: obracająca się Mars, klik otwiera modal nazwy kolonii.
-- **`/mars`** — scena pola terraformacji z siatką terenu, HUD (zasoby ☀️, O₂, energia, woda, biomasa), tryby budowy / rozbiórki (również klawisze **B**, **X**, **Esc**).
+Backend API is available under:
 
-Ekonomia gry wywoływana jest co około **1 sekundę** podczas gry na trasie `/mars` (tick w `useEconomy`; po **game over** pętla się zatrzymuje i startuje ponownie po **„Nowa gra”**, bez przeładowania strony).
+```txt
+/api
+```
 
-## Skrypty przydatne w dev
+## Environment configuration
 
-- `npm run build` — build produkcyjny frontu  
-- `npm run test` — testy frontend + backend Vitest  
-- `npm run tsoa:gen` — regeneracja tras OpenAPI dla backendu (Tsoa)  
-- `npm run db:push` — schemat bazy Drizzle  
+Backend configuration is loaded through the project config class.
 
-## Struktura kodu
+Common variables:
 
-- Routing i `App` są w **`src/app/`** (`App.tsx`).  
-- Widoki 3D i HUD gry: **`src/presentation/`**.  
-- Stan gry (Zustand) i domena: **`src/application/`**, **`src/domain/`**.
+```env
+jwt_secret=change-me
+frontend_url=http://localhost:5173
+
+google_client_id=
+google_client_secret=
+
+github_client_id=
+github_client_secret=
+```
+
+When Google or GitHub credentials are empty, the corresponding login button is hidden.
+
+## Database
+
+The backend uses Drizzle ORM and drizzle-kit.
+
+Useful command:
+
+```bash
+npm run db:push
+```
+
+Database schema:
+
+```txt
+src_backend/db/schema.ts
+```
+
+## API generation
+
+The backend uses tsoa for typed REST controller generation.
+
+```bash
+npm run tsoa:gen
+```
+
+Controllers are located in:
+
+```txt
+src_backend/controller
+```
+
+## Tests and verification
+
+Run tests:
+
+```bash
+npm run test
+```
+
+Build project:
+
+```bash
+npm run build
+```
+
+## Project structure
+
+```txt
+src/
+  app/
+  application/
+  domain/
+  presentation/
+  ui/
+
+src_backend/
+  controller/
+  service/
+  db/
+  middleware/
+  model/
+  tsoa/
+```
+
+## Portfolio highlights
+
+This project demonstrates the ability to build a complete interactive product, not just isolated UI components.
+
+It combines real-time 3D rendering, frontend state management, backend authentication, API design and database modeling in one coherent fullstack application.

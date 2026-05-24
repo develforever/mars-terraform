@@ -88,8 +88,21 @@ export class AuthController extends Controller {
     return { message: "Verification email has been sent." };
   }
 
+  @Get("providers")
+  public async providers(): Promise<{ google: boolean; github: boolean }> {
+    return {
+      google: !!(config.googleClientId && config.googleClientSecret),
+      github: !!(config.githubClientId && config.githubClientSecret),
+    };
+  }
+
   @Get("google")
   public async googleAuth(): Promise<{ url: string }> {
+    if (!config.googleClientId || !config.googleClientSecret) {
+      this.setStatus(404);
+      throw new Error("Google authentication is not configured");
+    }
+
     const url = oauthService.getGoogleAuthUrl();
     return { url };
   }
@@ -105,6 +118,11 @@ export class AuthController extends Controller {
 
   @Get("github")
   public async githubAuth(): Promise<{ url: string }> {
+    if (!config.githubClientId || !config.githubClientSecret) {
+      this.setStatus(404);
+      throw new Error("GitHub authentication is not configured");
+    }
+
     const url = oauthService.getGithubAuthUrl();
     return { url };
   }

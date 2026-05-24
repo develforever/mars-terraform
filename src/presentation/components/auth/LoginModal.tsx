@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "../../../application/store/useAuthStore";
+import { authClient, type AuthProviders } from "../../../application/service/authService";
 import { useModalStore } from "../../../ui/ModalManager/store";
 
 export default function LoginModal() {
@@ -8,6 +9,28 @@ export default function LoginModal() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [providers, setProviders] = useState<AuthProviders>({ google: false, github: false });
+
+  useEffect(() => {
+    let mounted = true;
+
+    authClient
+      .getAuthProviders()
+      .then((result) => {
+        if (mounted) {
+          setProviders(result);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setProviders({ google: false, github: false });
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +45,6 @@ export default function LoginModal() {
 
   const handleGoogle = async () => {
     try {
-      const { authClient } = await import("../../../application/service/authService");
       const url = await authClient.getGoogleAuthUrl();
       window.location.href = url;
     } catch {
@@ -32,7 +54,6 @@ export default function LoginModal() {
 
   const handleGithub = async () => {
     try {
-      const { authClient } = await import("../../../application/service/authService");
       const url = await authClient.getGithubAuthUrl();
       window.location.href = url;
     } catch {
@@ -73,20 +94,28 @@ export default function LoginModal() {
           {isLoading ? "Logging in..." : "Log In"}
         </button>
       </form>
-      <div className="mt-4 flex gap-2">
-        <button
-          onClick={handleGoogle}
-          className="flex-1 py-2 bg-red-600 hover:bg-red-500 rounded text-sm font-medium"
-        >
-          Google
-        </button>
-        <button
-          onClick={handleGithub}
-          className="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium"
-        >
-          GitHub
-        </button>
-      </div>
+      {(providers.google || providers.github) && (
+        <div className="mt-4 flex gap-2">
+          {providers.google && (
+            <button
+              type="button"
+              onClick={handleGoogle}
+              className="flex-1 py-2 bg-red-600 hover:bg-red-500 rounded text-sm font-medium"
+            >
+              Google
+            </button>
+          )}
+          {providers.github && (
+            <button
+              type="button"
+              onClick={handleGithub}
+              className="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium"
+            >
+              GitHub
+            </button>
+          )}
+        </div>
+      )}
       <div className="mt-4 text-sm text-center space-y-2">
         <button onClick={() => open("forgot-password")} className="text-blue-400 hover:underline block w-full">
           Forgot password?

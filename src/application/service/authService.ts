@@ -13,6 +13,11 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface AuthProviders {
+  google: boolean;
+  github: boolean;
+}
+
 export interface RegisterRequest {
   email: string;
   password: string;
@@ -143,6 +148,11 @@ const resendVerification = async (data: ResendVerificationRequest): Promise<{ me
   return handleResponse(response);
 };
 
+const getAuthProviders = async (): Promise<AuthProviders> => {
+  const response = await fetch(`${API_BASE}/auth/providers`);
+  return handleResponse<AuthProviders>(response);
+};
+
 const getGoogleAuthUrl = async (): Promise<string> => {
   const response = await fetch(`${API_BASE}/auth/google`);
   const result = await handleResponse<{ url: string }>(response);
@@ -170,6 +180,7 @@ export const authClient = {
   resetPassword,
   verifyEmail,
   resendVerification,
+  getAuthProviders,
   getGoogleAuthUrl,
   getGithubAuthUrl,
   isAuthenticated,

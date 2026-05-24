@@ -4,7 +4,7 @@ dotenv.config();
 
 class Config {
   readonly tursoUrl: string;
-  readonly tursoToken: string;
+  readonly tursoToken: string | undefined;
   readonly port: number;
   readonly jwtSecret: string;
   readonly jwtExpiresIn: string;
@@ -29,8 +29,8 @@ class Config {
   readonly githubClientSecret: string;
 
   constructor() {
-    this.tursoUrl = this.getRequired("turso_url");
-    this.tursoToken = this.getRequired("turso_token");
+    this.tursoUrl = this.getOptional("turso_url", "file:./local.db");
+    this.tursoToken = process.env.turso_token || undefined;
     this.port = parseInt(process.env.PORT || process.env.port || "3000", 10);
     this.jwtSecret = this.getRequired("jwt_secret");
     this.jwtExpiresIn = this.getOptional("jwt_expires_in", "1h");
