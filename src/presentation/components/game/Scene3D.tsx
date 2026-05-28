@@ -6,6 +6,7 @@ import { usePlacement } from "../../../application/hooks/usePlacement";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { MarsTerrain } from "./MarsTerrain";
 import { GridOverlay } from "./GridOverlay";
+import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 import { Buildings, DemolishGhost, HoverGhost } from "./Buildings";
 import { TerrainHeightContext } from "./TerrainHeightContext";
 import { heightFromDisplacement } from "../../utils/terrainDisplacement";
@@ -34,11 +35,7 @@ function World() {
         "/textures/mars_displacementx1.png",
     ]);
 
-    if (typeof window !== "undefined") {
-        (window as any).dispMap = dispMap;
-    }
-
-    const terrainSize = useMemo(() => ({ x: 100, z: 50 }), []);
+    const terrainSize = useMemo(() => ({ x: TERRAIN_BOUNDS.sizeX, z: TERRAIN_BOUNDS.sizeZ }), []);
 
     // Check if displacement texture is loaded
     const isTextureLoaded = useMemo(() => {

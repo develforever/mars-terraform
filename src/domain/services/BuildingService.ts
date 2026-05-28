@@ -121,4 +121,26 @@ export class BuildingService {
       refundDelta: this.calculateRefund(definition.cost),
     };
   }
+
+  /** Returns updated buildings with condition degraded by storm.
+   *  Each building loses `damagePerTick * intensity` condition per tick.
+   */
+  static degradeBuildings(
+    buildings: PlacedBuilding[],
+    stormIntensity: number,
+    damagePerTick = 0.5
+  ): PlacedBuilding[] {
+    if (stormIntensity <= 0) return buildings;
+    const damage = damagePerTick * stormIntensity;
+    return buildings.map((b) => ({
+      ...b,
+      condition: Math.max(0, b.condition - damage),
+    }));
+  }
+
+  /** Returns condition factor (0..1) used to scale building production. */
+  static conditionFactor(condition: number): number {
+    if (condition >= 50) return 1;
+    return condition / 50;
+  }
 }

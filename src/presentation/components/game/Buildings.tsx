@@ -1,5 +1,5 @@
 import { Suspense, useMemo, useEffect } from "react";
-import { useGLTF } from "@react-three/drei";
+import { useGLTF, Html } from "@react-three/drei";
 import type { Group } from "three";
 import * as THREE from "three";
 import { useGameStore } from "../../../application/store/useGameStore";
@@ -8,6 +8,8 @@ import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 import { keyFromCell } from "../../../domain/entities/Position";
 import { BuildingService } from "../../../domain/services/BuildingService";
 import { useTerrainHeight } from "./TerrainHeightContext";
+import type { PlacedBuilding } from "../../../domain/entities/Building";
+import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 
 interface ModelProps {
     path: string;
@@ -55,21 +57,7 @@ interface BuildingMeshProps {
 
 function BuildingMesh({ defId, ghost = false }: BuildingMeshProps) {
     const def = BUILDING_DEFINITIONS[defId];
-
-    const scale = useMemo(() => {
-        switch (defId) {
-            case "hab": return 2.5;
-            case "greenhouse": return 2.5;
-            case "solar": return 3.0;
-            case "watertank": return 2.5;
-            case "silo": return 2.5;
-            case "rtg": return 3.0;
-            case "mine": return 3.0;
-            case "extractor": return 2.5;
-            case "factory": return 3.0;
-            default: return 2.5;
-        }
-    }, [defId]);
+    const scale = def?.modelScale ?? 2.5;
 
     if (def?.modelPath) {
         return (
@@ -164,9 +152,6 @@ export function Buildings() {
     );
 }
 
-import { Html } from "@react-three/drei";
-import type { PlacedBuilding } from "../../../domain/entities/Building";
-
 export function BuildingInspectionPopover({ building }: { building: PlacedBuilding }) {
     const def = BUILDING_DEFINITIONS[building.definitionId];
     return (
@@ -218,10 +203,7 @@ export function HoverGhost() {
 
     if (!hoverCell || !selectedBuildingId || buildMode !== "place") return null;
 
-    // Terrain bounds: x: 100 (from -50 to 50), z: 50 (from -25 to 25)
-    const halfX = 50;
-    const halfZ = 25;
-    if (hoverCell.x < -halfX || hoverCell.x > halfX || hoverCell.z < -halfZ || hoverCell.z > halfZ) {
+    if (hoverCell.x < -TERRAIN_BOUNDS.halfX || hoverCell.x > TERRAIN_BOUNDS.halfX || hoverCell.z < -TERRAIN_BOUNDS.halfZ || hoverCell.z > TERRAIN_BOUNDS.halfZ) {
         return null;
     }
 

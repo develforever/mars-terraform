@@ -52,7 +52,7 @@ export function VisibilitySystem({ terrainSize, onVisibilityMapCreated }: Visibi
         ctx.globalCompositeOperation = "screen";
         
         placedBuildings.forEach((b) => {
-            const def = BUILDING_DEFINITIONS[b.id] || BUILDING_DEFINITIONS[b.definitionId];
+            const def = BUILDING_DEFINITIONS[b.definitionId];
             
             // Calculate UV coordinates from world coordinates
             const u = (b.position.x + terrainSize.x / 2) / terrainSize.x;

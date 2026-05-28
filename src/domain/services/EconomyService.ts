@@ -1,6 +1,7 @@
 import type { BuildingDefinition, PlacedBuilding } from "../entities/Building";
 import type { Resources, ResourceDelta, ResourceCapacity, ResourceProduction } from "../entities/Resources";
 import type { ColonyState } from "../entities/Colony";
+import { BuildingService } from "./BuildingService";
 
 const O2_CONSUMPTION_PER_TICK = 0.05;
 
@@ -22,15 +23,22 @@ export class EconomyService {
       const def = definitions[building.definitionId];
       if (!def?.production) continue;
 
+      const condFactor = BuildingService.conditionFactor(building.condition);
+
       for (const [resourceKey, value] of Object.entries(def.production)) {
         let adjustedValue = value ?? 0;
-        
+
         // Solar panels produce less at night
         if (def.tags?.includes("dayScaled") && resourceKey === "power") {
           adjustedValue *= sunFactor;
         }
 
         adjustedValue *= productionModifier;
+
+        // Condition only scales positive production, not consumption
+        if (adjustedValue > 0) {
+          adjustedValue *= condFactor;
+        }
 
         const key = resourceKey as keyof Resources;
         production[key] = (production[key] ?? 0) + adjustedValue;

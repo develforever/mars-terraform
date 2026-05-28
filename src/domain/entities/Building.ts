@@ -11,6 +11,7 @@ export interface BuildingDefinition {
   tags?: string[];
   capacity?: Partial<ResourceCapacity>;
   modelPath?: string;
+  modelScale?: number;
   dependsOn?: string[];
 }
 

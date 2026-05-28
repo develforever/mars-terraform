@@ -6,7 +6,6 @@ export const BuildingCategory = {
   STORAGE: "storage",
   INFRASTRUCTURE: "infrastructure",
   DEFENSE: "defense",
-  CARGO: "cargo",
 } as const;
 
 export type BuildingCategory = typeof BuildingCategory[keyof typeof BuildingCategory];
@@ -22,6 +21,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { power: 5, water: 1 },
     production: { o2: 0.15, power: -0.10, water: -0.05 },
     modelPath: "/models/mars/rocket_baseA.glb",
+    modelScale: 2.5,
   },
   {
     id: "greenhouse",
@@ -31,6 +31,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { power: 3, water: 4 },
     production: { o2: 0.30, biomass: 0.20, power: -0.10, water: -0.15 },
     modelPath: "/models/mars/hangar_roundGlass.glb",
+    modelScale: 2.5,
     dependsOn: ["hab"],
   },
 
@@ -43,6 +44,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { power: 4, water: 2 },
     production: { o2: 0.60, power: -0.15 },
     modelPath: "/models/mars/machine_generator.glb",
+    modelScale: 2.5,
     dependsOn: ["hab"],
   },
   {
@@ -54,6 +56,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     production: { power: 0.50 },
     tags: ["dayScaled"],
     modelPath: "/models/mars/machine_generator.glb",
+    modelScale: 3.0,
   },
   {
     id: "rtg",
@@ -63,6 +66,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { biomass: 5, water: 2 },
     production: { power: 0.60 },
     modelPath: "/models/mars/machine_generatorLarge.glb",
+    modelScale: 3.0,
     dependsOn: ["solar"],
   },
   {
@@ -73,6 +77,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { power: 4 },
     production: { water: 0.40, power: -0.20 },
     modelPath: "/models/mars/pipe_entrance.glb",
+    modelScale: 2.5,
     dependsOn: ["hab"],
   },
   {
@@ -83,6 +88,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { power: 6, water: 2 },
     production: { biomass: 0.40, power: -0.30 },
     modelPath: "/models/mars/craft_miner.glb",
+    modelScale: 3.0,
     dependsOn: ["ice"],
   },
 
@@ -95,6 +101,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { biomass: 1, water: 1 },
     capacity: { power: 50 },
     modelPath: "/models/mars/machine_wireless.glb",
+    modelScale: 2.5,
     dependsOn: ["solar"],
   },
   {
@@ -105,6 +112,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { power: 2, biomass: 0.5 },
     capacity: { water: 50 },
     modelPath: "/models/mars/machine_barrel.glb",
+    modelScale: 2.5,
     dependsOn: ["ice"],
   },
   {
@@ -115,6 +123,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { power: 2, water: 1 },
     capacity: { biomass: 40 },
     modelPath: "/models/mars/machine_barrelLarge.glb",
+    modelScale: 2.5,
     dependsOn: ["miner"],
   },
 
@@ -127,6 +136,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { power: 10, biomass: 5 },
     production: { power: -0.40, water: -0.20, biomass: 0.10 },
     modelPath: "/models/mars/machine_wireless.glb",
+    modelScale: 2.5,
     dependsOn: ["hab", "rtg"],
   },
 
@@ -139,6 +149,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     cost: { power: 10, biomass: 2 },
     production: { power: -0.05 },
     modelPath: "/models/mars/turret_single.glb",
+    modelScale: 3.0,
     dependsOn: ["hab", "solar"],
   },
 ];

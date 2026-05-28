@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import * as THREE from "three";
 
 interface GridOverlayProps {
@@ -14,7 +14,7 @@ export function GridOverlay({ terrainSize, visibilityMap }: GridOverlayProps) {
         uSize: { value: new THREE.Vector2(terrainSize.x, terrainSize.z) }
     }), []); // Stable reference
 
-    useMemo(() => {
+    useEffect(() => {
         uniforms.uVisibilityMap.value = visibilityMap || null;
     }, [visibilityMap, uniforms]);
 

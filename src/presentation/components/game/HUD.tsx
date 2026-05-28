@@ -1,11 +1,13 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
+import { useAuthStore } from "../../../application/store/useAuthStore";
 import { BUILDING_DEFINITIONS, BUILDING_SEED } from "../../../domain/config/buildings";
 import { BuildingService } from "../../../domain/services/BuildingService";
 import type { ResourceKey } from "../../../domain/entities/Resources";
 import type { BuildingDefinition } from "../../../domain/entities/Building";
 import { HintService } from "../../../domain/services/HintService";
+import { DIFFICULTY_LABELS } from "../../../domain/services/TerraformingService";
 import { WeatherAlert } from "./WeatherAlert";
 import "./HUD.css";
 
@@ -14,6 +16,9 @@ export function HUD() {
     const capacity = useGameStore((state) => state.capacity);
     const lastDelta = useGameStore((state) => state.lastDelta);
     const sun = useGameStore((state) => state.sun);
+    const terraforming = useGameStore((state) => state.terraforming);
+    const won = useGameStore((state) => state.won);
+    const difficulty = useGameStore((state) => state.difficulty);
     const alive = useGameStore((state) => state.alive);
     const selectedBuildingId = useUIStore((state) => state.selectedBuildingId);
     const setSelectedBuilding = useUIStore((state) => state.setSelectedBuilding);
@@ -25,6 +30,23 @@ export function HUD() {
     const resetUI = useUIStore((state) => state.resetUI);
     const isHUDVisible = useUIStore((state) => state.isHUDVisible);
     const toggleHUD = useUIStore((state) => state.toggleHUD);
+    const saveGame = useGameStore((state) => state.saveGame);
+    const loadGame = useGameStore((state) => state.loadGame);
+    const colonyName = useGameStore((state) => state.colonyName);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
+
+    const handleSave = async () => {
+        setSaveStatus("saving");
+        const ok = await saveGame();
+        setSaveStatus(ok ? "ok" : "err");
+        setTimeout(() => setSaveStatus("idle"), 2000);
+    };
+
+    const handleLoad = async () => {
+        if (!colonyName) return;
+        await loadGame(colonyName);
+    };
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -97,6 +119,15 @@ export function HUD() {
                 <span>⚡ {resources.power.toFixed(1)} / {capacity.power} {renderDelta(lastDelta?.power)}</span>
                 <span>💧 {resources.water.toFixed(1)} / {capacity.water} {renderDelta(lastDelta?.water)}</span>
                 <span>🧪 {resources.biomass.toFixed(1)} / {capacity.biomass} {renderDelta(lastDelta?.biomass)}</span>
+                <span className="terraforming-bar">
+                    🌍 {terraforming.toFixed(1)}%
+                    <span className="terraforming-track">
+                        <span
+                            className="terraforming-fill"
+                            style={{ width: `${terraforming}%` }}
+                        />
+                    </span>
+                </span>
             </div>
 
             <div className={`hud-dock ${isHUDVisible ? "hud-dock--visible" : "hud-dock--hidden"}`}>
@@ -133,6 +164,27 @@ export function HUD() {
                     <button type="button" onClick={cancelBuild}>
                         Anuluj <span aria-hidden="true">&nbsp;(Esc)</span>
                     </button>
+                    {isAuthenticated && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saveStatus === "saving"}
+                                className={saveStatus === "ok" ? "active" : saveStatus === "err" ? "locked" : ""}
+                                title="Zapisz grę"
+                            >
+                                {saveStatus === "saving" ? "Zapisywanie..." : saveStatus === "ok" ? "✓ Zapisano" : saveStatus === "err" ? "✗ Błąd" : "Zapisz"}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleLoad}
+                                disabled={!colonyName}
+                                title="Wczytaj grę"
+                            >
+                                Wczytaj
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 <div className="hud-dock__categories">
@@ -219,7 +271,26 @@ export function HUD() {
                 </div>
             </div>
 
-            {!alive && (
+            {won && (
+                <div className="overlay overlay--win">
+                    <div className="panel panel--win">
+                        <div className="title">🌍 MARS OŻYWA!</div>
+                        <div className="reason">Terraformacja ukończona w trybie <strong>{DIFFICULTY_LABELS[difficulty]}</strong>.</div>
+                        <div className="reason" style={{ fontSize: "13px", opacity: 0.7, marginTop: "4px" }}>Twoja kolonia zmieniła oblicze Marsa na zawsze.</div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                resetGame();
+                                resetUI();
+                            }}
+                        >
+                            Zagraj ponownie
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {!alive && !won && (
                 <div className="overlay">
                     <div className="panel">
                         <div className="title">KONIEC GRY</div>

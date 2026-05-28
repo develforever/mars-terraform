@@ -71,7 +71,4 @@ export const useUIStore = create<UIState>()(
   )
 );
 
-if (typeof window !== "undefined") {
-  (window as any).useUIStore = useUIStore;
-}
 

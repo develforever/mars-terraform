@@ -28,7 +28,7 @@ export class HintService {
     if ((lastDelta.power ?? 0) < 0) {
       return {
         message: "Deficyt energii! Zbuduj źródło zasilania (Panele Słoneczne / Turbina).",
-        suggestedBuildingId: "solar-panel",
+        suggestedBuildingId: "solar",
         icon: "⚡",
         critical: true
       };
@@ -37,8 +37,8 @@ export class HintService {
     // 3. Water deficit
     if ((lastDelta.water ?? 0) < 0) {
       return {
-        message: "Brakuje wody! Zbuduj Ekstraktor Wody.",
-        suggestedBuildingId: "water-extractor",
+        message: "Brakuje wody! Zbuduj Ekstraktor Lodu.",
+        suggestedBuildingId: "ice",
         icon: "💧",
         critical: true
       };

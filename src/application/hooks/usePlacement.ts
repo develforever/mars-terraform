@@ -3,9 +3,12 @@ import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useUIStore } from "../store/useUIStore";
 import { useGameStore } from "../store/useGameStore";
+import { TERRAIN_BOUNDS } from "../../presentation/utils/terrainBounds";
 
 const RAY = new THREE.Raycaster();
 const MOUSE = new THREE.Vector2();
+const GROUND_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const HIT = new THREE.Vector3();
 
 interface UsePlacementOptions {
   grid?: number;
@@ -57,10 +60,7 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
 
       const { x, z } = latest.current;
       
-      // Terrain bounds: x: 100 (from -50 to 50), z: 50 (from -25 to 25)
-      const halfX = 50;
-      const halfZ = 25;
-      if (x < -halfX || x > halfX || z < -halfZ || z > halfZ) return;
+      if (x < -TERRAIN_BOUNDS.halfX || x > TERRAIN_BOUNDS.halfX || z < -TERRAIN_BOUNDS.halfZ || z > TERRAIN_BOUNDS.halfZ) return;
       
       if (buildMode === "place") {
         if (!selectedBuildingId) return;
@@ -86,10 +86,7 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
   useFrame(() => {
     RAY.setFromCamera(MOUSE, camera);
     
-    // Use plane intersection at y=0 for base position
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const hit = new THREE.Vector3();
-    if (!RAY.ray.intersectPlane(plane, hit)) {
+    if (!RAY.ray.intersectPlane(GROUND_PLANE, HIT)) {
       if (latest.current !== null) {
         setHoverCell(null);
         latest.current = null;
@@ -97,13 +94,10 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
       return;
     }
     
-    const x = Math.round(hit.x / grid) * grid;
-    const z = Math.round(hit.z / grid) * grid;
+    const x = Math.round(HIT.x / grid) * grid;
+    const z = Math.round(HIT.z / grid) * grid;
     
-    // Terrain bounds: x: 100 (from -50 to 50), z: 50 (from -25 to 25)
-    const halfX = 50;
-    const halfZ = 25;
-    if (x < -halfX || x > halfX || z < -halfZ || z > halfZ) {
+    if (x < -TERRAIN_BOUNDS.halfX || x > TERRAIN_BOUNDS.halfX || z < -TERRAIN_BOUNDS.halfZ || z > TERRAIN_BOUNDS.halfZ) {
       // Don't update hoverCell when outside bounds, but keep the last valid position
       return;
     }
