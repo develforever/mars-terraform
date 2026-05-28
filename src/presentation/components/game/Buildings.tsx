@@ -1,5 +1,5 @@
 import { Suspense, useMemo, useEffect } from "react";
-import { useGLTF, Center } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import type { Group } from "three";
 import * as THREE from "three";
 import { useGameStore } from "../../../application/store/useGameStore";
@@ -20,6 +20,15 @@ function Model({ path, scale = 1, ghost = false }: ModelProps) {
     const sceneClone = useMemo<Group>(() => gltf.scene.clone(true), [gltf.scene]);
 
     useEffect(() => {
+        // Calculate bounding box to center the model's origin at the bottom center
+        const box = new THREE.Box3().setFromObject(sceneClone);
+        const center = box.getCenter(new THREE.Vector3());
+        
+        // Shift the model so its origin is at the bottom center
+        sceneClone.position.x = -center.x;
+        sceneClone.position.y = -box.min.y;
+        sceneClone.position.z = -center.z;
+
         if (ghost) {
             sceneClone.traverse((child) => {
                 if ((child as any).isMesh) {
@@ -35,9 +44,7 @@ function Model({ path, scale = 1, ghost = false }: ModelProps) {
     }, [sceneClone, ghost]);
 
     return (
-        <Center bottom>
-            <primitive object={sceneClone} scale={scale} />
-        </Center>
+        <primitive object={sceneClone} scale={scale} />
     );
 }
 
@@ -85,34 +92,46 @@ export function Buildings() {
     const inspectedInstanceId = useUIStore((state) => state.inspectedInstanceId);
     const setInspectedInstance = useUIStore((state) => state.setInspectedInstance);
     const buildMode = useUIStore((state) => state.buildMode);
+    const terrainY = useTerrainHeight();
+    const demolishBuilding = useGameStore((state) => state.demolishBuilding);
 
-    const handleBuildingClick = (e: any, id: string) => {
-        // Only allow selection if not in build/demolish mode
+    const handleBuildingClick = (e: any, building: PlacedBuilding) => {
+        e.stopPropagation();
+        
+        if (buildMode === "demolish") {
+            demolishBuilding({ x: building.position.x, z: building.position.z });
+            return;
+        }
+        
+        // Only allow selection if not in build mode
         if (buildMode !== null) return;
         
-        e.stopPropagation();
-        setInspectedInstance(id === inspectedInstanceId ? null : id);
+        setInspectedInstance(building.id === inspectedInstanceId ? null : building.id);
     };
 
     return (
         <>
             {placed.map((b) => {
                 const isSelected = b.id === inspectedInstanceId;
+                // Sample live terrain height so buildings always sit on the
+                // displaced surface, regardless of when the texture was decoded.
+                // Increased offset to account for foundation base height
+                const baseY = terrainY(b.position.x, b.position.z) + 0.3;
                 
                 return (
                     <group 
                         key={b.id} 
-                        position={[b.position.x, b.position.y + 0.5, b.position.z]}
-                        onClick={(e) => handleBuildingClick(e, b.id)}
+                        position={[b.position.x, baseY, b.position.z]}
+                        onClick={(e) => handleBuildingClick(e, b)}
                     >
                         {/* Rendered higher to be clearly on top of the foundation */}
-                        <group position={[0, 0.2, 0]}>
+                        <group position={[0, -0.1, 0]}>
                             <BuildingMesh defId={b.definitionId} />
                         </group>
                         
                         {/* Visual foundation base - Thicker pedestal to bridge terrain gaps */}
-                        <mesh position={[0, 0.05, 0]}>
-                            <cylinderGeometry args={[0.8, 0.9, 0.6, 32]} />
+                        <mesh position={[0, -0.6, 0]}>
+                            <cylinderGeometry args={[0.8, 0.9, 1.0, 32]} />
                             <meshStandardMaterial 
                                 color={isSelected ? "#00ffff" : "#3a3a3a"} 
                                 emissive={isSelected ? "#003333" : "#000000"}
@@ -129,7 +148,7 @@ export function Buildings() {
                             </mesh>
                         )}
 
-                        <mesh position={[0, -0.1, 0]}>
+                        <mesh position={[0, -1.3, 0]}>
                             <cylinderGeometry args={[0.9, 1.0, 0.3, 32]} />
                             <meshStandardMaterial color="#1a1a1a" />
                         </mesh>
@@ -148,7 +167,7 @@ export function Buildings() {
 import { Html } from "@react-three/drei";
 import type { PlacedBuilding } from "../../../domain/entities/Building";
 
-function BuildingInspectionPopover({ building }: { building: PlacedBuilding }) {
+export function BuildingInspectionPopover({ building }: { building: PlacedBuilding }) {
     const def = BUILDING_DEFINITIONS[building.definitionId];
     return (
         <Html distanceFactor={15} position={[0, 3, 0]} center>
@@ -178,7 +197,7 @@ function BuildingInspectionPopover({ building }: { building: PlacedBuilding }) {
                             {Object.entries(def.production).map(([res, val]) => (
                                 <div key={res} className="production-item">
                                     <span className="res-name">{res}</span>
-                                    <span className="res-val">+{val}</span>
+                                    <span className="res-val">{val > 0 ? "+" : ""}{val}</span>
                                 </div>
                             ))}
                         </div>
@@ -199,21 +218,28 @@ export function HoverGhost() {
 
     if (!hoverCell || !selectedBuildingId || buildMode !== "place") return null;
 
+    // Terrain bounds: x: 100 (from -50 to 50), z: 50 (from -25 to 25)
+    const halfX = 50;
+    const halfZ = 25;
+    if (hoverCell.x < -halfX || hoverCell.x > halfX || hoverCell.z < -halfZ || hoverCell.z > halfZ) {
+        return null;
+    }
+
     const def = BUILDING_DEFINITIONS[selectedBuildingId];
     const canAfford = def ? BuildingService.canAfford(def.cost, resources) : false;
     const reqsMet = def ? BuildingService.hasRequirements(def, placedBuildings) : false;
-    const baseY = terrainY(hoverCell.x, hoverCell.z) + 0.5;
+    const baseY = terrainY(hoverCell.x, hoverCell.z) + 0.3;
 
     const isValid = canAfford && reqsMet;
 
     return (
         <group position={[hoverCell.x, baseY, hoverCell.z]}>
-            <group position={[0, 0.2, 0]}>
+            <group position={[0, -0.1, 0]}>
                 <BuildingMesh defId={selectedBuildingId} ghost={true} />
             </group>
             
             {/* Area confirmation box */}
-            <mesh position={[0, 0.5, 0]}>
+            <mesh position={[0, 0.7, 0]}>
                 <boxGeometry args={[1, 1.2, 1]} />
                 <meshStandardMaterial 
                     color={isValid ? "#00ff88" : "#ff3355"} 
@@ -224,8 +250,8 @@ export function HoverGhost() {
             </mesh>
 
             {/* Pedestal preview */}
-            <mesh position={[0, 0.05, 0]}>
-                <cylinderGeometry args={[0.8, 0.9, 0.6, 32]} />
+            <mesh position={[0, -0.8, 0]}>
+                <cylinderGeometry args={[0.8, 0.9, 1.0, 32]} />
                 <meshStandardMaterial 
                     color={isValid ? "#00ff88" : "#ff3355"} 
                     transparent 

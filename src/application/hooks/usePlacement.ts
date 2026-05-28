@@ -6,7 +6,6 @@ import { useGameStore } from "../store/useGameStore";
 
 const RAY = new THREE.Raycaster();
 const MOUSE = new THREE.Vector2();
-const UP = new THREE.Vector3(0, 1, 0);
 
 interface UsePlacementOptions {
   grid?: number;
@@ -20,7 +19,6 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
   const selectedBuildingId = useUIStore((s) => s.selectedBuildingId);
   const placeBuilding = useGameStore((s) => s.placeBuilding);
   const demolishBuilding = useGameStore((s) => s.demolishBuilding);
-  const plane = useRef(new THREE.Plane(UP, 0));
   const latest = useRef<{ x: number; z: number } | null>(null);
 
   // Drag vs click detection
@@ -58,9 +56,17 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
       if (wasDragging || !latest.current || !buildMode) return;
 
       const { x, z } = latest.current;
+      
+      // Terrain bounds: x: 100 (from -50 to 50), z: 50 (from -25 to 25)
+      const halfX = 50;
+      const halfZ = 25;
+      if (x < -halfX || x > halfX || z < -halfZ || z > halfZ) return;
+      
       if (buildMode === "place") {
         if (!selectedBuildingId) return;
         const y = getHeightAt ? getHeightAt(x, z) : 0;
+        // Don't allow building if terrain height is 0 (texture not loaded)
+        if (y === 0) return;
         placeBuilding({ x, z }, y, selectedBuildingId);
       } else if (buildMode === "demolish") {
         demolishBuilding({ x, z });
@@ -79,16 +85,29 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
 
   useFrame(() => {
     RAY.setFromCamera(MOUSE, camera);
+    
+    // Use plane intersection at y=0 for base position
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const hit = new THREE.Vector3();
-    if (!RAY.ray.intersectPlane(plane.current, hit)) {
+    if (!RAY.ray.intersectPlane(plane, hit)) {
       if (latest.current !== null) {
         setHoverCell(null);
         latest.current = null;
       }
       return;
     }
+    
     const x = Math.round(hit.x / grid) * grid;
     const z = Math.round(hit.z / grid) * grid;
+    
+    // Terrain bounds: x: 100 (from -50 to 50), z: 50 (from -25 to 25)
+    const halfX = 50;
+    const halfZ = 25;
+    if (x < -halfX || x > halfX || z < -halfZ || z > halfZ) {
+      // Don't update hoverCell when outside bounds, but keep the last valid position
+      return;
+    }
+    
     if (!latest.current || latest.current.x !== x || latest.current.z !== z) {
       const cell = { x, z };
       latest.current = cell;

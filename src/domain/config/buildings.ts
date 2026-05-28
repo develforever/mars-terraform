@@ -1,20 +1,32 @@
 import type { BuildingDefinition } from "../entities/Building";
 
+export const BuildingCategory = {
+  LIVING: "living",
+  PRODUCTION: "production",
+  STORAGE: "storage",
+  INFRASTRUCTURE: "infrastructure",
+  DEFENSE: "defense",
+  CARGO: "cargo",
+} as const;
+
+export type BuildingCategory = typeof BuildingCategory[keyof typeof BuildingCategory];
+
+
 export const BUILDING_SEED: BuildingDefinition[] = [
   // LIVING
   {
     id: "hab",
     name: "Centrum Kolonii",
-    category: "living",
+    category: BuildingCategory.LIVING,
     color: "#93c5fd",
     cost: { power: 5, water: 1 },
     production: { o2: 0.15, power: -0.10, water: -0.05 },
-    modelPath: "/models/mars/structure_detailed.glb",
+    modelPath: "/models/mars/rocket_baseA.glb",
   },
   {
     id: "greenhouse",
     name: "Szklarnia Bio",
-    category: "living",
+    category: BuildingCategory.LIVING,
     color: "#86efac",
     cost: { power: 3, water: 4 },
     production: { o2: 0.30, biomass: 0.20, power: -0.10, water: -0.15 },
@@ -26,7 +38,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "o2-gen",
     name: "Generator Tlenu",
-    category: "production",
+    category: BuildingCategory.PRODUCTION,
     color: "#67e8f9",
     cost: { power: 4, water: 2 },
     production: { o2: 0.60, power: -0.15 },
@@ -36,7 +48,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "solar",
     name: "Generator Solarny",
-    category: "production",
+    category: BuildingCategory.PRODUCTION,
     color: "#fde68a",
     cost: { biomass: 0.5 },
     production: { power: 0.50 },
@@ -46,7 +58,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "rtg",
     name: "Blok RTG",
-    category: "production",
+    category: BuildingCategory.PRODUCTION,
     color: "#f472b6",
     cost: { biomass: 5, water: 2 },
     production: { power: 0.60 },
@@ -56,7 +68,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "ice",
     name: "Ekstraktor Lodu",
-    category: "production",
+    category: BuildingCategory.PRODUCTION,
     color: "#a5f3fc",
     cost: { power: 4 },
     production: { water: 0.40, power: -0.20 },
@@ -66,7 +78,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "miner",
     name: "Kopalnia",
-    category: "production",
+    category: BuildingCategory.PRODUCTION,
     color: "#94a3b8",
     cost: { power: 6, water: 2 },
     production: { biomass: 0.40, power: -0.30 },
@@ -78,7 +90,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "battery",
     name: "Stacja Przekaźnikowa",
-    category: "storage",
+    category: BuildingCategory.STORAGE,
     color: "#fbbf24",
     cost: { biomass: 1, water: 1 },
     capacity: { power: 50 },
@@ -88,7 +100,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "watertank",
     name: "Zbiornik H2O",
-    category: "storage",
+    category: BuildingCategory.STORAGE,
     color: "#60a5fa",
     cost: { power: 2, biomass: 0.5 },
     capacity: { water: 50 },
@@ -98,7 +110,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "silo",
     name: "Silos Materiałowy",
-    category: "storage",
+    category: BuildingCategory.STORAGE,
     color: "#a3e635",
     cost: { power: 2, water: 1 },
     capacity: { biomass: 40 },
@@ -110,7 +122,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "lab",
     name: "Laboratorium",
-    category: "infrastructure",
+    category: BuildingCategory.INFRASTRUCTURE,
     color: "#d8b4fe",
     cost: { power: 10, biomass: 5 },
     production: { power: -0.40, water: -0.20, biomass: 0.10 },
@@ -122,7 +134,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   {
     id: "turret",
     name: "Wieżyczka",
-    category: "defense",
+    category: BuildingCategory.DEFENSE,
     color: "#ef4444",
     cost: { power: 10, biomass: 2 },
     production: { power: -0.05 },
@@ -131,5 +143,5 @@ export const BUILDING_SEED: BuildingDefinition[] = [
   },
 ];
 
-export const BUILDING_DEFINITIONS: Record<string, BuildingDefinition> = 
+export const BUILDING_DEFINITIONS: Record<string, BuildingDefinition> =
   Object.fromEntries(BUILDING_SEED.map(d => [d.id, d]));

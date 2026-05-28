@@ -1,9 +1,10 @@
+import type { BuildingCategory } from "../config/buildings";
 import type { ResourceCost, ResourceProduction, ResourceCapacity } from "./Resources";
 
 export interface BuildingDefinition {
   id: string;
   name: string;
-  category: "living" | "production" | "storage" | "infrastructure" | "defense";
+  category: BuildingCategory;
   color?: string;
   cost: ResourceCost;
   production?: ResourceProduction;

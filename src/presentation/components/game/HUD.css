@@ -65,6 +65,7 @@
     max-width: calc(100vw - 24px);
     padding: 10px 14px 14px;
     pointer-events: auto;
+    overflow: hidden;
 
     background: linear-gradient(
         180deg,
@@ -80,6 +81,40 @@
     box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.55),
         inset 0 1px 0 rgba(255, 255, 255, 0.05),
         0 0 0 1px var(--hud-accent-dim);
+}
+
+.hud-dock__categories {
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    max-height: 500px;
+    opacity: 1;
+}
+
+.hud-dock.hud-dock--hidden .hud-dock__categories {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.hud-toggle-btn {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: rgba(24, 32, 46, 0.95);
+    color: var(--hud-text);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.12s, border-color 0.12s;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    z-index: 10;
+}
+
+.hud-toggle-btn:hover {
+    background: rgba(36, 48, 68, 0.98);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .hud-dock__row {
@@ -129,7 +164,6 @@
 }
 
 .hud-dock button {
-    position: relative;
     padding: 7px 12px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;

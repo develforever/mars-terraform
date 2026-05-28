@@ -16,6 +16,9 @@ export interface UIState {
   // Inspection state
   inspectedInstanceId: string | null;
   
+  // HUD panel visibility
+  isHUDVisible: boolean;
+  
   // Actions
   setSelectedBuilding: (id: string | null) => void;
   setHoverCell: (cell: { x: number; z: number } | null) => void;
@@ -23,6 +26,7 @@ export interface UIState {
   toggleDemolishMode: () => void;
   cancelBuild: () => void;
   setInspectedInstance: (id: string | null) => void;
+  toggleHUD: () => void;
   resetUI: () => void;
 }
 
@@ -33,6 +37,7 @@ export const useUIStore = create<UIState>()(
       buildMode: null,
       hoverCell: null,
       inspectedInstanceId: null,
+      isHUDVisible: false,
 
       setSelectedBuilding: (id) => set({ selectedBuildingId: id }),
       
@@ -52,6 +57,8 @@ export const useUIStore = create<UIState>()(
 
       setInspectedInstance: (id) => set({ inspectedInstanceId: id }),
 
+      toggleHUD: () => set({ isHUDVisible: !get().isHUDVisible }),
+
       resetUI: () =>
         set({
           buildMode: null,
@@ -63,3 +70,8 @@ export const useUIStore = create<UIState>()(
     { name: "UIStore", enabled: true }
   )
 );
+
+if (typeof window !== "undefined") {
+  (window as any).useUIStore = useUIStore;
+}
+

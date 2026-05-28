@@ -29,7 +29,7 @@ export function heightFromDisplacementRaster(
   const v = (ly + halfD) / terrainSize.z;
 
   const px = Math.min(raster.width - 1, Math.max(0, Math.floor(u * raster.width)));
-  const py = Math.min(raster.height - 1, Math.max(0, Math.floor((1 - v) * raster.height)));
+  const py = Math.min(raster.height - 1, Math.max(0, Math.floor(v * raster.height)));
   const idx = (py * raster.width + px) * 4;
   const sample = raster.data[idx]! / 255;
   return sample * displacementScale;

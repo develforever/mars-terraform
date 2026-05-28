@@ -23,6 +23,8 @@ export function HUD() {
     const cancelBuild = useUIStore((state) => state.cancelBuild);
     const resetGame = useGameStore((state) => state.resetGame);
     const resetUI = useUIStore((state) => state.resetUI);
+    const isHUDVisible = useUIStore((state) => state.isHUDVisible);
+    const toggleHUD = useUIStore((state) => state.toggleHUD);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -97,7 +99,8 @@ export function HUD() {
                 <span>🧪 {resources.biomass.toFixed(1)} / {capacity.biomass} {renderDelta(lastDelta?.biomass)}</span>
             </div>
 
-            <div className="hud-dock">
+            <div className={`hud-dock ${isHUDVisible ? "hud-dock--visible" : "hud-dock--hidden"}`}>
+
                 {hint && (
                     <div className={`hint-panel ${hint.critical ? "critical" : ""}`}>
                         <span className="hint-icon">{hint.icon}</span>
@@ -105,6 +108,14 @@ export function HUD() {
                     </div>
                 )}
                 <div className="hud-dock__row hud-dock__row--tools">
+                    <button
+                        type="button"
+                        className="hud-toggle-btn"
+                        onClick={toggleHUD}
+                        title={isHUDVisible ? "Ukryj panel" : "Pokaż panel"}
+                    >
+                        {isHUDVisible ? "▼" : "▲"}
+                    </button>
                     <button
                         type="button"
                         className={placeActive ? "active" : ""}
@@ -154,7 +165,7 @@ export function HUD() {
                                             </button>
                                             <div className="tooltip-panel">
                                                 <div className="tooltip-title">{def.name}</div>
-                                                
+
                                                 {!reqsMet && (
                                                     <div className="tooltip-section requirements-section">
                                                         <div className="tooltip-subtitle">Wymagania</div>

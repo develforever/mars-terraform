@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
@@ -23,16 +23,12 @@ export function Sun({ position }: SunProps) {
         });
     }, [colorMap, dispMap]);
 
-    useEffect(() => {
-        console.log("Sun component mounted at", position);
-    }, []);
-
     useFrame((state) => {
         if (sunRef.current) {
             sunRef.current.position.copy(position);
             sunRef.current.lookAt(state.camera.position);
         }
-        
+
         if (glowRef.current) {
             const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
             glowRef.current.scale.set(scale, scale, scale);
@@ -61,10 +57,10 @@ export function Sun({ position }: SunProps) {
             {/* Wewnętrzna gorąca korona */}
             <mesh ref={glowRef}>
                 <sphereGeometry args={[45, 32, 32]} />
-                <meshBasicMaterial 
-                    color="#fff5bb" 
-                    transparent 
-                    opacity={0.8} 
+                <meshBasicMaterial
+                    color="#fff5bb"
+                    transparent
+                    opacity={0.8}
                     blending={THREE.AdditiveBlending}
                     fog={false}
                 />
@@ -73,10 +69,10 @@ export function Sun({ position }: SunProps) {
             {/* Główna poświata (aura) */}
             <mesh>
                 <sphereGeometry args={[80, 32, 32]} />
-                <meshBasicMaterial 
-                    color="#ffcc33" 
-                    transparent 
-                    opacity={0.5} 
+                <meshBasicMaterial
+                    color="#ffcc33"
+                    transparent
+                    opacity={0.5}
                     blending={THREE.AdditiveBlending}
                     side={THREE.BackSide}
                     fog={false}
@@ -86,16 +82,16 @@ export function Sun({ position }: SunProps) {
             {/* Szeroka atmosfera słoneczna */}
             <mesh>
                 <sphereGeometry args={[160, 32, 32]} />
-                <meshBasicMaterial 
-                    color="#ff6600" 
-                    transparent 
-                    opacity={0.2} 
+                <meshBasicMaterial
+                    color="#ff6600"
+                    transparent
+                    opacity={0.2}
                     blending={THREE.AdditiveBlending}
                     side={THREE.BackSide}
                     fog={false}
                 />
             </mesh>
-            
+
             {/* Efekt "halo" / Flara - Proceduralna poświata radialna */}
             <mesh>
                 <planeGeometry args={[800, 800]} />

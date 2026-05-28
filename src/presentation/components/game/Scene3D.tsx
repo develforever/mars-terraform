@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useTexture } from "@react-three/drei";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { usePlacement } from "../../../application/hooks/usePlacement";
 import { useUIStore } from "../../../application/store/useUIStore";
@@ -26,20 +26,39 @@ export function Scene3D() {
 }
 
 function World() {
-    const terrainRef = useRef<THREE.Mesh>(null);
     const buildMode = useUIStore((state: { buildMode: "place" | "demolish" | null }) => state.buildMode);
+    const cancelBuild = useUIStore((state) => state.cancelBuild);
 
     const [colorMap, dispMap] = useTexture([
         "/textures/mars_colorx1.png",
         "/textures/mars_displacementx1.png",
     ]);
 
+    if (typeof window !== "undefined") {
+        (window as any).dispMap = dispMap;
+    }
+
     const terrainSize = useMemo(() => ({ x: 100, z: 50 }), []);
 
+    // Check if displacement texture is loaded
+    const isTextureLoaded = useMemo(() => {
+        return !!(dispMap?.image && (dispMap.image as any).width);
+    }, [dispMap]);
+
+    // Cancel build mode if texture is not loaded
+    useEffect(() => {
+        if (!isTextureLoaded && buildMode !== null) {
+            cancelBuild();
+        }
+    }, [isTextureLoaded, buildMode, cancelBuild]);
+
     const getTerrainY = useCallback(
-        (wx: number, wz: number) =>
-            heightFromDisplacement(wx, wz, terrainSize, dispMap),
-        [dispMap, terrainSize]
+        (wx: number, wz: number) => {
+            // Only use displacement if texture is loaded
+            if (!isTextureLoaded) return 0;
+            return heightFromDisplacement(wx, wz, terrainSize, dispMap);
+        },
+        [dispMap, terrainSize, isTextureLoaded]
     );
 
     usePlacement({ grid: 1, getHeightAt: getTerrainY });
@@ -59,7 +78,6 @@ function World() {
                 />
 
                 <MarsTerrain
-                    ref={terrainRef}
                     terrainSize={terrainSize}
                     colorMap={colorMap}
                     displacementMap={dispMap}
