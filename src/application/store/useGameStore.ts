@@ -7,7 +7,9 @@ import { BUILDING_DEFINITIONS } from "../../domain/config/buildings";
 import { BuildingService } from "../../domain/services/BuildingService";
 import { EconomyService } from "../../domain/services/EconomyService";
 import { WeatherService } from "../../domain/services/WeatherService";
+import type { WeatherState } from "../../domain/services/WeatherService";
 import { TerraformingService } from "../../domain/services/TerraformingService";
+import { MeteorService } from "../../domain/services/MeteorService";
 import type { DifficultyLevel } from "../../domain/services/TerraformingService";
 
 export interface GameState {
@@ -24,11 +26,7 @@ export interface GameState {
   occupied: Record<string, string>;
 
   // Weather
-  weather: {
-    type: "clear" | "warning" | "sandstorm";
-    intensity: number;
-    remainingTicks: number;
-  };
+  weather: WeatherState;
 
   // Terraforming
   terraforming: number;
@@ -181,9 +179,18 @@ export const useGameStore = create<GameState>()(
     const productionModifier = WeatherService.getProductionModifier(newWeather);
 
     // Degrade buildings during sandstorm
-    const degradedPlaced = newWeather.type === "sandstorm"
+    let degradedPlaced = newWeather.type === "sandstorm"
       ? BuildingService.degradeBuildings(state.placed, newWeather.intensity)
       : state.placed;
+
+    // Apply meteor impacts on the first tick of meteor_shower
+    if (
+      newWeather.type === "meteor_shower" &&
+      newWeather.remainingTicks === 5 &&
+      newWeather.impactZones?.length
+    ) {
+      degradedPlaced = MeteorService.applyImpacts(degradedPlaced, newWeather.impactZones);
+    }
 
     const tickResult = EconomyService.tick(
       {

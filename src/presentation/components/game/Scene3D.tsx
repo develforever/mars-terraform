@@ -12,6 +12,7 @@ import { TerrainHeightContext } from "./TerrainHeightContext";
 import { heightFromDisplacement } from "../../utils/terrainDisplacement";
 import { MarsEnvironment } from "./MarsEnvironment";
 import { VisibilitySystem } from "./VisibilitySystem";
+import { MeteorShower } from "./MeteorShower";
 import { useState } from "react";
 
 export function Scene3D() {
@@ -84,6 +85,7 @@ function World() {
                 <Buildings />
                 <HoverGhost />
                 <DemolishGhost />
+                <MeteorShower />
 
                 <OrbitControls
                     enabled={buildMode === null}

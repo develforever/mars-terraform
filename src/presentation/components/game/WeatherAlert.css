@@ -76,3 +76,31 @@
 .weather-alert.sandstorm .weather-alert__progress-fill {
     background: #ff3300;
 }
+
+.weather-alert.meteor_warning {
+    border-color: #ff6600;
+    background: rgba(30, 15, 0, 0.95);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 102, 0, 0.35);
+    animation: meteor-warn-pulse 1s infinite ease-in-out;
+}
+
+@keyframes meteor-warn-pulse {
+    0%, 100% { border-color: #ff6600; box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 20px rgba(255,102,0,0.35); }
+    50%       { border-color: #ffaa00; box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 30px rgba(255,170,0,0.55); }
+}
+
+.weather-alert.meteor_warning .weather-alert__progress-fill {
+    background: linear-gradient(90deg, #ff6600, #ffaa00);
+}
+
+.weather-alert.meteor_shower {
+    border-color: #ff2200;
+    background: rgba(50, 10, 0, 0.97);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 40px rgba(255,34,0,0.5);
+    animation: meteor-impact-flash 0.4s ease-out;
+}
+
+@keyframes meteor-impact-flash {
+    0%   { transform: scale(1.08); opacity: 0.7; }
+    100% { transform: scale(1);    opacity: 1;   }
+}

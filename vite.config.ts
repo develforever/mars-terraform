@@ -17,7 +17,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://localhost:3000'
-    }
+    },
+    allowedHosts: ['10ac-195-136-136-86.ngrok-free.app'],
   },
   plugins: [
     react({
