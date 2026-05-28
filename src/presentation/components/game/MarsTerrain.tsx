@@ -1,6 +1,8 @@
 import { Mesh, type Texture, RepeatWrapping } from "three";
 import { forwardRef, useMemo, useEffect } from "react";
+import { useFrame } from "@react-three/fiber";
 import { TERRAIN_DISPLACEMENT_SCALE } from "../../utils/terrainDisplacement";
+import { useGameStore } from "../../../application/store/useGameStore";
 
 interface MarsTerrainProps {
     terrainSize: { x: number; z: number };
@@ -12,12 +14,18 @@ interface MarsTerrainProps {
 export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
     ({ terrainSize, colorMap, displacementMap, visibilityMap }, ref) => {
         const uniforms = useMemo(() => ({
-            uVisibilityMap: { value: visibilityMap || null }
+            uVisibilityMap: { value: visibilityMap || null },
+            uSunFactor: { value: 1.0 },
         }), []); // Keep stable reference
 
         useEffect(() => {
             uniforms.uVisibilityMap.value = visibilityMap || null;
         }, [visibilityMap, uniforms]);
+
+        // Read sun directly from store each frame — avoids stale React closure
+        useFrame(() => {
+            uniforms.uSunFactor.value = useGameStore.getState().sun;
+        });
 
         useMemo(() => {
             [colorMap, displacementMap].forEach((t) => {
@@ -37,6 +45,7 @@ export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
                     metalness={0.1}
                     onBeforeCompile={(shader) => {
                         shader.uniforms.uVisibilityMap = uniforms.uVisibilityMap;
+                        shader.uniforms.uSunFactor = uniforms.uSunFactor;
                         
                         shader.vertexShader = shader.vertexShader.replace(
                             `#include <common>`,
@@ -54,6 +63,7 @@ export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
                             `#include <common>`,
                             `#include <common>
                              uniform sampler2D uVisibilityMap;
+                             uniform float uSunFactor;
                              varying vec2 vWorldUv;`
                         );
 
@@ -61,7 +71,13 @@ export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
                             `#include <dithering_fragment>`,
                             `#include <dithering_fragment>
                              float vis = texture2D(uVisibilityMap, vWorldUv).r;
-                             gl_FragColor.rgb *= (0.15 + vis * 0.85);
+                             // Fog-of-war: minimum 0.35 so unexplored areas are still dimly visible
+                             float visMask = 0.35 + vis * 0.65;
+                             gl_FragColor.rgb *= visMask;
+                             // Moonlight floor: additive grey-blue so night is never black
+                             float night = 1.0 - uSunFactor;
+                             vec3 moonFloor = vec3(0.06, 0.065, 0.09) * night;
+                             gl_FragColor.rgb += moonFloor;
                             `
                         );
                     }}

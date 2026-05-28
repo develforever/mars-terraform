@@ -19,7 +19,7 @@ export function MarsEnvironment() {
 
     const skySunPosition = useRef<THREE.Vector3>(new THREE.Vector3());
     const dayFogColor = useMemo(() => new THREE.Color("#452a2a"), []);
-    const nightFogColor = useMemo(() => new THREE.Color("#020205"), []);
+    const nightFogColor = useMemo(() => new THREE.Color("#0a0814"), []);
     const currentAtmosphereColor = useMemo(() => new THREE.Color(), []);
 
     const ambientRef = useRef<THREE.AmbientLight>(null);
@@ -84,8 +84,9 @@ export function MarsEnvironment() {
         }
 
         // --- Ambient light & stars ---
+        // Minimum 0.25 simulates moonlight — scene is never pitch black
         if (ambientRef.current) {
-            ambientRef.current.intensity = 0.05 + dayFactor * 0.35;
+            ambientRef.current.intensity = 0.25 + dayFactor * 0.45;
         }
         if (starsRef.current) {
             starsRef.current.visible = dayFactor < 0.3 && weather.type !== "sandstorm";
