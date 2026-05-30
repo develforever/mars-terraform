@@ -127,3 +127,21 @@
 .debug-pos { color: #4b5563 !important; font-size: 9px; }
 
 .debug-empty { color: #4b5563; font-style: italic; }
+
+.debug-btn {
+    flex: 1;
+    padding: 3px 6px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    color: #e5e7eb;
+    font-size: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, border-color 0.15s;
+}
+.debug-btn:hover {
+    background: rgba(255,92,26,0.18);
+    border-color: rgba(255,92,26,0.4);
+    color: #fff;
+}

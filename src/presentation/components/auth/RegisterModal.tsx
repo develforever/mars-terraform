@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../application/store/useAuthStore";
 import { useModalStore } from "../../../ui/ModalManager/store";
 
 export default function RegisterModal() {
+  const { t } = useTranslation();
   const { register, isLoading } = useAuthStore();
   const { open } = useModalStore();
   const [name, setName] = useState("");
@@ -18,26 +20,26 @@ export default function RegisterModal() {
     setSuccess("");
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("auth.register.passwordMismatch"));
       return;
     }
 
     try {
       await register(email, password, name);
-      setSuccess("Registration successful! Please check your email to verify your account.");
+      setSuccess(t("auth.register.success"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setError(err instanceof Error ? err.message : t("auth.register.registerFailed"));
     }
   };
 
   return (
     <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md">
-      <h2 className="text-xl font-bold mb-4">Register</h2>
+      <h2 className="text-xl font-bold mb-4">{t("auth.register.title")}</h2>
       {error && <p className="text-red-400 mb-3 text-sm">{error}</p>}
       {success && <p className="text-green-400 mb-3 text-sm">{success}</p>}
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-sm mb-1">Name</label>
+          <label className="block text-sm mb-1">{t("auth.register.name")}</label>
           <input
             type="text"
             value={name}
@@ -47,7 +49,7 @@ export default function RegisterModal() {
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Email</label>
+          <label className="block text-sm mb-1">{t("auth.register.email")}</label>
           <input
             type="email"
             value={email}
@@ -57,7 +59,7 @@ export default function RegisterModal() {
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Password</label>
+          <label className="block text-sm mb-1">{t("auth.register.password")}</label>
           <input
             type="password"
             value={password}
@@ -67,7 +69,7 @@ export default function RegisterModal() {
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Confirm Password</label>
+          <label className="block text-sm mb-1">{t("auth.register.confirmPassword")}</label>
           <input
             type="password"
             value={confirmPassword}
@@ -81,12 +83,12 @@ export default function RegisterModal() {
           disabled={isLoading}
           className="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded font-medium disabled:opacity-50"
         >
-          {isLoading ? "Registering..." : "Register"}
+          {isLoading ? t("auth.register.submitting") : t("auth.register.submit")}
         </button>
       </form>
       <div className="mt-4 text-sm text-center">
         <button onClick={() => open("login")} className="text-blue-400 hover:underline">
-          Already have an account? Log in
+          {t("auth.register.haveAccount")}
         </button>
       </div>
     </div>

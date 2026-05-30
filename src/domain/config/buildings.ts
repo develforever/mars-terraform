@@ -22,6 +22,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     production: { o2: 0.15, power: -0.10, water: -0.05 },
     modelPath: "/models/mars/rocket_baseA.glb",
     modelScale: 2.5,
+    influenceRadius: 5,
   },
   {
     id: "greenhouse",
@@ -38,6 +39,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
       { neighborId: "o2-gen", bonusPercent: 20, description: "+20% O₂ obok Generatora" },
       { neighborId: "ice",    bonusPercent: 15, description: "+15% Bio obok Ekstraktora" },
     ],
+    influenceRadius: 4,
   },
 
   // PRODUCTION
@@ -52,6 +54,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelScale: 2.5,
     dependsOn: ["hab"],
     connectionType: "power" as const,
+    influenceRadius: 3,
   },
   {
     id: "solar",
@@ -67,6 +70,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     bonusNeighbors: [
       { neighborId: "battery", bonusPercent: 15, description: "+15% Power obok Stacji" },
     ],
+    influenceRadius: 2,
   },
   {
     id: "rtg",
@@ -78,6 +82,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_generatorLarge.glb",
     modelScale: 3.0,
     dependsOn: ["solar"],
+    influenceRadius: 2.5,
   },
   {
     id: "ice",
@@ -89,6 +94,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/pipe_entrance.glb",
     modelScale: 2.5,
     dependsOn: ["hab"],
+    influenceRadius: 3,
   },
   {
     id: "miner",
@@ -104,6 +110,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     bonusNeighbors: [
       { neighborId: "silo",  bonusPercent: 10, description: "+10% Biomasa obok Silosu" },
     ],
+    influenceRadius: 3.5,
   },
 
   // STORAGE
@@ -117,6 +124,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_wireless.glb",
     modelScale: 2.5,
     dependsOn: ["solar"],
+    influenceRadius: 2,
   },
   {
     id: "watertank",
@@ -128,6 +136,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_barrel.glb",
     modelScale: 2.5,
     dependsOn: ["ice"],
+    influenceRadius: 2.5,
   },
   {
     id: "silo",
@@ -139,6 +148,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_barrelLarge.glb",
     modelScale: 2.5,
     dependsOn: ["miner"],
+    influenceRadius: 2.5,
   },
 
   // INFRASTRUCTURE
@@ -156,6 +166,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     bonusNeighbors: [
       { neighborId: "hab",  bonusPercent: 25, description: "+25% Biomasa obok Kolonii" },
     ],
+    influenceRadius: 3.5,
   },
 
   // DEFENSE
@@ -169,6 +180,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/turret_single.glb",
     modelScale: 3.0,
     dependsOn: ["hab", "solar"],
+    influenceRadius: 4,
   },
 ];
 

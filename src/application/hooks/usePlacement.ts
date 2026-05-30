@@ -13,9 +13,10 @@ const HIT = new THREE.Vector3();
 interface UsePlacementOptions {
   grid?: number;
   getHeightAt?: (x: number, z: number) => number;
+  terrainMesh?: THREE.Mesh | null;
 }
 
-export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
+export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacementOptions) {
   const { camera, gl } = useThree();
   const setHoverCell = useUIStore((s) => s.setHoverCell);
   const buildMode = useUIStore((s) => s.buildMode);
@@ -85,23 +86,34 @@ export function usePlacement({ grid = 1, getHeightAt }: UsePlacementOptions) {
 
   useFrame(() => {
     RAY.setFromCamera(MOUSE, camera);
-    
-    if (!RAY.ray.intersectPlane(GROUND_PLANE, HIT)) {
+
+    let hitPoint: THREE.Vector3 | null = null;
+    if (terrainMesh) {
+      const intersects = RAY.intersectObject(terrainMesh, false);
+      if (intersects.length > 0) {
+        hitPoint = intersects[0].point;
+      }
+    } else {
+      if (RAY.ray.intersectPlane(GROUND_PLANE, HIT)) {
+        hitPoint = HIT;
+      }
+    }
+
+    if (!hitPoint) {
       if (latest.current !== null) {
         setHoverCell(null);
         latest.current = null;
       }
       return;
     }
-    
-    const x = Math.round(HIT.x / grid) * grid;
-    const z = Math.round(HIT.z / grid) * grid;
-    
+
+    const x = Math.round(hitPoint.x / grid) * grid;
+    const z = Math.round(hitPoint.z / grid) * grid;
+
     if (x < -TERRAIN_BOUNDS.halfX || x > TERRAIN_BOUNDS.halfX || z < -TERRAIN_BOUNDS.halfZ || z > TERRAIN_BOUNDS.halfZ) {
-      // Don't update hoverCell when outside bounds, but keep the last valid position
       return;
     }
-    
+
     if (!latest.current || latest.current.x !== x || latest.current.z !== z) {
       const cell = { x, z };
       latest.current = cell;

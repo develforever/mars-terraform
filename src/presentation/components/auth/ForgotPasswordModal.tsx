@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useModalStore } from "../../../ui/ModalManager/store";
 import { authClient } from "../../../application/service/authService";
 
 export default function ForgotPasswordModal() {
+  const { t } = useTranslation();
   const { open } = useModalStore();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -16,9 +18,9 @@ export default function ForgotPasswordModal() {
     setIsSubmitting(true);
     try {
       await authClient.forgotPassword({ email });
-      setSuccess("If an account exists, a reset link has been sent to your email.");
+      setSuccess(t("auth.forgot.success"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed");
+      setError(err instanceof Error ? err.message : t("auth.forgot.failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -26,12 +28,12 @@ export default function ForgotPasswordModal() {
 
   return (
     <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md">
-      <h2 className="text-xl font-bold mb-4">Reset Password</h2>
+      <h2 className="text-xl font-bold mb-4">{t("auth.forgot.title")}</h2>
       {error && <p className="text-red-400 mb-3 text-sm">{error}</p>}
       {success && <p className="text-green-400 mb-3 text-sm">{success}</p>}
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-sm mb-1">Email</label>
+          <label className="block text-sm mb-1">{t("auth.forgot.email")}</label>
           <input
             type="email"
             value={email}
@@ -45,12 +47,12 @@ export default function ForgotPasswordModal() {
           disabled={isSubmitting}
           className="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded font-medium disabled:opacity-50"
         >
-          {isSubmitting ? "Sending..." : "Send Reset Link"}
+          {isSubmitting ? t("auth.forgot.submitting") : t("auth.forgot.submit")}
         </button>
       </form>
       <div className="mt-4 text-sm text-center">
         <button onClick={() => open("login")} className="text-blue-400 hover:underline">
-          Back to login
+          {t("auth.forgot.backToLogin")}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
@@ -9,6 +10,7 @@ interface ExitConfirmModalProps {
 }
 
 export function ExitConfirmModal({ onClose }: ExitConfirmModalProps) {
+    const { t } = useTranslation();
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
     const navigate = useNavigate();
     const saveGame = useGameStore((s) => s.saveGame);
@@ -64,10 +66,10 @@ export function ExitConfirmModal({ onClose }: ExitConfirmModalProps) {
             fontFamily: "system-ui, 'Segoe UI', Roboto, sans-serif",
         }}>
             <h2 style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", color: "#fff", marginBottom: "8px" }}>
-                ⚠️ Wyjście z terraformacji
+                {t("modal.exit.title")}
             </h2>
             <p style={{ fontSize: "13px", color: "#9ca3af", marginBottom: "24px", lineHeight: 1.6 }}>
-                Czy na pewno chcesz wyjść? Niezapisany postęp zostanie utracony.
+                {t("modal.exit.message")}
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -82,10 +84,10 @@ export function ExitConfirmModal({ onClose }: ExitConfirmModalProps) {
                             color: saveStatus === "ok" ? "#4ade80" : saveStatus === "err" ? "#f87171" : "#fca5a5",
                         }}
                     >
-                        {saveStatus === "saving" && "💾 Zapisywanie…"}
-                        {saveStatus === "ok" && "✓ Zapisano — wychodzę…"}
-                        {saveStatus === "err" && "✗ Błąd zapisu — spróbuj ponownie"}
-                        {saveStatus === "idle" && "💾 Zapisz i wyjdź"}
+                        {saveStatus === "saving" && t("modal.exit.saving")}
+                        {saveStatus === "ok" && t("modal.exit.saved")}
+                        {saveStatus === "err" && t("modal.exit.saveErr")}
+                        {saveStatus === "idle" && t("modal.exit.saveAndExit")}
                     </button>
                 )}
                 <button
@@ -97,7 +99,7 @@ export function ExitConfirmModal({ onClose }: ExitConfirmModalProps) {
                         color: "#9ca3af",
                     }}
                 >
-                    Wyjdź bez zapisywania
+                    {t("modal.exit.exitWithout")}
                 </button>
                 <button
                     onClick={onClose}
@@ -111,7 +113,7 @@ export function ExitConfirmModal({ onClose }: ExitConfirmModalProps) {
                         padding: "6px 20px",
                     }}
                 >
-                    Anuluj — wróć do gry
+                    {t("modal.exit.cancel")}
                 </button>
             </div>
         </div>

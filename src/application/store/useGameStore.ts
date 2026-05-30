@@ -16,6 +16,7 @@ import type { GameMode } from "../../domain/services/GameModeService";
 import { GAME_MODE_CONFIGS } from "../../domain/services/GameModeService";
 import { AlienService, INITIAL_ALIEN_STATE } from "../../domain/services/AlienService";
 import type { AlienState } from "../../domain/entities/Alien";
+import { authClient } from "../service/authService";
 
 export interface GameState {
   // Resources and colony state
@@ -53,26 +54,44 @@ export interface GameState {
   startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode) => void;
   saveGame: () => Promise<boolean>;
   loadGame: (name: string) => Promise<boolean>;
+  triggerAlienWave: (wave: 0 | 1 | 2) => void;
+}
+
+function getInitialGameState() {
+  return {
+    resources: INITIAL_COLONY_STATE.resources,
+    capacity: INITIAL_COLONY_STATE.capacity,
+    sun: INITIAL_COLONY_STATE.sun,
+    alive: INITIAL_COLONY_STATE.alive,
+    colonyName: "",
+    placed: [] as PlacedBuilding[],
+    occupied: {} as Record<string, string>,
+    weather: { type: "clear" as const, intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
+    terraforming: 0,
+    o2Accumulated: 0,
+    won: false,
+    gameMode: "exploration" as GameMode,
+    alienState: INITIAL_ALIEN_STATE,
+    lastDelta: {} as ResourceDelta,
+  };
+}
+
+function applyCapacityDelta(
+  current: ResourceCapacity,
+  delta: Partial<ResourceCapacity>,
+): ResourceCapacity {
+  return {
+    power:   current.power   + (delta.power   ?? 0),
+    water:   current.water   + (delta.water   ?? 0),
+    biomass: current.biomass + (delta.biomass ?? 0),
+  };
 }
 
 export const useGameStore = create<GameState>()(
   devtools(
     (set, get) => ({
-      resources: INITIAL_COLONY_STATE.resources,
-      capacity: INITIAL_COLONY_STATE.capacity,
-      lastDelta: {},
-      sun: INITIAL_COLONY_STATE.sun,
-      alive: INITIAL_COLONY_STATE.alive,
-      colonyName: "",
-      placed: [],
-      occupied: {},
-      weather: { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
-      terraforming: 0,
-      o2Accumulated: 0,
+      ...getInitialGameState(),
       difficulty: "normal" as DifficultyLevel,
-      gameMode: "exploration" as GameMode,
-      alienState: INITIAL_ALIEN_STATE,
-      won: false,
 
       setSun: (factor) => {
         set({ sun: Math.max(0, Math.min(1, factor)) });
@@ -88,6 +107,29 @@ export const useGameStore = create<GameState>()(
 
       setGameMode: (mode) => {
         set({ gameMode: mode });
+      },
+
+      triggerAlienWave: (wave) => {
+        const { placed } = get();
+        const target = placed[Math.floor(Math.random() * placed.length)];
+        const angle = Math.random() * Math.PI * 2;
+        const ships = wave >= 1 && target ? [{
+          id: `ship-dbg-${Date.now()}`,
+          position: { x: Math.cos(angle) * 60, y: 75, z: Math.sin(angle) * 40 },
+          targetBuildingId: target.id,
+          phase: "approaching" as const,
+          phaseProgress: 0,
+          active: true,
+        }] : [];
+        set({
+          alienState: {
+            wave,
+            ships,
+            groundUnits: [],
+            nextShipSpawnIn: 10,
+            nextGroundSpawnIn: 10,
+          },
+        });
       },
 
       placeBuilding: (cell, heightY, definitionId) => {
@@ -118,11 +160,10 @@ export const useGameStore = create<GameState>()(
         }
 
         // Apply capacity
-        const capacityDelta = EconomyService.calculateCapacityDelta(definition, true);
-        const newCapacity = { ...state.capacity };
-        if (capacityDelta.power) newCapacity.power += capacityDelta.power;
-        if (capacityDelta.water) newCapacity.water += capacityDelta.water;
-        if (capacityDelta.biomass) newCapacity.biomass += capacityDelta.biomass;
+        const newCapacity = applyCapacityDelta(
+          state.capacity,
+          EconomyService.calculateCapacityDelta(definition, true),
+        );
 
         // Add building
         const key = `${Math.round(cell.x)},${Math.round(cell.z)}`;
@@ -164,11 +205,10 @@ export const useGameStore = create<GameState>()(
         }
 
         // Remove capacity
-        const capacityDelta = EconomyService.calculateCapacityDelta(definition, false);
-        const newCapacity = { ...state.capacity };
-        if (capacityDelta.power) newCapacity.power += capacityDelta.power;
-        if (capacityDelta.water) newCapacity.water += capacityDelta.water;
-        if (capacityDelta.biomass) newCapacity.biomass += capacityDelta.biomass;
+        const newCapacity = applyCapacityDelta(
+          state.capacity,
+          EconomyService.calculateCapacityDelta(definition, false),
+        );
 
         // Remove building
         const key = `${Math.round(building.position.x)},${Math.round(building.position.z)}`;
@@ -185,114 +225,89 @@ export const useGameStore = create<GameState>()(
         return true;
       },
 
-  applyEconomyTick: () => {
-    const state = get();
-    if (!state.alive) return;
+      applyEconomyTick: () => {
+        const state = get();
+        if (!state.alive) return;
 
-    // Game mode config
-    const modeCfg = GAME_MODE_CONFIGS[state.gameMode];
+        // Game mode config
+        const modeCfg = GAME_MODE_CONFIGS[state.gameMode];
 
-    // Tick Weather (debug override takes priority; adventure has no hazards)
-    const { forcedWeather } = useDebugStore.getState();
-    let newWeather = forcedWeather
-      ? { ...state.weather, type: forcedWeather }
-      : WeatherService.tick(state.weather, modeCfg.sandstormChanceMultiplier, modeCfg.meteorChanceMultiplier, modeCfg.hazardsEnabled);
-    const productionModifier = WeatherService.getProductionModifier(newWeather);
+        // Tick Weather (debug override takes priority; adventure has no hazards)
+        const { forcedWeather } = useDebugStore.getState();
+        let newWeather = forcedWeather
+          ? { ...state.weather, type: forcedWeather }
+          : WeatherService.tick(state.weather, modeCfg.sandstormChanceMultiplier, modeCfg.meteorChanceMultiplier, modeCfg.hazardsEnabled);
+        const productionModifier = WeatherService.getProductionModifier(newWeather);
 
-    // Degrade buildings during sandstorm (scaled by game mode)
-    let degradedPlaced = newWeather.type === "sandstorm"
-      ? BuildingService.degradeBuildings(state.placed, newWeather.intensity * modeCfg.conditionDamageMultiplier)
-      : state.placed;
+        // Degrade buildings during sandstorm (scaled by game mode)
+        let degradedPlaced = newWeather.type === "sandstorm"
+          ? BuildingService.degradeBuildings(state.placed, newWeather.intensity * modeCfg.conditionDamageMultiplier)
+          : state.placed;
 
-    // Apply meteor impacts on the first tick of meteor_shower
-    if (
-      newWeather.type === "meteor_shower" &&
-      newWeather.remainingTicks === 5 &&
-      newWeather.impactZones?.length
-    ) {
-      degradedPlaced = MeteorService.applyImpacts(degradedPlaced, newWeather.impactZones);
-    }
+        // Apply meteor impacts on the first tick of meteor_shower
+        if (
+          newWeather.type === "meteor_shower" &&
+          newWeather.remainingTicks === 5 &&
+          newWeather.impactZones?.length
+        ) {
+          degradedPlaced = MeteorService.applyImpacts(degradedPlaced, newWeather.impactZones);
+        }
 
-    const tickResult = EconomyService.tick(
-      {
-        resources: state.resources,
-        capacity: state.capacity,
-        sun: state.sun,
-        alive: state.alive,
+        const tickResult = EconomyService.tick(
+          {
+            resources: state.resources,
+            capacity: state.capacity,
+            sun: state.sun,
+            alive: state.alive,
+          },
+          degradedPlaced,
+          BUILDING_DEFINITIONS,
+          productionModifier,
+        );
+
+        const newO2Accumulated = TerraformingService.accumulateO2(state.o2Accumulated, tickResult.delta);
+        const newResources = {
+          o2:      state.resources.o2      + (tickResult.delta.o2      ?? 0),
+          power:   state.resources.power   + (tickResult.delta.power   ?? 0),
+          water:   state.resources.water   + (tickResult.delta.water   ?? 0),
+          biomass: state.resources.biomass + (tickResult.delta.biomass ?? 0),
+        };
+        const newTerraforming = modeCfg.hasWinCondition
+          ? TerraformingService.calculateProgress(newO2Accumulated, newResources, state.difficulty)
+          : 0;
+
+        // Apply alien invasion tick in survival mode or when wave is active (debug)
+        let finalPlaced = degradedPlaced;
+        let newAlienState = state.alienState;
+        if (state.gameMode === "survival" || state.alienState.wave > 0) {
+          const alienResult = AlienService.tick(state.alienState, degradedPlaced, newTerraforming);
+          finalPlaced   = alienResult.damagedBuildings;
+          newAlienState = alienResult.alienState;
+        }
+
+        set({
+          weather: newWeather,
+          placed: finalPlaced,
+          lastDelta: tickResult.delta,
+          resources: newResources,
+          alive: !tickResult.gameOver,
+          o2Accumulated: newO2Accumulated,
+          terraforming: newTerraforming,
+          alienState: newAlienState,
+          won: TerraformingService.isComplete(newTerraforming),
+        });
       },
-      degradedPlaced,
-      BUILDING_DEFINITIONS,
-      productionModifier
-    );
-
-    const newO2Accumulated = TerraformingService.accumulateO2(state.o2Accumulated, tickResult.delta);
-    const newResources = {
-      o2: state.resources.o2 + (tickResult.delta.o2 ?? 0),
-      power: state.resources.power + (tickResult.delta.power ?? 0),
-      water: state.resources.water + (tickResult.delta.water ?? 0),
-      biomass: state.resources.biomass + (tickResult.delta.biomass ?? 0),
-    };
-    const newTerraforming = modeCfg.hasWinCondition
-      ? TerraformingService.calculateProgress(newO2Accumulated, newResources, state.difficulty)
-      : 0;
-
-    // Apply alien invasion tick in survival mode
-    let finalPlaced = degradedPlaced;
-    let newAlienState = state.alienState;
-    if (state.gameMode === "survival") {
-      const alienResult = AlienService.tick(state.alienState, degradedPlaced, newTerraforming);
-      finalPlaced   = alienResult.damagedBuildings;
-      newAlienState = alienResult.alienState;
-    }
-
-    set({
-      weather: newWeather,
-      placed: finalPlaced,
-      lastDelta: tickResult.delta,
-      resources: newResources,
-      alive: !tickResult.gameOver,
-      o2Accumulated: newO2Accumulated,
-      terraforming: newTerraforming,
-      alienState: newAlienState,
-      won: TerraformingService.isComplete(newTerraforming),
-    });
-  },
 
       resetGame: () => {
-        set({
-          resources: INITIAL_COLONY_STATE.resources,
-          capacity: INITIAL_COLONY_STATE.capacity,
-          sun: INITIAL_COLONY_STATE.sun,
-          alive: INITIAL_COLONY_STATE.alive,
-          colonyName: "",
-          placed: [],
-          occupied: {},
-          weather: { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
-          terraforming: 0,
-          o2Accumulated: 0,
-          won: false,
-          gameMode: "exploration" as GameMode,
-          alienState: INITIAL_ALIEN_STATE,
-        });
+        set(getInitialGameState());
       },
 
       startNewGame: (name: string, diff: DifficultyLevel, mode: GameMode) => {
         set({
-          resources: INITIAL_COLONY_STATE.resources,
-          capacity: INITIAL_COLONY_STATE.capacity,
-          sun: INITIAL_COLONY_STATE.sun,
-          alive: INITIAL_COLONY_STATE.alive,
+          ...getInitialGameState(),
           colonyName: name,
-          placed: [],
-          occupied: {},
-          weather: { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
-          terraforming: 0,
-          o2Accumulated: 0,
-          won: false,
           difficulty: diff,
           gameMode: mode,
-          alienState: INITIAL_ALIEN_STATE,
-          lastDelta: {},
         });
       },
 
@@ -305,7 +320,7 @@ export const useGameStore = create<GameState>()(
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${localStorage.getItem("token")}`
+              "Authorization": `Bearer ${authClient.getToken()}`
             },
             body: JSON.stringify({
               name: state.colonyName,
@@ -333,7 +348,7 @@ export const useGameStore = create<GameState>()(
         try {
           const response = await fetch(`/api/colony/${name}`, {
             headers: {
-              "Authorization": `Bearer ${localStorage.getItem("token")}`
+              "Authorization": `Bearer ${authClient.getToken()}`
             }
           });
           if (!response.ok) return false;

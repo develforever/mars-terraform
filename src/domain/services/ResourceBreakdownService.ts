@@ -2,6 +2,7 @@ import type { PlacedBuilding, BuildingDefinition } from "../entities/Building";
 import type { ResourceKey } from "../entities/Resources";
 import { BuildingService } from "./BuildingService";
 import { NeighborService } from "./NeighborService";
+import { O2_CONSUMPTION_PER_TICK } from "./EconomyService";
 
 export interface BuildingContribution {
   buildingId: string;
@@ -16,8 +17,6 @@ export interface ResourceBreakdown {
   consumers: BuildingContribution[];
   net: number;
 }
-
-const O2_CONSUMPTION_PER_TICK = 0.05;
 
 export class ResourceBreakdownService {
   static getBreakdown(
@@ -59,6 +58,9 @@ export class ResourceBreakdownService {
 
         if (value > 0) producers.push(contribution);
         else if (value < 0) consumers.push(contribution);
+        else if ((def.production[resource] ?? 0) > 0) {
+          producers.push(contribution);
+        }
       }
     }
 
@@ -67,7 +69,7 @@ export class ResourceBreakdownService {
       const totalO2Consumption = -O2_CONSUMPTION_PER_TICK * placed.length;
       consumers.push({
         buildingId: "__colony",
-        label: "Oddychanie kolonistów",
+        label: "hint.colony_breathing",
         definitionId: "__colony",
         value: parseFloat(totalO2Consumption.toFixed(3)),
         condition: 100,

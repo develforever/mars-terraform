@@ -1,14 +1,10 @@
 import { db } from "../data-source";
 import { coloniesTable } from "../db/schema";
 import { eq, and } from "drizzle-orm";
-
-export interface ColonyData {
-  name: string;
-  state: any;
-}
+import type { ColonyData, ColonyResponse, SavedGameState } from "../model/types";
 
 export class ColonyService {
-  static async saveColony(userId: number, data: ColonyData) {
+  static async saveColony(userId: number, data: ColonyData): Promise<number> {
     const existing = await db
       .select()
       .from(coloniesTable)
@@ -30,11 +26,11 @@ export class ColonyService {
         name: data.name,
         state: JSON.stringify(data.state),
       });
-      return result.lastInsertRowid;
+      return Number(result.lastInsertRowid);
     }
   }
 
-  static async getColony(userId: number, name: string) {
+  static async getColony(userId: number, name: string): Promise<ColonyResponse | null> {
     const colonies = await db
       .select()
       .from(coloniesTable)
@@ -45,11 +41,11 @@ export class ColonyService {
 
     return {
       ...colonies[0],
-      state: JSON.parse(colonies[0].state),
+      state: JSON.parse(colonies[0].state) as SavedGameState,
     };
   }
 
-  static async listColonies(userId: number) {
+  static async listColonies(userId: number): Promise<ColonyResponse[]> {
     const colonies = await db
       .select()
       .from(coloniesTable)
@@ -57,7 +53,13 @@ export class ColonyService {
     
     return colonies.map(c => ({
       ...c,
-      state: JSON.parse(c.state)
+      state: JSON.parse(c.state) as SavedGameState,
     }));
+  }
+
+  static async deleteColony(userId: number, name: string): Promise<void> {
+    await db
+      .delete(coloniesTable)
+      .where(and(eq(coloniesTable.userId, userId), eq(coloniesTable.name, name)));
   }
 }

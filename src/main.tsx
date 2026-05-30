@@ -1,4 +1,5 @@
 
+import "./app/i18n";
 import ReactDOM from "react-dom/client";
 
 import "./main.css";

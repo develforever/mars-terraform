@@ -108,7 +108,7 @@ const loginLocal = async (
 
   const payload: JwtPayload = { userId: user.id, email: user.email };
   const token = jwt.sign(payload, config.jwtSecret, {
-    expiresIn: config.jwtExpiresIn as any,
+    expiresIn: config.jwtExpiresIn as jwt.SignOptions["expiresIn"],
   });
 
   return { token };
@@ -168,6 +168,8 @@ const requestPasswordReset = async (email: string): Promise<void> => {
   const token = generateToken();
   const expiresAt = new Date(Date.now() + 3600000);
 
+  await db.delete(passwordResetsTable).where(eq(passwordResetsTable.userId, user.id));
+
   await db.insert(passwordResetsTable).values({
     userId: user.id,
     token,
@@ -206,7 +208,7 @@ const resetPassword = async (token: string, newPassword: string): Promise<void> 
       ),
     );
 
-  await db.delete(passwordResetsTable).where(eq(passwordResetsTable.id, reset.id));
+  await db.delete(passwordResetsTable).where(eq(passwordResetsTable.userId, reset.userId));
 };
 
 const requestEmailVerification = async (userId: number): Promise<void> => {

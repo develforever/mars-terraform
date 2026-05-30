@@ -1,14 +1,16 @@
+import { useTranslation } from "react-i18next";
 import { useGameStore } from "../../../application/store/useGameStore";
 import "./WeatherAlert.css";
 
 const ALERT_CONFIG = {
-    warning:        { icon: "⚠️",  title: "OSTRZEŻENIE: BURZA PIASKOWA",   maxTicks: 60 },
-    sandstorm:      { icon: "🌪️", title: "STAN ALARMOWY: BURZA W TOKU",    maxTicks: 60 },
-    meteor_warning: { icon: "☄️",  title: "OSTRZEŻENIE: DESZCZ METEORYTÓW", maxTicks: 15 },
-    meteor_shower:  { icon: "💥",  title: "UDERZENIE METEORYTÓW!",          maxTicks: 5  },
+    warning:        { icon: "⚠️",  maxTicks: 60 },
+    sandstorm:      { icon: "🌪️", maxTicks: 60 },
+    meteor_warning: { icon: "☄️",  maxTicks: 15 },
+    meteor_shower:  { icon: "💥",  maxTicks: 5  },
 } as const;
 
 export function WeatherAlert() {
+    const { t } = useTranslation();
     const weather = useGameStore((state) => state.weather);
 
     if (weather.type === "clear") return null;
@@ -26,12 +28,12 @@ export function WeatherAlert() {
         <div className={`weather-alert ${weather.type}`}>
             <div className="weather-alert__icon">{cfg.icon}</div>
             <div className="weather-alert__content">
-                <div className="weather-alert__title">{cfg.title}</div>
+                <div className="weather-alert__title">{t(`weather.${weather.type}`)}</div>
                 <div className="weather-alert__subtitle">
-                    {isMeteorWarning && `${impactCount} stref uderzenia — ${weather.remainingTicks}s do uderzenia`}
-                    {isMeteorShower  && "Budynki w strefach uderzenia są uszkadzane!"}
-                    {isWarning       && `Uderzenie za: ${weather.remainingTicks}s`}
-                    {weather.type === "sandstorm" && `Koniec za: ${weather.remainingTicks}s`}
+                    {isMeteorWarning && t("weather.subtitle.meteor_warning", { count: impactCount, ticks: weather.remainingTicks })}
+                    {isMeteorShower  && t("weather.subtitle.meteor_shower")}
+                    {isWarning       && t("weather.subtitle.warning", { ticks: weather.remainingTicks })}
+                    {weather.type === "sandstorm" && t("weather.subtitle.sandstorm", { ticks: weather.remainingTicks })}
                 </div>
             </div>
             {showProgress && (

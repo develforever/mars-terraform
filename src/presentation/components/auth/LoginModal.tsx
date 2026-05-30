@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../../../application/store/useAuthStore";
 import { authClient, type AuthProviders } from "../../../application/service/authService";
 import { useModalStore } from "../../../ui/ModalManager/store";
 
 export default function LoginModal() {
+  const { t } = useTranslation();
   const { login, isLoading } = useAuthStore();
   const { open, close } = useModalStore();
   const [email, setEmail] = useState("");
@@ -39,7 +41,7 @@ export default function LoginModal() {
       await login(email, password);
       close();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : t("auth.login.loginFailed"));
     }
   };
 
@@ -48,7 +50,7 @@ export default function LoginModal() {
       const url = await authClient.getGoogleAuthUrl();
       window.location.href = url;
     } catch {
-      setError("Failed to initiate Google login");
+      setError(t("auth.login.googleFailed"));
     }
   };
 
@@ -57,17 +59,17 @@ export default function LoginModal() {
       const url = await authClient.getGithubAuthUrl();
       window.location.href = url;
     } catch {
-      setError("Failed to initiate GitHub login");
+      setError(t("auth.login.githubFailed"));
     }
   };
 
   return (
     <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md">
-      <h2 className="text-xl font-bold mb-4">Log In</h2>
+      <h2 className="text-xl font-bold mb-4">{t("auth.login.title")}</h2>
       {error && <p className="text-red-400 mb-3 text-sm">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label className="block text-sm mb-1">Email</label>
+          <label className="block text-sm mb-1">{t("auth.login.email")}</label>
           <input
             type="email"
             value={email}
@@ -77,7 +79,7 @@ export default function LoginModal() {
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Password</label>
+          <label className="block text-sm mb-1">{t("auth.login.password")}</label>
           <input
             type="password"
             value={password}
@@ -91,7 +93,7 @@ export default function LoginModal() {
           disabled={isLoading}
           className="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded font-medium disabled:opacity-50"
         >
-          {isLoading ? "Logging in..." : "Log In"}
+          {isLoading ? t("auth.login.submitting") : t("auth.login.submit")}
         </button>
       </form>
       {(providers.google || providers.github) && (
@@ -118,10 +120,10 @@ export default function LoginModal() {
       )}
       <div className="mt-4 text-sm text-center space-y-2">
         <button onClick={() => open("forgot-password")} className="text-blue-400 hover:underline block w-full">
-          Forgot password?
+          {t("auth.login.forgotPassword")}
         </button>
         <button onClick={() => open("register")} className="text-blue-400 hover:underline block w-full">
-          Don&apos;t have an account? Register
+          {t("auth.login.noAccount")}
         </button>
       </div>
     </div>

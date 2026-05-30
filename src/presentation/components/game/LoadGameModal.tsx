@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
@@ -13,9 +14,12 @@ interface LoadGameModalProps {
 }
 
 export function LoadGameModal({ onClose }: LoadGameModalProps) {
+    const { t } = useTranslation();
     const [colonies, setColonies] = useState<ColonyEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingName, setLoadingName] = useState<string | null>(null);
+    const [deletingName, setDeletingName] = useState<string | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
     const loadGame = useGameStore((s) => s.loadGame);
@@ -28,11 +32,11 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
                 const res = await fetch("/api/colony", {
                     headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
                 });
-                if (!res.ok) throw new Error("Błąd ładowania listy");
+                if (!res.ok) throw new Error(t("modal.loadGame.errorList"));
                 const data = await res.json() as ColonyEntry[];
                 setColonies(data);
             } catch {
-                setError("Nie udało się pobrać listy kolonii.");
+                setError(t("modal.loadGame.errorFetch"));
             } finally {
                 setLoading(false);
             }
@@ -48,8 +52,25 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
             onClose();
             navigate("/mars");
         } else {
-            setError(`Nie udało się wczytać kolonii "${name}".`);
+            setError(t("modal.loadGame.errorLoad", { name }));
             setLoadingName(null);
+        }
+    };
+
+    const handleDelete = async (name: string) => {
+        setDeletingName(name);
+        try {
+            const res = await fetch(`/api/colony/${encodeURIComponent(name)}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+            });
+            if (!res.ok) throw new Error(t("modal.loadGame.errorDelete"));
+            setColonies((prev) => prev.filter((c) => c.name !== name));
+            setConfirmDelete(null);
+        } catch {
+            setError(t("modal.loadGame.errorDelete"));
+        } finally {
+            setDeletingName(null);
         }
     };
 
@@ -78,58 +99,140 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
             flexDirection: "column",
         }}>
             <h2 style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", color: "#fff", marginBottom: "4px" }}>
-                📂 Wczytaj kolonię
+                {t("modal.loadGame.title")}
             </h2>
             <p style={{ fontSize: "12px", color: "#6b7280", marginBottom: "20px" }}>
-                Wybierz zapisaną grę do kontynuowania
+                {t("modal.loadGame.subtitle")}
             </p>
 
             <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
                 {loading && (
-                    <p style={{ color: "#6b7280", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>Ładowanie…</p>
+                    <p style={{ color: "#6b7280", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>{t("modal.loadGame.loading")}</p>
                 )}
                 {!loading && colonies.length === 0 && !error && (
                     <p style={{ color: "#6b7280", fontSize: "13px", textAlign: "center", padding: "20px 0" }}>
-                        Brak zapisanych kolonii.
+                        {t("modal.loadGame.empty")}
                     </p>
                 )}
                 {error && (
                     <p style={{ color: "#f87171", fontSize: "13px", textAlign: "center", padding: "8px 0" }}>{error}</p>
                 )}
-                {!loading && colonies.map((colony) => (
-                    <button
-                        key={colony.name}
-                        onClick={() => handleLoad(colony.name)}
-                        disabled={loadingName !== null}
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "12px 16px",
-                            background: loadingName === colony.name ? "rgba(231,76,60,0.12)" : "rgba(255,255,255,0.04)",
-                            border: `1px solid ${loadingName === colony.name ? "rgba(231,76,60,0.5)" : "rgba(255,255,255,0.08)"}`,
-                            borderRadius: "8px",
-                            cursor: loadingName !== null ? "not-allowed" : "pointer",
-                            textAlign: "left",
-                            transition: "all 0.15s",
-                            color: "#e5e7eb",
-                        }}
-                    >
-                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <span style={{ fontWeight: 700, fontSize: "14px", letterSpacing: "0.5px" }}>
-                                🏛 {colony.name}
-                            </span>
-                            {colony.updatedAt && (
-                                <span style={{ fontSize: "11px", color: "#6b7280" }}>
-                                    Ostatni zapis: {formatDate(colony.updatedAt)}
+                {!loading && colonies.map((colony) => {
+                    const isConfirming = confirmDelete === colony.name;
+                    const isDeleting = deletingName === colony.name;
+                    const isLoading = loadingName === colony.name;
+                    const isBusy = loadingName !== null || deletingName !== null;
+                    return (
+                        <div
+                            key={colony.name}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "12px 16px",
+                                background: isLoading ? "rgba(231,76,60,0.12)" : "rgba(255,255,255,0.04)",
+                                border: `1px solid ${isLoading ? "rgba(231,76,60,0.5)" : "rgba(255,255,255,0.08)"}`,
+                                borderRadius: "8px",
+                                transition: "all 0.15s",
+                                color: "#e5e7eb",
+                                gap: "12px",
+                            }}
+                        >
+                            <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, minWidth: 0 }}>
+                                <span style={{ fontWeight: 700, fontSize: "14px", letterSpacing: "0.5px" }}>
+                                    🏛 {colony.name}
                                 </span>
-                            )}
+                                {colony.updatedAt && (
+                                    <span style={{ fontSize: "11px", color: "#6b7280" }}>
+                                        {t("modal.loadGame.lastSave")}: {formatDate(colony.updatedAt)}
+                                    </span>
+                                )}
+                                {isConfirming && (
+                                    <span style={{ fontSize: "11px", color: "#fca5a5" }}>
+                                        {t("modal.loadGame.deleteConfirm", { name: colony.name })}
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                                {!isConfirming ? (
+                                    <>
+                                        <button
+                                            onClick={() => handleLoad(colony.name)}
+                                            disabled={isBusy}
+                                            style={{
+                                                padding: "6px 12px",
+                                                background: isLoading ? "rgba(231,76,60,0.2)" : "rgba(255,255,255,0.06)",
+                                                border: "1px solid rgba(255,255,255,0.1)",
+                                                borderRadius: "6px",
+                                                color: isLoading ? "#fca5a5" : "#e5e7eb",
+                                                cursor: isBusy ? "not-allowed" : "pointer",
+                                                fontSize: "12px",
+                                                fontWeight: 600,
+                                                transition: "all 0.15s",
+                                            }}
+                                        >
+                                            {isLoading ? t("modal.loadGame.loadingBtn") : t("modal.loadGame.loadBtn")}
+                                        </button>
+                                        <button
+                                            onClick={() => setConfirmDelete(colony.name)}
+                                            disabled={isBusy}
+                                            style={{
+                                                padding: "6px 12px",
+                                                background: "transparent",
+                                                border: "1px solid rgba(239,68,68,0.3)",
+                                                borderRadius: "6px",
+                                                color: "#ef4444",
+                                                cursor: isBusy ? "not-allowed" : "pointer",
+                                                fontSize: "12px",
+                                                fontWeight: 600,
+                                                transition: "all 0.15s",
+                                            }}
+                                        >
+                                            {t("modal.loadGame.deleteBtn")}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={() => handleDelete(colony.name)}
+                                            disabled={isDeleting}
+                                            style={{
+                                                padding: "6px 12px",
+                                                background: "rgba(239,68,68,0.15)",
+                                                border: "1px solid rgba(239,68,68,0.4)",
+                                                borderRadius: "6px",
+                                                color: "#fca5a5",
+                                                cursor: isDeleting ? "not-allowed" : "pointer",
+                                                fontSize: "12px",
+                                                fontWeight: 600,
+                                                transition: "all 0.15s",
+                                            }}
+                                        >
+                                            {isDeleting ? t("modal.loadGame.deleting") : t("modal.loadGame.deleteBtn")}
+                                        </button>
+                                        <button
+                                            onClick={() => setConfirmDelete(null)}
+                                            disabled={isDeleting}
+                                            style={{
+                                                padding: "6px 12px",
+                                                background: "rgba(255,255,255,0.06)",
+                                                border: "1px solid rgba(255,255,255,0.1)",
+                                                borderRadius: "6px",
+                                                color: "#9ca3af",
+                                                cursor: isDeleting ? "not-allowed" : "pointer",
+                                                fontSize: "12px",
+                                                fontWeight: 600,
+                                                transition: "all 0.15s",
+                                            }}
+                                        >
+                                            {t("modal.loadGame.cancel")}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                        <span style={{ fontSize: "11px", color: loadingName === colony.name ? "#fca5a5" : "#4b5563" }}>
-                            {loadingName === colony.name ? "Wczytywanie…" : "▶ Wczytaj"}
-                        </span>
-                    </button>
-                ))}
+                    );
+                })}
             </div>
 
             <button
@@ -146,7 +249,7 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
                     transition: "all 0.2s",
                 }}
             >
-                Anuluj
+                {t("modal.loadGame.cancel")}
             </button>
         </div>
     );

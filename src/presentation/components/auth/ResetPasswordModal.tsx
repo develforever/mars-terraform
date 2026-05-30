@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
 import { useModalStore } from "../../../ui/ModalManager/store";
 import { authClient } from "../../../application/service/authService";
 
 export default function ResetPasswordModal() {
+  const { t } = useTranslation();
   const { open, modalData } = useModalStore();
   const [searchParams] = useSearchParams();
   const token = modalData?.token || (searchParams.get("token") ?? "");
@@ -15,7 +17,7 @@ export default function ResetPasswordModal() {
 
   useEffect(() => {
     if (!token) {
-      setError("Invalid or missing reset token.");
+      setError(t("auth.reset.invalidToken"));
     }
   }, [token]);
 
@@ -25,16 +27,16 @@ export default function ResetPasswordModal() {
     setSuccess("");
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("auth.reset.passwordMismatch"));
       return;
     }
 
     setIsSubmitting(true);
     try {
       await authClient.resetPassword({ token, newPassword });
-      setSuccess("Password has been reset successfully. You can now log in.");
+      setSuccess(t("auth.reset.success"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Reset failed");
+      setError(err instanceof Error ? err.message : t("auth.reset.failed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -42,7 +44,7 @@ export default function ResetPasswordModal() {
 
   return (
     <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md">
-      <h2 className="text-xl font-bold mb-4">Set New Password</h2>
+      <h2 className="text-xl font-bold mb-4">{t("auth.reset.title")}</h2>
       {error && <p className="text-red-400 mb-3 text-sm">{error}</p>}
       {success && (
         <div className="mb-3">
@@ -51,14 +53,14 @@ export default function ResetPasswordModal() {
             onClick={() => open("login")}
             className="mt-2 text-blue-400 hover:underline text-sm"
           >
-            Go to login
+            {t("auth.reset.goToLogin")}
           </button>
         </div>
       )}
       {!success && (
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm mb-1">New Password</label>
+            <label className="block text-sm mb-1">{t("auth.reset.newPassword")}</label>
             <input
               type="password"
               value={newPassword}
@@ -68,7 +70,7 @@ export default function ResetPasswordModal() {
             />
           </div>
           <div>
-            <label className="block text-sm mb-1">Confirm Password</label>
+            <label className="block text-sm mb-1">{t("auth.reset.confirmPassword")}</label>
             <input
               type="password"
               value={confirmPassword}
@@ -82,7 +84,7 @@ export default function ResetPasswordModal() {
             disabled={isSubmitting || !token}
             className="w-full py-2 bg-blue-600 hover:bg-blue-500 rounded font-medium disabled:opacity-50"
           >
-            {isSubmitting ? "Resetting..." : "Reset Password"}
+            {isSubmitting ? t("auth.reset.submitting") : t("auth.reset.submit")}
           </button>
         </form>
       )}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ResourceKey } from "../../../domain/entities/Resources";
 import type { PlacedBuilding, BuildingDefinition } from "../../../domain/entities/Building";
 import type { ResourceDelta } from "../../../domain/entities/Resources";
@@ -6,12 +7,6 @@ import { DIFFICULTY_TARGETS } from "../../../domain/services/TerraformingService
 import { ResourceBreakdownService } from "../../../domain/services/ResourceBreakdownService";
 import "./ResourceDetailPanel.css";
 
-const RESOURCE_LABELS: Record<ResourceKey, string> = {
-    o2: "💨 Tlen (O₂)",
-    power: "⚡ Energia",
-    water: "💧 Woda",
-    biomass: "🧪 Biomasa",
-};
 
 const CAPACITY_KEYS: Partial<Record<ResourceKey, boolean>> = {
     power: true,
@@ -48,6 +43,13 @@ export function ResourceDetailPanel({
     lastDelta,
     onClose,
 }: ResourceDetailPanelProps) {
+    const { t } = useTranslation();
+    const RESOURCE_LABELS: Record<ResourceKey, string> = {
+        o2:      t("hud.resource_labels.o2"),
+        power:   t("hud.resource_labels.power"),
+        water:   t("hud.resource_labels.water"),
+        biomass: t("hud.resource_labels.biomass"),
+    };
     if (activePanel === "terraforming") {
         return <TerraformingPanel
             terraforming={terraforming}
@@ -65,7 +67,7 @@ export function ResourceDetailPanel({
     );
 
     const hasCapacity = CAPACITY_KEYS[resource];
-    const currentVal = resources[resource];
+    const currentVal = resources[resource] as number;
     const capVal = hasCapacity ? capacity[resource as keyof typeof capacity] : undefined;
     const capPct = capVal ? Math.min(100, (currentVal / capVal) * 100) : 0;
 
@@ -92,24 +94,26 @@ export function ResourceDetailPanel({
                             />
                         </div>
                         <div className="rdp__capacity-label">
-                            <span>Aktualnie: {currentVal.toFixed(1)}</span>
-                            <span>Maks: {capVal}</span>
+                            <span>{t("rdp.current")}: {currentVal.toFixed(1)}</span>
+                            <span>{t("rdp.max")}: {capVal}</span>
                         </div>
                     </div>
                 )}
 
                 {/* Producers */}
                 <div>
-                    <div className="rdp__section-label">Producenci</div>
+                    <div className="rdp__section-label">{t("rdp.producers")}</div>
                     {breakdown.producers.length === 0
-                        ? <div className="rdp__empty">Brak producentów</div>
+                        ? <div className="rdp__empty">{t("rdp.noProducers")}</div>
                         : breakdown.producers.map((p) => (
                             <div key={p.buildingId} className="rdp__row">
-                                <span className="rdp__row-label">{p.label}</span>
+                                <span className="rdp__row-label">{p.label.startsWith("hint.") ? t(p.label) : p.label}</span>
                                 {p.condition < 100 && (
                                     <span className="rdp__row-cond">{p.condition}%</span>
                                 )}
-                                <span className={`rdp__row-val rdp__val-pos`}>+{p.value.toFixed(2)}</span>
+                                <span className={`rdp__row-val ${valClass(p.value)}`}>
+                                    {p.value > 0 ? "+" : ""}{p.value.toFixed(2)}
+                                </span>
                             </div>
                         ))
                     }
@@ -117,12 +121,12 @@ export function ResourceDetailPanel({
 
                 {/* Consumers */}
                 <div>
-                    <div className="rdp__section-label">Konsumenci</div>
+                    <div className="rdp__section-label">{t("rdp.consumers")}</div>
                     {breakdown.consumers.length === 0
-                        ? <div className="rdp__empty">Brak konsumentów</div>
+                        ? <div className="rdp__empty">{t("rdp.noConsumers")}</div>
                         : breakdown.consumers.map((c) => (
                             <div key={c.buildingId} className="rdp__row">
-                                <span className="rdp__row-label">{c.label}</span>
+                                <span className="rdp__row-label">{c.label.startsWith("hint.") ? t(c.label) : c.label}</span>
                                 {c.condition < 100 && c.buildingId !== "__colony" && (
                                     <span className="rdp__row-cond">{c.condition}%</span>
                                 )}
@@ -134,7 +138,7 @@ export function ResourceDetailPanel({
 
                 {/* Net */}
                 <div className="rdp__net">
-                    <span style={{ color: "#6b7280" }}>Bilans / tick</span>
+                    <span style={{ color: "#6b7280" }}>{t("rdp.balance")}</span>
                     <span className={valClass(breakdown.net)}>
                         {breakdown.net > 0 ? "+" : ""}{breakdown.net.toFixed(2)}
                     </span>
@@ -154,6 +158,7 @@ interface TerraformingPanelProps {
 }
 
 function TerraformingPanel({ terraforming, o2Accumulated, difficulty, resources, lastDelta, onClose }: TerraformingPanelProps) {
+    const { t } = useTranslation();
     const targets = DIFFICULTY_TARGETS[difficulty];
 
     const o2Pct = Math.min(100, (o2Accumulated / targets.o2Accumulated) * 100);
@@ -171,7 +176,7 @@ function TerraformingPanel({ terraforming, o2Accumulated, difficulty, resources,
     return (
         <div className="rdp">
             <div className="rdp__header">
-                <span className="rdp__title">🌍 Terraformacja</span>
+                <span className="rdp__title">{t("rdp.terraforming.title")}</span>
                 <button className="rdp__close" onClick={onClose}>✕</button>
             </div>
             <div className="rdp__body">
@@ -186,31 +191,31 @@ function TerraformingPanel({ terraforming, o2Accumulated, difficulty, resources,
                 </div>
 
                 <div>
-                    <div className="rdp__section-label">Filary terraformacji</div>
+                    <div className="rdp__section-label">{t("rdp.terraforming.pillars")}</div>
                     <table className="rdp__tf-table">
                         <thead>
                             <tr>
-                                <th>Filar</th>
-                                <th style={{ textAlign: "right" }}>Aktualnie</th>
-                                <th style={{ textAlign: "right" }}>Cel</th>
-                                <th style={{ textAlign: "right" }}>%</th>
+                                <th>{t("rdp.terraforming.pillar")}</th>
+                                <th style={{ textAlign: "right" }}>{t("rdp.terraforming.current")}</th>
+                                <th style={{ textAlign: "right" }}>{t("rdp.terraforming.target")}</th>
+                                <th style={{ textAlign: "right" }}>{t("rdp.terraforming.pct")}</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td>💨 O₂ akum.</td>
+                                <td>{t("rdp.terraforming.o2accum")}</td>
                                 <td style={{ textAlign: "right", color: "#9ca3af" }}>{o2Accumulated.toFixed(0)}</td>
                                 <td style={{ textAlign: "right", color: "#6b7280" }}>{targets.o2Accumulated}</td>
                                 <td>{o2Pct.toFixed(0)}%</td>
                             </tr>
                             <tr>
-                                <td>🧪 Biomasa</td>
+                                <td>{t("rdp.terraforming.biomass")}</td>
                                 <td style={{ textAlign: "right", color: "#9ca3af" }}>{resources.biomass.toFixed(1)}</td>
                                 <td style={{ textAlign: "right", color: "#6b7280" }}>{targets.biomass}</td>
                                 <td>{biomassPct.toFixed(0)}%</td>
                             </tr>
                             <tr>
-                                <td>💧 Woda</td>
+                                <td>{t("rdp.terraforming.water")}</td>
                                 <td style={{ textAlign: "right", color: "#9ca3af" }}>{resources.water.toFixed(1)}</td>
                                 <td style={{ textAlign: "right", color: "#6b7280" }}>{targets.water}</td>
                                 <td>{waterPct.toFixed(0)}%</td>
@@ -221,12 +226,12 @@ function TerraformingPanel({ terraforming, o2Accumulated, difficulty, resources,
 
                 {etaTicks !== null && (
                     <div className="rdp__eta">
-                        ⏱ Szacowany czas do 100%: ~{etaTicks} ticków
+                        {t("rdp.terraforming.eta", { ticks: etaTicks })}
                     </div>
                 )}
                 {terraforming >= 100 && (
                     <div className="rdp__eta" style={{ color: "#4ade80" }}>
-                        ✅ Terraformacja ukończona!
+                        {t("rdp.terraforming.done")}
                     </div>
                 )}
             </div>

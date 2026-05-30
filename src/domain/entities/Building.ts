@@ -24,6 +24,8 @@ export interface BuildingDefinition {
   /** Bonus production multiplier when a specific neighbor is adjacent */
   bonusNeighbors?: NeighborBonus[];
   connectionType?: ConnectionType;
+  /** Visual influence radius for terrain highlight (world units) */
+  influenceRadius?: number;
 }
 
 export interface PlacedBuilding {

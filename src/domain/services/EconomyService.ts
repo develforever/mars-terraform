@@ -4,7 +4,7 @@ import type { ColonyState } from "../entities/Colony";
 import { BuildingService } from "./BuildingService";
 import { NeighborService } from "./NeighborService";
 
-const O2_CONSUMPTION_PER_TICK = 0.05;
+export const O2_CONSUMPTION_PER_TICK = 0.05;
 
 export interface EconomyTickResult {
   delta: ResourceDelta;
@@ -54,22 +54,6 @@ export class EconomyService {
     return {
       o2: -O2_CONSUMPTION_PER_TICK * buildingCount, // Simplified: 1 astronaut per building
     };
-  }
-
-  static applyProductionToResources(
-    resources: Resources,
-    production: ResourceProduction
-  ): ResourceDelta {
-    const delta: ResourceDelta = {};
-    
-    for (const [key, value] of Object.entries(production)) {
-      if (value !== undefined) {
-        const resourceKey = key as keyof Resources;
-        delta[resourceKey] = resources[resourceKey] + value;
-      }
-    }
-    
-    return delta;
   }
 
   static clampResources(

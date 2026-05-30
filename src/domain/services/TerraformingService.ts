@@ -22,11 +22,6 @@ export const DIFFICULTY_TARGETS: Record<DifficultyLevel, TerraformingTargets> = 
   hard:   { o2Accumulated: 2000, biomass: 800, water: 400 },
 };
 
-export const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
-  easy:   "Łatwy",
-  normal: "Normalny",
-  hard:   "Trudny",
-};
 
 export class TerraformingService {
   static calculateProgress(

@@ -1,5 +1,6 @@
 import { Suspense, useMemo, useEffect } from "react";
 import { useGLTF, Html } from "@react-three/drei";
+import type { ThreeEvent } from "@react-three/fiber";
 import type { Group } from "three";
 import * as THREE from "three";
 import { useGameStore } from "../../../application/store/useGameStore";
@@ -7,9 +8,12 @@ import { useUIStore } from "../../../application/store/useUIStore";
 import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 import { keyFromCell } from "../../../domain/entities/Position";
 import { BuildingService } from "../../../domain/services/BuildingService";
+import { useTranslation } from "react-i18next";
 import { useTerrainHeight } from "./TerrainHeightContext";
 import type { PlacedBuilding } from "../../../domain/entities/Building";
 import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
+import { WeatherService } from "../../../domain/services/WeatherService";
+import { NeighborService } from "../../../domain/services/NeighborService";
 
 interface ModelProps {
     path: string;
@@ -83,7 +87,7 @@ export function Buildings() {
     const terrainY = useTerrainHeight();
     const demolishBuilding = useGameStore((state) => state.demolishBuilding);
 
-    const handleBuildingClick = (e: any, building: PlacedBuilding) => {
+    const handleBuildingClick = (e: ThreeEvent<MouseEvent>, building: PlacedBuilding) => {
         e.stopPropagation();
         
         if (buildMode === "demolish") {
@@ -117,9 +121,9 @@ export function Buildings() {
                             <BuildingMesh defId={b.definitionId} />
                         </group>
                         
-                        {/* Visual foundation base - Thicker pedestal to bridge terrain gaps */}
-                        <mesh position={[0, -0.6, 0]}>
-                            <cylinderGeometry args={[0.8, 0.9, 1.0, 32]} />
+                        {/* Visual foundation base - Wide flat platform to bridge terrain gaps */}
+                        <mesh position={[0, -0.35, 0]}>
+                            <cylinderGeometry args={[1.0, 1.1, 0.4, 32]} />
                             <meshStandardMaterial 
                                 color={isSelected ? "#00ffff" : "#3a3a3a"} 
                                 emissive={isSelected ? "#003333" : "#000000"}
@@ -136,8 +140,8 @@ export function Buildings() {
                             </mesh>
                         )}
 
-                        <mesh position={[0, -1.3, 0]}>
-                            <cylinderGeometry args={[0.9, 1.0, 0.3, 32]} />
+                        <mesh position={[0, -0.7, 0]}>
+                            <cylinderGeometry args={[1.1, 1.2, 0.3, 32]} />
                             <meshStandardMaterial color="#1a1a1a" />
                         </mesh>
 
@@ -154,35 +158,113 @@ export function Buildings() {
 
 export function BuildingInspectionPopover({ building }: { building: PlacedBuilding }) {
     const def = BUILDING_DEFINITIONS[building.definitionId];
+    const { t } = useTranslation();
+    const placed = useGameStore((state) => state.placed);
+    const sunFactor = useGameStore((state) => state.sun);
+    const weather = useGameStore((state) => state.weather);
+
+    const productionModifier = WeatherService.getProductionModifier(weather);
+    const condFactor = BuildingService.conditionFactor(building.condition);
+    const neighborMult = def ? NeighborService.getProductionMultiplier(building, def, placed, BUILDING_DEFINITIONS) : 1;
+
+    const baseValues = def?.production ? Object.entries(def.production) : [];
+
+    const activeBonuses = def?.bonusNeighbors
+        ? def.bonusNeighbors.filter((bn) =>
+            placed.some((p) => p.id !== building.id && p.definitionId === bn.neighborId &&
+                NeighborService.getNeighbors(building, placed).some((n) => n.definitionId === bn.neighborId)
+            )
+        )
+        : [];
+
+    const hasAnyProduction = baseValues.some(([, baseVal]) => {
+        let adjusted = baseVal;
+        if (def?.tags?.includes("dayScaled") && baseVal > 0) adjusted *= sunFactor;
+        adjusted *= productionModifier;
+        return adjusted > 0;
+    });
+    const showModifiers = hasAnyProduction && (
+        condFactor < 1 || neighborMult > 1 || (def?.tags?.includes("dayScaled")) || productionModifier < 1
+    );
+
     return (
-        <Html distanceFactor={15} position={[0, 3, 0]} center>
+        <Html position={[0, 3, 0]} center style={{ pointerEvents: "none" }}>
             <div className="building-popover">
                 <div className="popover-header">
                     <h3>{def?.name}</h3>
                 </div>
                 <div className="popover-content">
                     <div className="popover-stat">
-                        <div className="stat-label">Integralność strukturalna</div>
+                        <div className="stat-label">{t("popover.integrity")}</div>
                         <div className="progress-bar-container">
                             <div className="progress-bar-bg">
-                                <div 
-                                    className="progress-bar-fill" 
-                                    style={{ 
-                                        width: `${building.condition}%`, 
-                                        backgroundColor: building.condition < 30 ? "#ff3355" : "#00ff88" 
-                                    }} 
+                                <div
+                                    className="progress-bar-fill"
+                                    style={{
+                                        width: `${building.condition}%`,
+                                        backgroundColor: building.condition < 30 ? "#ff3355" : "#00ff88"
+                                    }}
                                 />
                             </div>
                             <span className="stat-value">{building.condition}%</span>
                         </div>
                     </div>
-                    {def?.production && (
+                    {baseValues.length > 0 && (
                         <div className="popover-section">
-                            <div className="section-title">Produkcja / s</div>
-                            {Object.entries(def.production).map(([res, val]) => (
-                                <div key={res} className="production-item">
-                                    <span className="res-name">{res}</span>
-                                    <span className="res-val">{val > 0 ? "+" : ""}{val}</span>
+                            <div className="section-title">{t("popover.production")}</div>
+                            {baseValues.map(([res, baseVal]) => {
+                                let adjusted = baseVal;
+                                if (def?.tags?.includes("dayScaled") && res === "power") {
+                                    adjusted *= sunFactor;
+                                }
+                                adjusted *= productionModifier;
+                                const isProduction = adjusted > 0;
+                                if (isProduction) {
+                                    adjusted *= condFactor * neighborMult;
+                                }
+                                const hasDiff = Math.abs(adjusted - baseVal) >= 0.001;
+                                return (
+                                    <div key={res} className="production-item">
+                                        <span className="res-name">{res}</span>
+                                        {hasDiff ? (
+                                            <div className="res-values">
+                                                <span className="res-base">{baseVal > 0 ? "+" : ""}{baseVal.toFixed(2)}</span>
+                                                <span className="res-arrow">→</span>
+                                                <span className={`res-actual ${adjusted > 0 ? "res-actual-pos" : adjusted < 0 ? "res-actual-neg" : ""}`}>
+                                                    {adjusted > 0 ? "+" : ""}{adjusted.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="res-val">{adjusted > 0 ? "+" : ""}{adjusted}</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            {showModifiers && (
+                                <div className="popover-modifiers">
+                                    {def?.tags?.includes("dayScaled") && (
+                                        <span className="mod-tag">☀️ {Math.round(sunFactor * 100)}%</span>
+                                    )}
+                                    {condFactor < 1 && (
+                                        <span className="mod-tag mod-damage">🔧 {Math.round(condFactor * 100)}%</span>
+                                    )}
+                                    {neighborMult > 1 && (
+                                        <span className="mod-tag mod-bonus">🔗 +{Math.round((neighborMult - 1) * 100)}%</span>
+                                    )}
+                                    {productionModifier < 1 && (
+                                        <span className="mod-tag mod-storm">🌪️ {Math.round(productionModifier * 100)}%</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {activeBonuses.length > 0 && (
+                        <div className="popover-section">
+                            <div className="section-title">{t("popover.neighborBoost")}</div>
+                            {activeBonuses.map((b) => (
+                                <div key={b.neighborId} className="boost-item">
+                                    <span className="boost-check">✓</span>
+                                    <span className="boost-desc">{b.description}</span>
                                 </div>
                             ))}
                         </div>
@@ -222,7 +304,7 @@ export function HoverGhost() {
             
             {/* Area confirmation box */}
             <mesh position={[0, 0.7, 0]}>
-                <boxGeometry args={[1, 1.2, 1]} />
+                <boxGeometry args={[1.05, 1.2, 1.05]} />
                 <meshStandardMaterial 
                     color={isValid ? "#00ff88" : "#ff3355"} 
                     transparent 
@@ -232,8 +314,8 @@ export function HoverGhost() {
             </mesh>
 
             {/* Pedestal preview */}
-            <mesh position={[0, -0.8, 0]}>
-                <cylinderGeometry args={[0.8, 0.9, 1.0, 32]} />
+            <mesh position={[0, -0.4, 0]}>
+                <cylinderGeometry args={[1.0, 1.1, 0.4, 32]} />
                 <meshStandardMaterial 
                     color={isValid ? "#00ff88" : "#ff3355"} 
                     transparent 

@@ -38,13 +38,13 @@ export function Sun({ position }: SunProps) {
 
     return (
         <group ref={sunRef}>
-            {/* Główne ciało słońca - Jasne, widoczne z oddali */}
+            {/* Główne ciało słońca — minimalne, praktycznie niewidoczne z oddali */}
             <mesh>
-                <sphereGeometry args={[40, 128, 128]} />
+                <sphereGeometry args={[5, 32, 32]} />
                 <meshStandardMaterial
                     map={colorMap}
                     displacementMap={dispMap}
-                    displacementScale={0.6}
+                    displacementScale={0.2}
                     emissive={new THREE.Color("#ffffff")}
                     emissiveMap={colorMap}
                     emissiveIntensity={2}
@@ -56,7 +56,7 @@ export function Sun({ position }: SunProps) {
 
             {/* Wewnętrzna gorąca korona */}
             <mesh ref={glowRef}>
-                <sphereGeometry args={[45, 32, 32]} />
+                <sphereGeometry args={[12, 32, 32]} />
                 <meshBasicMaterial
                     color="#fff5bb"
                     transparent
@@ -68,7 +68,7 @@ export function Sun({ position }: SunProps) {
 
             {/* Główna poświata (aura) */}
             <mesh>
-                <sphereGeometry args={[80, 32, 32]} />
+                <sphereGeometry args={[25, 32, 32]} />
                 <meshBasicMaterial
                     color="#ffcc33"
                     transparent
@@ -81,7 +81,7 @@ export function Sun({ position }: SunProps) {
 
             {/* Szeroka atmosfera słoneczna */}
             <mesh>
-                <sphereGeometry args={[160, 32, 32]} />
+                <sphereGeometry args={[50, 32, 32]} />
                 <meshBasicMaterial
                     color="#ff6600"
                     transparent

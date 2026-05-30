@@ -11,9 +11,11 @@ const SHIP_SPAWN_INTERVAL  = 120; // ticks
 const GROUND_SPAWN_INTERVAL = 80;
 const TERRAIN_HALF_X = 48;
 const TERRAIN_HALF_Z = 22;
-
-let shipCounter = 0;
-let groundCounter = 0;
+const SHIP_PHASE_STEP   = 0.1; // phase progress per tick
+const SHIP_ORBIT_X     = 60;  // spawn orbit radius X
+const SHIP_ORBIT_Z     = 40;  // spawn orbit radius Z
+const SHIP_SPAWN_HEIGHT     = 70;  // base spawn height
+const SHIP_SPAWN_HEIGHT_VAR = 20;  // height randomness
 
 export const INITIAL_ALIEN_STATE: AlienState = {
   wave: 0,
@@ -37,9 +39,16 @@ export class AlienService {
     buildings: PlacedBuilding[],
     terraforming: number,
   ): { alienState: AlienState; damagedBuildings: PlacedBuilding[] } {
-    const wave = this.resolveWave(terraforming);
+    // Wave can only increase organically; never downgrade a debug-forced wave
+    const wave = Math.max(this.resolveWave(terraforming), state.wave) as 0 | 1 | 2;
     let { ships, groundUnits, nextShipSpawnIn, nextGroundSpawnIn } = state;
     let damagedBuildings = [...buildings];
+
+    const FIRST_SPAWN_DELAY = 10;
+
+    // Reset spawn timers when wave first activates so first attack comes quickly
+    if (wave >= 1 && state.wave < 1) nextShipSpawnIn = FIRST_SPAWN_DELAY;
+    if (wave >= 2 && state.wave < 2) nextGroundSpawnIn = FIRST_SPAWN_DELAY;
 
     // ── Wave 1+: orbital ships ──────────────────────────────────────────
     if (wave >= 1) {
@@ -51,7 +60,7 @@ export class AlienService {
 
       // Advance ship phases
       ships = ships.map((ship) => {
-        const next = { ...ship, phaseProgress: ship.phaseProgress + 0.1 };
+        const next = { ...ship, phaseProgress: ship.phaseProgress + SHIP_PHASE_STEP };
         if (next.phaseProgress >= 1) {
           if (ship.phase === "approaching") return { ...next, phase: "targeting" as const, phaseProgress: 0 };
           if (ship.phase === "targeting")   return { ...next, phase: "firing" as const,    phaseProgress: 0 };
@@ -135,11 +144,11 @@ export class AlienService {
     const target = buildings[Math.floor(Math.random() * buildings.length)];
     const angle = Math.random() * Math.PI * 2;
     return {
-      id: `ship-${++shipCounter}`,
+      id: `ship-${crypto.randomUUID()}`,
       position: {
-        x: Math.cos(angle) * 60,
-        y: 70 + Math.random() * 20,
-        z: Math.sin(angle) * 40,
+        x: Math.cos(angle) * SHIP_ORBIT_X,
+        y: SHIP_SPAWN_HEIGHT + Math.random() * SHIP_SPAWN_HEIGHT_VAR,
+        z: Math.sin(angle) * SHIP_ORBIT_Z,
       },
       targetBuildingId: target.id,
       phase: "approaching",
@@ -156,7 +165,7 @@ export class AlienService {
     if (side === 2) { x = (Math.random() * 2 - 1) * TERRAIN_HALF_X; z = -TERRAIN_HALF_Z; }
     if (side === 3) { x = (Math.random() * 2 - 1) * TERRAIN_HALF_X; z =  TERRAIN_HALF_Z; }
     return {
-      id: `ground-${++groundCounter}`,
+      id: `ground-${crypto.randomUUID()}`,
       position: { x, z },
       targetBuildingId: null,
       attackCooldown: 0,

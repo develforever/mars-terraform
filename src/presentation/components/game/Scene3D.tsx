@@ -1,21 +1,20 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useTexture } from "@react-three/drei";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { usePlacement } from "../../../application/hooks/usePlacement";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { MarsTerrain } from "./MarsTerrain";
-import { GridOverlay } from "./GridOverlay";
 import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 import { Buildings, DemolishGhost, HoverGhost } from "./Buildings";
 import { TerrainHeightContext } from "./TerrainHeightContext";
 import { heightFromDisplacement } from "../../utils/terrainDisplacement";
 import { MarsEnvironment } from "./MarsEnvironment";
 import { VisibilitySystem } from "./VisibilitySystem";
+import { TerrainDataSystem } from "./TerrainDataSystem";
 import { MeteorShower } from "./MeteorShower";
 import { BuildingConnections } from "./BuildingConnections";
 import { AlienInvasion } from "./AlienInvasion";
-import { useState } from "react";
 
 export function Scene3D() {
     return (
@@ -30,6 +29,7 @@ export function Scene3D() {
 }
 
 function World() {
+    const terrainRef = useRef<THREE.Mesh>(null);
     const buildMode = useUIStore((state: { buildMode: "place" | "demolish" | null }) => state.buildMode);
     const cancelBuild = useUIStore((state) => state.cancelBuild);
 
@@ -61,11 +61,12 @@ function World() {
         [dispMap, terrainSize, isTextureLoaded]
     );
 
-    usePlacement({ grid: 1, getHeightAt: getTerrainY });
+    usePlacement({ grid: 1, getHeightAt: getTerrainY, terrainMesh: terrainRef.current });
 
     const target = useMemo<[number, number, number]>(() => [0, 0, 0], []);
 
     const [visibilityMap, setVisibilityMap] = useState<THREE.CanvasTexture | null>(null);
+    const [dataMap, setDataMap] = useState<THREE.CanvasTexture | null>(null);
 
     return (
         <TerrainHeightContext.Provider value={getTerrainY}>
@@ -77,13 +78,19 @@ function World() {
                     onVisibilityMapCreated={setVisibilityMap} 
                 />
 
+                <TerrainDataSystem 
+                    terrainSize={terrainSize} 
+                    onDataMapCreated={setDataMap} 
+                />
+
                 <MarsTerrain
+                    ref={terrainRef}
                     terrainSize={terrainSize}
                     colorMap={colorMap}
                     displacementMap={dispMap}
                     visibilityMap={visibilityMap}
+                    dataMap={dataMap}
                 />
-                <GridOverlay terrainSize={terrainSize} visibilityMap={visibilityMap} />
                 <Buildings />
                 <HoverGhost />
                 <DemolishGhost />
