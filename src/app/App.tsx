@@ -84,14 +84,14 @@ export default function App() {
             <TopMenu />
             <div className="mars-root">
                 <Routes>
-                    <Route path="/" element={<StartView />} />
-                    <Route 
-                        path="/mars" 
+                    <Route path="/" element={<><AuthRouteHandler /><StartView /></>} />
+                    <Route
+                        path="/mars"
                         element={
                             <ProtectedRoute>
                                 <MarsView />
                             </ProtectedRoute>
-                        } 
+                        }
                     />
                     <Route path="/reset-password" element={<AuthRouteHandler />} />
                     <Route path="/verify-email" element={<AuthRouteHandler />} />

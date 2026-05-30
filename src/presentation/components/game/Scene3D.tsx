@@ -13,6 +13,8 @@ import { heightFromDisplacement } from "../../utils/terrainDisplacement";
 import { MarsEnvironment } from "./MarsEnvironment";
 import { VisibilitySystem } from "./VisibilitySystem";
 import { MeteorShower } from "./MeteorShower";
+import { BuildingConnections } from "./BuildingConnections";
+import { AlienInvasion } from "./AlienInvasion";
 import { useState } from "react";
 
 export function Scene3D() {
@@ -86,6 +88,8 @@ function World() {
                 <HoverGhost />
                 <DemolishGhost />
                 <MeteorShower />
+                <BuildingConnections />
+                <AlienInvasion />
 
                 <OrbitControls
                     enabled={buildMode === null}

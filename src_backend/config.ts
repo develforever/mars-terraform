@@ -27,6 +27,8 @@ class Config {
   readonly googleClientSecret: string;
   readonly githubClientId: string;
   readonly githubClientSecret: string;
+  readonly openRouterApiKey: string;
+  readonly backendUrl: string;
 
   constructor() {
     this.tursoUrl = this.getOptional("turso_url", "file:./local.db");
@@ -53,6 +55,8 @@ class Config {
     this.googleClientSecret = this.getOptional("google_client_secret", "");
     this.githubClientId = this.getOptional("github_client_id", "");
     this.githubClientSecret = this.getOptional("github_client_secret", "");
+    this.openRouterApiKey = this.getOptional("openrouter_api_key", "");
+    this.backendUrl = this.getOptional("backend_url", `http://localhost:${this.port}`);
   }
 
   private getRequired(key: string): string {

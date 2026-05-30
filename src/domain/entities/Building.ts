@@ -1,6 +1,14 @@
 import type { BuildingCategory } from "../config/buildings";
 import type { ResourceCost, ResourceProduction, ResourceCapacity } from "./Resources";
 
+export interface NeighborBonus {
+  neighborId: string;
+  bonusPercent: number;
+  description: string;
+}
+
+export type ConnectionType = "power" | "water" | "biomass" | "data";
+
 export interface BuildingDefinition {
   id: string;
   name: string;
@@ -13,6 +21,9 @@ export interface BuildingDefinition {
   modelPath?: string;
   modelScale?: number;
   dependsOn?: string[];
+  /** Bonus production multiplier when a specific neighbor is adjacent */
+  bonusNeighbors?: NeighborBonus[];
+  connectionType?: ConnectionType;
 }
 
 export interface PlacedBuilding {

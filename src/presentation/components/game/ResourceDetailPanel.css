@@ -1,0 +1,189 @@
+.rdp {
+    position: absolute;
+    top: 48px;
+    right: 0;
+    z-index: 120;
+    width: 290px;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    background: rgba(6, 9, 16, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    color: #c8cdd8;
+    font-size: 12px;
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+    animation: rdp-slide-in 0.2s ease;
+}
+
+@keyframes rdp-slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+}
+
+.rdp__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.rdp__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e5e7eb;
+    letter-spacing: 0.5px;
+}
+
+.rdp__close {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 2px;
+    line-height: 1;
+    pointer-events: auto;
+}
+.rdp__close:hover { color: #fff; }
+
+.rdp__body {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rdp__section-label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #4b5563;
+    margin-bottom: 5px;
+}
+
+.rdp__row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.rdp__row-label {
+    flex: 1;
+    color: #9ca3af;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rdp__row-cond {
+    font-size: 9px;
+    color: #4b5563;
+    min-width: 28px;
+    text-align: right;
+}
+
+.rdp__row-val {
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 48px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.rdp__val-pos { color: #4ade80; }
+.rdp__val-neg { color: #f87171; }
+.rdp__val-zero { color: #6b7280; }
+
+.rdp__net {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0 2px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.rdp__capacity-bar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.rdp__capacity-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+.rdp__capacity-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+/* Terraforming panel */
+.rdp__tf-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 6px 0;
+}
+
+.rdp__tf-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    transition: width 0.6s ease;
+}
+
+.rdp__tf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.rdp__tf-table th {
+    text-align: left;
+    color: #4b5563;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 4px 4px 0;
+}
+
+.rdp__tf-table td {
+    padding: 3px 4px 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: #9ca3af;
+    vertical-align: middle;
+}
+
+.rdp__tf-table td:first-child { color: #e5e7eb; }
+.rdp__tf-table td:last-child { color: #4ade80; text-align: right; font-weight: 700; }
+
+.rdp__eta {
+    margin-top: 8px;
+    font-size: 10px;
+    color: #6b7280;
+    text-align: center;
+}
+
+.rdp__empty {
+    color: #4b5563;
+    font-style: italic;
+    font-size: 11px;
+    padding: 4px 0;
+}

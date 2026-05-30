@@ -13,7 +13,7 @@ import { ColonyData, ColonyService } from "../service/ColonyService";
 
 interface AuthenticatedRequest extends Express.Request {
   user: {
-    id: number;
+    userId: number;
     email: string;
   };
 }
@@ -30,7 +30,7 @@ export class ColonyController extends Controller {
     @Request() request: AuthenticatedRequest,
     @Body() body: ColonyData
   ): Promise<{ id: number; message: string }> {
-    const userId = request.user.id;
+    const userId = request.user.userId;
     const id = await ColonyService.saveColony(userId, body);
     return { id: Number(id), message: "Colony saved successfully" };
   }
@@ -44,7 +44,7 @@ export class ColonyController extends Controller {
     @Request() request: AuthenticatedRequest,
     @Path() name: string
   ): Promise<any> {
-    const userId = request.user.id;
+    const userId = request.user.userId;
     const colony = await ColonyService.getColony(userId, name);
     if (!colony) {
       this.setStatus(404);
@@ -61,7 +61,7 @@ export class ColonyController extends Controller {
   public async listColonies(
     @Request() request: AuthenticatedRequest
   ): Promise<any[]> {
-    const userId = request.user.id;
+    const userId = request.user.userId;
     return await ColonyService.listColonies(userId);
   }
 }

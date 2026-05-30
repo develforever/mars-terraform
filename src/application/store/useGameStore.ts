@@ -11,6 +11,11 @@ import type { WeatherState } from "../../domain/services/WeatherService";
 import { TerraformingService } from "../../domain/services/TerraformingService";
 import { MeteorService } from "../../domain/services/MeteorService";
 import type { DifficultyLevel } from "../../domain/services/TerraformingService";
+import { useDebugStore } from "./useDebugStore";
+import type { GameMode } from "../../domain/services/GameModeService";
+import { GAME_MODE_CONFIGS } from "../../domain/services/GameModeService";
+import { AlienService, INITIAL_ALIEN_STATE } from "../../domain/services/AlienService";
+import type { AlienState } from "../../domain/entities/Alien";
 
 export interface GameState {
   // Resources and colony state
@@ -32,16 +37,20 @@ export interface GameState {
   terraforming: number;
   o2Accumulated: number;
   difficulty: DifficultyLevel;
+  gameMode: GameMode;
+  alienState: AlienState;
   won: boolean;
 
   // Actions
   setSun: (factor: number) => void;
   setColonyName: (name: string) => void;
   setDifficulty: (level: DifficultyLevel) => void;
+  setGameMode: (mode: GameMode) => void;
   placeBuilding: (cell: { x: number; z: number }, heightY: number, definitionId: string) => boolean;
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
   applyEconomyTick: () => void;
   resetGame: () => void;
+  startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode) => void;
   saveGame: () => Promise<boolean>;
   loadGame: (name: string) => Promise<boolean>;
 }
@@ -57,10 +66,12 @@ export const useGameStore = create<GameState>()(
       colonyName: "",
       placed: [],
       occupied: {},
-      weather: { type: "clear", intensity: 0, remainingTicks: 0 },
+      weather: { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
       terraforming: 0,
       o2Accumulated: 0,
       difficulty: "normal" as DifficultyLevel,
+      gameMode: "exploration" as GameMode,
+      alienState: INITIAL_ALIEN_STATE,
       won: false,
 
       setSun: (factor) => {
@@ -73,6 +84,10 @@ export const useGameStore = create<GameState>()(
 
       setDifficulty: (level) => {
         set({ difficulty: level });
+      },
+
+      setGameMode: (mode) => {
+        set({ gameMode: mode });
       },
 
       placeBuilding: (cell, heightY, definitionId) => {
@@ -174,13 +189,19 @@ export const useGameStore = create<GameState>()(
     const state = get();
     if (!state.alive) return;
 
-    // Tick Weather
-    const newWeather = WeatherService.tick(state.weather);
+    // Game mode config
+    const modeCfg = GAME_MODE_CONFIGS[state.gameMode];
+
+    // Tick Weather (debug override takes priority; adventure has no hazards)
+    const { forcedWeather } = useDebugStore.getState();
+    let newWeather = forcedWeather
+      ? { ...state.weather, type: forcedWeather }
+      : WeatherService.tick(state.weather, modeCfg.sandstormChanceMultiplier, modeCfg.meteorChanceMultiplier, modeCfg.hazardsEnabled);
     const productionModifier = WeatherService.getProductionModifier(newWeather);
 
-    // Degrade buildings during sandstorm
+    // Degrade buildings during sandstorm (scaled by game mode)
     let degradedPlaced = newWeather.type === "sandstorm"
-      ? BuildingService.degradeBuildings(state.placed, newWeather.intensity)
+      ? BuildingService.degradeBuildings(state.placed, newWeather.intensity * modeCfg.conditionDamageMultiplier)
       : state.placed;
 
     // Apply meteor impacts on the first tick of meteor_shower
@@ -211,16 +232,28 @@ export const useGameStore = create<GameState>()(
       water: state.resources.water + (tickResult.delta.water ?? 0),
       biomass: state.resources.biomass + (tickResult.delta.biomass ?? 0),
     };
-    const newTerraforming = TerraformingService.calculateProgress(newO2Accumulated, newResources, state.difficulty);
+    const newTerraforming = modeCfg.hasWinCondition
+      ? TerraformingService.calculateProgress(newO2Accumulated, newResources, state.difficulty)
+      : 0;
+
+    // Apply alien invasion tick in survival mode
+    let finalPlaced = degradedPlaced;
+    let newAlienState = state.alienState;
+    if (state.gameMode === "survival") {
+      const alienResult = AlienService.tick(state.alienState, degradedPlaced, newTerraforming);
+      finalPlaced   = alienResult.damagedBuildings;
+      newAlienState = alienResult.alienState;
+    }
 
     set({
       weather: newWeather,
-      placed: degradedPlaced,
+      placed: finalPlaced,
       lastDelta: tickResult.delta,
       resources: newResources,
       alive: !tickResult.gameOver,
       o2Accumulated: newO2Accumulated,
       terraforming: newTerraforming,
+      alienState: newAlienState,
       won: TerraformingService.isComplete(newTerraforming),
     });
   },
@@ -234,10 +267,32 @@ export const useGameStore = create<GameState>()(
           colonyName: "",
           placed: [],
           occupied: {},
-          weather: { type: "clear", intensity: 0, remainingTicks: 0 },
+          weather: { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
           terraforming: 0,
           o2Accumulated: 0,
           won: false,
+          gameMode: "exploration" as GameMode,
+          alienState: INITIAL_ALIEN_STATE,
+        });
+      },
+
+      startNewGame: (name: string, diff: DifficultyLevel, mode: GameMode) => {
+        set({
+          resources: INITIAL_COLONY_STATE.resources,
+          capacity: INITIAL_COLONY_STATE.capacity,
+          sun: INITIAL_COLONY_STATE.sun,
+          alive: INITIAL_COLONY_STATE.alive,
+          colonyName: name,
+          placed: [],
+          occupied: {},
+          weather: { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
+          terraforming: 0,
+          o2Accumulated: 0,
+          won: false,
+          difficulty: diff,
+          gameMode: mode,
+          alienState: INITIAL_ALIEN_STATE,
+          lastDelta: {},
         });
       },
 
@@ -263,6 +318,7 @@ export const useGameStore = create<GameState>()(
                 terraforming: state.terraforming,
                 o2Accumulated: state.o2Accumulated,
                 difficulty: state.difficulty,
+                gameMode: state.gameMode,
               }
             })
           });
@@ -291,10 +347,11 @@ export const useGameStore = create<GameState>()(
             capacity: gameState.capacity,
             placed: gameState.placed,
             occupied: gameState.occupied,
-            weather: gameState.weather ?? { type: "clear", intensity: 0, remainingTicks: 0 },
+            weather: gameState.weather ?? { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
             terraforming: gameState.terraforming ?? 0,
             o2Accumulated: gameState.o2Accumulated ?? 0,
             difficulty: gameState.difficulty ?? "normal",
+            gameMode: gameState.gameMode ?? "exploration",
             won: TerraformingService.isComplete(gameState.terraforming ?? 0),
             alive: true
           });

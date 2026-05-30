@@ -1,20 +1,32 @@
-import { NavLink } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import { useAuthStore } from "../../../application/store/useAuthStore";
 import { useModalStore } from "../../../ui/ModalManager/store";
+import { useGameStore } from "../../../application/store/useGameStore";
 import "./TopMenu.css";
 
 export default function TopMenu() {
     const { user, isAuthenticated, logout } = useAuthStore();
     const { open } = useModalStore();
+    const location = useLocation();
+    const colonyName = useGameStore((s) => s.colonyName);
+
+    const isInGame = location.pathname === "/mars" && !!colonyName;
 
     const linkClass = ({ isActive }: { isActive: boolean }) =>
         `top-menu__item-link ${isActive ? 'active' : ''}`;
+
+    const handleHomeClick = (e: React.MouseEvent) => {
+        if (isInGame) {
+            e.preventDefault();
+            open("exit-confirm");
+        }
+    };
 
     return (
         <nav className="top-menu-wrapper">
             <ul className="top-menu" role="menubar">
                 <li className="top-menu__item" role="none">
-                    <NavLink to="/" className={linkClass} role="menuitem" end>Home</NavLink>
+                    <NavLink to="/" className={linkClass} role="menuitem" end onClick={handleHomeClick}>Home</NavLink>
                 </li>
                 <li className="top-menu__item" role="none">
                     <NavLink to="/mars" className={linkClass} role="menuitem">Mars</NavLink>

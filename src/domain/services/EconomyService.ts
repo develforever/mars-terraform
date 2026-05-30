@@ -2,6 +2,7 @@ import type { BuildingDefinition, PlacedBuilding } from "../entities/Building";
 import type { Resources, ResourceDelta, ResourceCapacity, ResourceProduction } from "../entities/Resources";
 import type { ColonyState } from "../entities/Colony";
 import { BuildingService } from "./BuildingService";
+import { NeighborService } from "./NeighborService";
 
 const O2_CONSUMPTION_PER_TICK = 0.05;
 
@@ -24,6 +25,7 @@ export class EconomyService {
       if (!def?.production) continue;
 
       const condFactor = BuildingService.conditionFactor(building.condition);
+      const neighborMult = NeighborService.getProductionMultiplier(building, def, buildings, definitions);
 
       for (const [resourceKey, value] of Object.entries(def.production)) {
         let adjustedValue = value ?? 0;
@@ -37,7 +39,7 @@ export class EconomyService {
 
         // Condition only scales positive production, not consumption
         if (adjustedValue > 0) {
-          adjustedValue *= condFactor;
+          adjustedValue *= condFactor * neighborMult;
         }
 
         const key = resourceKey as keyof Resources;

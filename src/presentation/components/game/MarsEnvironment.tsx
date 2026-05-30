@@ -23,6 +23,7 @@ export function MarsEnvironment() {
     const currentAtmosphereColor = useMemo(() => new THREE.Color(), []);
 
     const ambientRef = useRef<THREE.AmbientLight>(null);
+    const moonLightRef = useRef<THREE.DirectionalLight>(null);
     const starsRef = useRef<any>(null);
     const weather = useGameStore(state => state.weather);
     const sandstormColor = useMemo(() => new THREE.Color("#8b5a2b"), []);
@@ -84,9 +85,13 @@ export function MarsEnvironment() {
         }
 
         // --- Ambient light & stars ---
-        // Minimum 0.25 simulates moonlight — scene is never pitch black
+        // Minimum 0.3 simulates moonlight — scene is never pitch black
         if (ambientRef.current) {
-            ambientRef.current.intensity = 0.25 + dayFactor * 0.45;
+            ambientRef.current.intensity = 0.3 + dayFactor * 0.5;
+        }
+        // Moon fill-light: brightest at night, zero at noon
+        if (moonLightRef.current) {
+            moonLightRef.current.intensity = (1 - dayFactor) * 0.4;
         }
         if (starsRef.current) {
             starsRef.current.visible = dayFactor < 0.3 && weather.type !== "sandstorm";
@@ -96,7 +101,13 @@ export function MarsEnvironment() {
 
     return (
         <>
-            <ambientLight ref={ambientRef} intensity={0.2} />
+            <ambientLight ref={ambientRef} intensity={0.3} />
+            <directionalLight
+                ref={moonLightRef}
+                intensity={0.4}
+                position={[0, 100, 50]}
+                color="#8899cc"
+            />
             <pointLight
                 ref={sunRef}
                 intensity={2.5}

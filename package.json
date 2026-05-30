@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev:front": "vite",
-    "dev:back": "tsx watch --tsconfig src_backend/tsconfig.json src_backend/index.ts",
+    "dev:back": "tsx watch --inspect --tsconfig src_backend/tsconfig.json src_backend/index.ts",
     "dev": "concurrently \"npm run dev:front\" \"npm run dev:back\"",
     "build:back": "vite build -c vite.config.backend.ts",
     "build": "npm run build:back && tsc -b && vite build",

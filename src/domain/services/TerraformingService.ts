@@ -17,9 +17,9 @@ export interface TerraformingTargets {
  *   Water current   → 20 pts
  */
 export const DIFFICULTY_TARGETS: Record<DifficultyLevel, TerraformingTargets> = {
-  easy:   { o2Accumulated: 250,  biomass: 100, water: 50  },
-  normal: { o2Accumulated: 500,  biomass: 200, water: 100 },
-  hard:   { o2Accumulated: 1200, biomass: 500, water: 250 },
+  easy:   { o2Accumulated: 400,  biomass: 150, water: 80  },
+  normal: { o2Accumulated: 800,  biomass: 300, water: 150 },
+  hard:   { o2Accumulated: 2000, biomass: 800, water: 400 },
 };
 
 export const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {

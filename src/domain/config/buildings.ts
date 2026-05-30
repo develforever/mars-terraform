@@ -33,6 +33,11 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/hangar_roundGlass.glb",
     modelScale: 2.5,
     dependsOn: ["hab"],
+    connectionType: "water" as const,
+    bonusNeighbors: [
+      { neighborId: "o2-gen", bonusPercent: 20, description: "+20% O₂ obok Generatora" },
+      { neighborId: "ice",    bonusPercent: 15, description: "+15% Bio obok Ekstraktora" },
+    ],
   },
 
   // PRODUCTION
@@ -46,6 +51,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_generator.glb",
     modelScale: 2.5,
     dependsOn: ["hab"],
+    connectionType: "power" as const,
   },
   {
     id: "solar",
@@ -57,6 +63,10 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     tags: ["dayScaled"],
     modelPath: "/models/mars/machine_generator.glb",
     modelScale: 3.0,
+    connectionType: "power" as const,
+    bonusNeighbors: [
+      { neighborId: "battery", bonusPercent: 15, description: "+15% Power obok Stacji" },
+    ],
   },
   {
     id: "rtg",
@@ -90,6 +100,10 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/craft_miner.glb",
     modelScale: 3.0,
     dependsOn: ["ice"],
+    connectionType: "biomass" as const,
+    bonusNeighbors: [
+      { neighborId: "silo",  bonusPercent: 10, description: "+10% Biomasa obok Silosu" },
+    ],
   },
 
   // STORAGE
@@ -138,6 +152,10 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_wireless.glb",
     modelScale: 2.5,
     dependsOn: ["hab", "rtg"],
+    connectionType: "data" as const,
+    bonusNeighbors: [
+      { neighborId: "hab",  bonusPercent: 25, description: "+25% Biomasa obok Kolonii" },
+    ],
   },
 
   // DEFENSE

@@ -1,7 +1,7 @@
 import { db } from "../data-source";
 import { usersTable, userAuthMethodsTable, userGroupsTable, groupsTable } from "../db/schema";
 import { eq, and, isNull } from "drizzle-orm";
-import * as jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { config } from "../config";
 import type { JwtPayload } from "./authService";
 
@@ -106,12 +106,10 @@ const findOrCreateUser = async (
   return { id: result.id, email: result.email, token: generateToken(payload) };
 };
 
-const backendUrl = `http://localhost:${config.port}`;
-
 const getGoogleAuthUrl = (): string => {
   const params = new URLSearchParams({
     client_id: config.googleClientId,
-    redirect_uri: `${backendUrl}/api/auth/google/callback`,
+    redirect_uri: `${config.backendUrl}/api/auth/google/callback`,
     response_type: "code",
     scope: "openid email profile",
     access_type: "offline",
@@ -128,7 +126,7 @@ const exchangeGoogleCode = async (code: string): Promise<OAuthUserInfo> => {
       code,
       client_id: config.googleClientId,
       client_secret: config.googleClientSecret,
-      redirect_uri: `${backendUrl}/api/auth/google/callback`,
+      redirect_uri: `${config.backendUrl}/api/auth/google/callback`,
       grant_type: "authorization_code",
     }),
   });
@@ -165,7 +163,7 @@ const exchangeGoogleCode = async (code: string): Promise<OAuthUserInfo> => {
 const getGithubAuthUrl = (): string => {
   const params = new URLSearchParams({
     client_id: config.githubClientId,
-    redirect_uri: `${backendUrl}/api/auth/github/callback`,
+    redirect_uri: `${config.backendUrl}/api/auth/github/callback`,
     scope: "user:email",
   });
   return `https://github.com/login/oauth/authorize?${params.toString()}`;
@@ -182,7 +180,7 @@ const exchangeGithubCode = async (code: string): Promise<OAuthUserInfo> => {
       code,
       client_id: config.githubClientId,
       client_secret: config.githubClientSecret,
-      redirect_uri: `${backendUrl}/api/auth/github/callback`,
+      redirect_uri: `${config.backendUrl}/api/auth/github/callback`,
     }),
   });
 

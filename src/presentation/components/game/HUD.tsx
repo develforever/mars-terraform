@@ -8,7 +8,11 @@ import type { ResourceKey } from "../../../domain/entities/Resources";
 import type { BuildingDefinition } from "../../../domain/entities/Building";
 import { HintService } from "../../../domain/services/HintService";
 import { DIFFICULTY_LABELS } from "../../../domain/services/TerraformingService";
+import { NeighborService } from "../../../domain/services/NeighborService";
 import { WeatherAlert } from "./WeatherAlert";
+import { DebugOverlay } from "./DebugOverlay";
+import { ResourceDetailPanel } from "./ResourceDetailPanel";
+import { WeatherService } from "../../../domain/services/WeatherService";
 import "./HUD.css";
 
 export function HUD() {
@@ -33,8 +37,20 @@ export function HUD() {
     const saveGame = useGameStore((state) => state.saveGame);
     const loadGame = useGameStore((state) => state.loadGame);
     const colonyName = useGameStore((state) => state.colonyName);
+    const gameMode = useGameStore((state) => state.gameMode);
+    const alienState = useGameStore((state) => state.alienState);
+    const weather = useGameStore((state) => state.weather);
+    const o2Accumulated = useGameStore((state) => state.o2Accumulated);
+    const placedBuildings2 = useGameStore((state) => state.placed);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
+    const [activePanel, setActivePanel] = useState<ResourceKey | "terraforming" | null>(null);
+
+    const productionModifier = WeatherService.getProductionModifier(weather);
+
+    const togglePanel = (key: ResourceKey | "terraforming") => {
+        setActivePanel((prev) => (prev === key ? null : key));
+    };
 
     const handleSave = async () => {
         setSaveStatus("saving");
@@ -55,7 +71,10 @@ export function HUD() {
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
             if (e.key === "b" || e.key === "B") toggleBuildMode();
             if (e.key === "x" || e.key === "X") toggleDemolishMode();
-            if (e.key === "Escape") cancelBuild();
+            if (e.key === "Escape") {
+                cancelBuild();
+                setActivePanel(null);
+            }
         }
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
@@ -104,6 +123,11 @@ export function HUD() {
         return HintService.getSuggestion(resources, capacity, lastDelta);
     }, [resources, capacity, lastDelta]);
 
+    const activeBonuses = useMemo(
+        () => NeighborService.getAllActiveBonuses(placedBuildings, BUILDING_DEFINITIONS),
+        [placedBuildings],
+    );
+
     const renderDelta = (val: number | undefined) => {
         if (!val || val === 0) return null;
         if (val > 0) return <span className="delta-positive">▲{val.toFixed(1)}</span>;
@@ -112,14 +136,21 @@ export function HUD() {
 
     return (
         <div className="hud">
+            <DebugOverlay />
             <WeatherAlert />
+            {gameMode === "survival" && alienState.wave > 0 && (
+                <div className="alien-alert">
+                    {alienState.wave === 1 && `👽 ATAK ORBITALNY — ${alienState.ships.length} statek(i)`}
+                    {alienState.wave === 2 && `👾 INWAZJA — ${alienState.ships.length} statk. + ${alienState.groundUnits.length} naziemnych`}
+                </div>
+            )}
             <div className="bar">
                 <span>☀️ {sun.toFixed(2)}</span>
-                <span>💨 O₂ {resources.o2.toFixed(1)} {renderDelta(lastDelta?.o2)}</span>
-                <span>⚡ {resources.power.toFixed(1)} / {capacity.power} {renderDelta(lastDelta?.power)}</span>
-                <span>💧 {resources.water.toFixed(1)} / {capacity.water} {renderDelta(lastDelta?.water)}</span>
-                <span>🧪 {resources.biomass.toFixed(1)} / {capacity.biomass} {renderDelta(lastDelta?.biomass)}</span>
-                <span className="terraforming-bar">
+                <button className={`bar-btn${activePanel === "o2" ? " bar-btn--active" : ""}`} onClick={() => togglePanel("o2")}>💨 O₂ {resources.o2.toFixed(1)} {renderDelta(lastDelta?.o2)}</button>
+                <button className={`bar-btn${activePanel === "power" ? " bar-btn--active" : ""}`} onClick={() => togglePanel("power")}>⚡ {resources.power.toFixed(1)} / {capacity.power} {renderDelta(lastDelta?.power)}</button>
+                <button className={`bar-btn${activePanel === "water" ? " bar-btn--active" : ""}`} onClick={() => togglePanel("water")}>💧 {resources.water.toFixed(1)} / {capacity.water} {renderDelta(lastDelta?.water)}</button>
+                <button className={`bar-btn${activePanel === "biomass" ? " bar-btn--active" : ""}`} onClick={() => togglePanel("biomass")}>🧪 {resources.biomass.toFixed(1)} / {capacity.biomass} {renderDelta(lastDelta?.biomass)}</button>
+                <button className={`bar-btn terraforming-bar${activePanel === "terraforming" ? " bar-btn--active" : ""}`} onClick={() => togglePanel("terraforming")}>
                     🌍 {terraforming.toFixed(1)}%
                     <span className="terraforming-track">
                         <span
@@ -127,8 +158,26 @@ export function HUD() {
                             style={{ width: `${terraforming}%` }}
                         />
                     </span>
-                </span>
+                </button>
+                {colonyName && <span className="bar-colony-name">🏛 {colonyName}</span>}
             </div>
+
+            {activePanel !== null && (
+                <ResourceDetailPanel
+                    activePanel={activePanel}
+                    placed={placedBuildings2}
+                    definitions={BUILDING_DEFINITIONS}
+                    sunFactor={sun}
+                    productionModifier={productionModifier}
+                    resources={resources}
+                    capacity={capacity}
+                    terraforming={terraforming}
+                    o2Accumulated={o2Accumulated}
+                    difficulty={difficulty}
+                    lastDelta={lastDelta}
+                    onClose={() => setActivePanel(null)}
+                />
+            )}
 
             <div className={`hud-dock ${isHUDVisible ? "hud-dock--visible" : "hud-dock--hidden"}`}>
 
@@ -249,6 +298,21 @@ export function HUD() {
                                                                 {RESOURCE_LABELS[key]} {val > 0 ? "+" : ""}{val}
                                                             </div>
                                                         ))}
+                                                    </div>
+                                                )}
+                                            {def.bonusNeighbors && def.bonusNeighbors.length > 0 && (
+                                                    <div className="tooltip-section">
+                                                        <div className="tooltip-subtitle">🔗 Bonusy sąsiedztwa</div>
+                                                        {def.bonusNeighbors.map((b) => {
+                                                            const isActive = activeBonuses.some(
+                                                                (ab) => ab.buildingId === placedBuildings.find(p => p.definitionId === def.id)?.id && ab.neighborId === b.neighborId
+                                                            );
+                                                            return (
+                                                                <div key={b.neighborId} className={isActive ? "prod-positive" : ""} style={{ opacity: isActive ? 1 : 0.5 }}>
+                                                                    {isActive ? "✓" : "○"} {b.description}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
                                                 {capEntries.length > 0 && (

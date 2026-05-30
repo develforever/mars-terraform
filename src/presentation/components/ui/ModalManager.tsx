@@ -1,5 +1,7 @@
 import { useModalStore } from "../../../ui/ModalManager/store";
 import { ColonyNameModal } from "../game/ColonyNameModal";
+import { ExitConfirmModal } from "../game/ExitConfirmModal";
+import { LoadGameModal } from "../game/LoadGameModal";
 import LoginModal from "../auth/LoginModal";
 import RegisterModal from "../auth/RegisterModal";
 import ForgotPasswordModal from "../auth/ForgotPasswordModal";
@@ -25,6 +27,10 @@ export default function ModalManager() {
                 return <ResetPasswordModal />;
             case "verify-email":
                 return <VerifyEmailModal />;
+            case "exit-confirm":
+                return <ExitConfirmModal onClose={close} />;
+            case "load-game":
+                return <LoadGameModal onClose={close} />;
             default:
                 return null;
         }

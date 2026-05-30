@@ -50,6 +50,49 @@
     color: #d1d5db;
 }
 
+.bar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    font-size: 12px;
+    color: #d1d5db;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    font-family: inherit;
+}
+.bar-btn:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+.bar-btn--active {
+    border-color: rgba(231, 76, 60, 0.6);
+    background: rgba(231, 76, 60, 0.1);
+    color: #fca5a5;
+}
+
+.bar-colony-name {
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #e5e7eb;
+    padding: 2px 12px;
+    border-left: 1px solid rgba(255,255,255,0.12);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
+}
+
 .hud .bar span:not(:last-child) {
     padding-right: 10px;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
@@ -352,6 +395,30 @@
     font-size: 28px !important;
     color: #4ade80 !important;
     text-shadow: 0 0 20px rgba(74, 222, 128, 0.6);
+}
+
+/* Alien Invasion Alert */
+.alien-alert {
+    position: absolute;
+    top: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 110;
+    padding: 6px 20px;
+    background: rgba(88, 28, 135, 0.9);
+    border: 1px solid rgba(167, 139, 250, 0.5);
+    border-radius: 8px;
+    color: #e9d5ff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 24px rgba(124, 58, 237, 0.45);
+    animation: alien-pulse 2s infinite ease-in-out;
+}
+
+@keyframes alien-pulse {
+    0%, 100% { box-shadow: 0 0 24px rgba(124, 58, 237, 0.45); }
+    50%       { box-shadow: 0 0 40px rgba(124, 58, 237, 0.75); }
 }
 
 /* Building Popover (3D Overlay) */

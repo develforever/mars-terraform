@@ -8,6 +8,8 @@ import { UsersController } from './../controller/UsersController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { GroupsController } from './../controller/GroupsController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { ColonyNameController } from './../controller/ColonyNameController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { ColonyController } from './../controller/ColonyController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { AuthController } from './../controller/AuthController';
@@ -67,6 +69,14 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "userId": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ColonyNamesResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "names": {"dataType":"array","array":{"dataType":"string"},"required":true},
         },
         "additionalProperties": false,
     },
@@ -436,6 +446,36 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'removeMember',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsColonyNameController_generate: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.post('/api/colony-names/generate',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ColonyNameController)),
+            ...(fetchMiddlewares<RequestHandler>(ColonyNameController.prototype.generate)),
+
+            async function ColonyNameController_generate(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsColonyNameController_generate, request, response });
+
+                const controller = new ColonyNameController();
+
+              await templateService.apiHandler({
+                methodName: 'generate',
                 controller,
                 response,
                 next,
