@@ -89,6 +89,7 @@ export default function StartView() {
             </div>
 
             <StartScene3D onClick={handleStart} />
+            <div className="glitch-overlay" aria-hidden="true" />
         </div>
     );
 }

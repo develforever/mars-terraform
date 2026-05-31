@@ -85,13 +85,13 @@ export function MarsEnvironment() {
         }
 
         // --- Ambient light & stars ---
-        // Minimum 0.3 simulates moonlight — scene is never pitch black
+        // Minimum 0.45 simulates warm moonlight — scene is never pitch black
         if (ambientRef.current) {
-            ambientRef.current.intensity = 0.3 + dayFactor * 0.5;
+            ambientRef.current.intensity = 0.45 + dayFactor * 0.5;
         }
-        // Moon fill-light: brightest at night, zero at noon
+        // Warm fill-light: brightest at night, zero at noon
         if (moonLightRef.current) {
-            moonLightRef.current.intensity = (1 - dayFactor) * 0.4;
+            moonLightRef.current.intensity = (1 - dayFactor) * 0.5;
         }
         if (starsRef.current) {
             starsRef.current.visible = dayFactor < 0.3 && weather.type !== "sandstorm";
@@ -104,9 +104,9 @@ export function MarsEnvironment() {
             <ambientLight ref={ambientRef} intensity={0.3} />
             <directionalLight
                 ref={moonLightRef}
-                intensity={0.4}
+                intensity={0.5}
                 position={[0, 100, 50]}
-                color="#8899cc"
+                color="#b06040"
             />
             <pointLight
                 ref={sunRef}

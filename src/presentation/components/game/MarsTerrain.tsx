@@ -75,9 +75,9 @@ const GRID_FRAG = `
     float visMask = 0.35 + vis * 0.65;
     color.rgb *= visMask;
 
-    // 2. Moonlight floor
+    // 2. Moonlight floor (warm mars tones)
     float night = 1.0 - uSunFactor;
-    vec3 moonFloor = vec3(0.06, 0.065, 0.09) * night;
+    vec3 moonFloor = vec3(0.10, 0.05, 0.03) * night;
     color.rgb += moonFloor;
 
     // 3. Edge fade into fog
