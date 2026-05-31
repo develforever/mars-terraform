@@ -65,7 +65,7 @@ function World({ onClick }: Scene3DProps) {
                 dampingFactor={0.05}
                 autoRotate={false}
                 target={[0, 0, 0]}
-                minDistance={40}
+                minDistance={2}
                 maxDistance={1500}
                 minPolarAngle={Math.PI / 4}
                 maxPolarAngle={Math.PI * 3 / 4}

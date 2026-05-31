@@ -63,7 +63,8 @@ export class AlienService {
         const next = { ...ship, phaseProgress: ship.phaseProgress + SHIP_PHASE_STEP };
         if (next.phaseProgress >= 1) {
           if (ship.phase === "approaching") return { ...next, phase: "targeting" as const, phaseProgress: 0 };
-          if (ship.phase === "targeting")   return { ...next, phase: "firing" as const,    phaseProgress: 0 };
+          if (ship.phase === "targeting")   return { ...next, phase: "charging" as const,  phaseProgress: 0 };
+          if (ship.phase === "charging")    return { ...next, phase: "firing" as const,    phaseProgress: 0 };
           if (ship.phase === "firing") {
             // Apply damage to target building
             damagedBuildings = damagedBuildings.map((b) =>

@@ -15,7 +15,7 @@ import { useDebugStore } from "./useDebugStore";
 import type { GameMode } from "../../domain/services/GameModeService";
 import { GAME_MODE_CONFIGS } from "../../domain/services/GameModeService";
 import { AlienService, INITIAL_ALIEN_STATE } from "../../domain/services/AlienService";
-import type { AlienState } from "../../domain/entities/Alien";
+import type { AlienState, AlienShip, AlienGroundUnit } from "../../domain/entities/Alien";
 import { authClient } from "../service/authService";
 
 export interface GameState {
@@ -54,7 +54,9 @@ export interface GameState {
   startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode) => void;
   saveGame: () => Promise<boolean>;
   loadGame: (name: string) => Promise<boolean>;
-  triggerAlienWave: (wave: 0 | 1 | 2) => void;
+  triggerAlienWave: (wave: 0 | 1 | 2, count?: number) => void;
+  forceMeteorShower: (count: number) => void;
+  setWeather: (weather: WeatherState) => void;
 }
 
 function getInitialGameState() {
@@ -109,25 +111,70 @@ export const useGameStore = create<GameState>()(
         set({ gameMode: mode });
       },
 
-      triggerAlienWave: (wave) => {
+      setWeather: (weather) => set({ weather }),
+
+      forceMeteorShower: (count) => {
+        const zones = WeatherService.generateImpactZones(count);
+        set({
+          weather: {
+            type: "meteor_shower",
+            intensity: 1,
+            remainingTicks: 5,
+            impactZones: zones,
+            cooldownTicks: 0,
+          },
+        });
+      },
+
+      triggerAlienWave: (wave, count = 3) => {
         const { placed } = get();
-        const target = placed[Math.floor(Math.random() * placed.length)];
-        const angle = Math.random() * Math.PI * 2;
-        const ships = wave >= 1 && target ? [{
-          id: `ship-dbg-${Date.now()}`,
-          position: { x: Math.cos(angle) * 60, y: 75, z: Math.sin(angle) * 40 },
-          targetBuildingId: target.id,
-          phase: "approaching" as const,
-          phaseProgress: 0,
-          active: true,
-        }] : [];
+        const ships: AlienShip[] = [];
+        const groundUnits: AlienGroundUnit[] = [];
+
+        if (wave >= 1) {
+          for (let i = 0; i < count; i++) {
+            const target = placed[Math.floor(Math.random() * placed.length)];
+            const angle = Math.random() * Math.PI * 2;
+            ships.push({
+              id: `ship-dbg-${Date.now()}-${i}`,
+              position: {
+                x: Math.cos(angle + i * 0.5) * (50 + Math.random() * 20),
+                y: 15 + Math.random() * 10,
+                z: Math.sin(angle + i * 0.5) * (30 + Math.random() * 20),
+              },
+              targetBuildingId: target?.id ?? null,
+              phase: "approaching" as const,
+              phaseProgress: 0,
+              active: true,
+            });
+          }
+        }
+
+        if (wave >= 2) {
+          for (let i = 0; i < count; i++) {
+            const side = Math.floor(Math.random() * 4);
+            let x = 0, z = 0;
+            if (side === 0) { x = -48; z = (Math.random() * 2 - 1) * 22; }
+            if (side === 1) { x =  48; z = (Math.random() * 2 - 1) * 22; }
+            if (side === 2) { x = (Math.random() * 2 - 1) * 48; z = -22; }
+            if (side === 3) { x = (Math.random() * 2 - 1) * 48; z =  22; }
+            groundUnits.push({
+              id: `ground-dbg-${Date.now()}-${i}`,
+              position: { x, z },
+              targetBuildingId: null,
+              attackCooldown: 0,
+              active: true,
+            });
+          }
+        }
+
         set({
           alienState: {
             wave,
             ships,
-            groundUnits: [],
-            nextShipSpawnIn: 10,
-            nextGroundSpawnIn: 10,
+            groundUnits,
+            nextShipSpawnIn: 120,
+            nextGroundSpawnIn: 80,
           },
         });
       },

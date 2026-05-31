@@ -18,7 +18,10 @@ export interface UIState {
   
   // HUD panel visibility
   isHUDVisible: boolean;
-  
+
+  // Debug overlay visibility
+  debugOverlayVisible: boolean;
+
   // Actions
   setSelectedBuilding: (id: string | null) => void;
   setHoverCell: (cell: { x: number; z: number } | null) => void;
@@ -27,6 +30,7 @@ export interface UIState {
   cancelBuild: () => void;
   setInspectedInstance: (id: string | null) => void;
   toggleHUD: () => void;
+  toggleDebugOverlay: () => void;
   resetUI: () => void;
 }
 
@@ -38,6 +42,7 @@ export const useUIStore = create<UIState>()(
       hoverCell: null,
       inspectedInstanceId: null,
       isHUDVisible: false,
+      debugOverlayVisible: false,
 
       setSelectedBuilding: (id) => set({ selectedBuildingId: id }),
       
@@ -58,6 +63,8 @@ export const useUIStore = create<UIState>()(
       setInspectedInstance: (id) => set({ inspectedInstanceId: id }),
 
       toggleHUD: () => set({ isHUDVisible: !get().isHUDVisible }),
+
+      toggleDebugOverlay: () => set({ debugOverlayVisible: !get().debugOverlayVisible }),
 
       resetUI: () =>
         set({

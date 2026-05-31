@@ -2,7 +2,7 @@ export interface AlienShip {
   id: string;
   position: { x: number; y: number; z: number };
   targetBuildingId: string | null;
-  phase: "approaching" | "targeting" | "firing" | "retreating";
+  phase: "approaching" | "targeting" | "charging" | "firing" | "retreating";
   phaseProgress: number; // 0–1
   active: boolean;
 }

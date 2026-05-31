@@ -57,12 +57,32 @@ export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacemen
       downPos.current = null;
       dragging.current = false;
 
-      if (wasDragging || !latest.current || !buildMode) return;
+      if (wasDragging || !buildMode) return;
 
-      const { x, z } = latest.current;
-      
+      // Recalculate raycaster synchronously from the latest mouse position
+      // to avoid reading a stale hoverCell that may not have been updated
+      // by useFrame yet (race between DOM events and the render loop).
+      RAY.setFromCamera(MOUSE, camera);
+
+      let hitPoint: THREE.Vector3 | null = null;
+      if (terrainMesh) {
+        const intersects = RAY.intersectObject(terrainMesh, false);
+        if (intersects.length > 0) {
+          hitPoint = intersects[0].point;
+        }
+      } else {
+        if (RAY.ray.intersectPlane(GROUND_PLANE, HIT)) {
+          hitPoint = HIT;
+        }
+      }
+
+      if (!hitPoint) return;
+
+      const x = Math.round(hitPoint.x / grid) * grid;
+      const z = Math.round(hitPoint.z / grid) * grid;
+
       if (x < -TERRAIN_BOUNDS.halfX || x > TERRAIN_BOUNDS.halfX || z < -TERRAIN_BOUNDS.halfZ || z > TERRAIN_BOUNDS.halfZ) return;
-      
+
       if (buildMode === "place") {
         if (!selectedBuildingId) return;
         const y = getHeightAt ? getHeightAt(x, z) : 0;
@@ -82,7 +102,7 @@ export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacemen
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointerup", onPointerUp);
     };
-  }, [gl.domElement, buildMode, selectedBuildingId, placeBuilding, demolishBuilding, getHeightAt]);
+  }, [gl.domElement, camera, terrainMesh, grid, buildMode, selectedBuildingId, placeBuilding, demolishBuilding, getHeightAt]);
 
   useFrame(() => {
     RAY.setFromCamera(MOUSE, camera);

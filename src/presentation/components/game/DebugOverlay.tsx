@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDebugStore } from "../../../application/store/useDebugStore";
 import { useGameStore } from "../../../application/store/useGameStore";
+import { WeatherService } from "../../../domain/services/WeatherService";
 import type { WeatherType } from "../../../domain/services/WeatherService";
 import "./DebugOverlay.css";
 import { useUIStore } from "../../../application/store/useUIStore";
@@ -11,7 +12,7 @@ const WEATHER_OPTIONS: WeatherType[] = ["clear", "warning", "sandstorm", "meteor
 
 export function DebugOverlay() {
     const { t } = useTranslation();
-    const { enabled, toggleDebug, showBuildingInfo, toggleBuildingInfo, showFPS, forcedWeather, setForcedWeather } = useDebugStore();
+    const { enabled, toggleDebug, showBuildingInfo, toggleBuildingInfo, showFPS, setForcedWeather } = useDebugStore();
     const weather = useGameStore((s) => s.weather);
     const resources = useGameStore((s) => s.resources);
     const terraforming = useGameStore((s) => s.terraforming);
@@ -28,8 +29,14 @@ export function DebugOverlay() {
     const toggleBuildMode = useUIStore((s) => s.toggleBuildMode);
     const cancelBuild = useUIStore((s) => s.cancelBuild);
     const setSelectedBuilding = useUIStore((s) => s.setSelectedBuilding);
+    const debugOverlayVisible = useUIStore((s) => s.debugOverlayVisible);
+    const toggleDebugOverlay = useUIStore((s) => s.toggleDebugOverlay);
+    const forceMeteorShower = useGameStore((s) => s.forceMeteorShower);
+    const setWeather = useGameStore((s) => s.setWeather);
 
     const [fps, setFps] = useState(0);
+    const [meteorCount, setMeteorCount] = useState(10);
+    const [alienCount, setAlienCount] = useState(3);
     const frameCount = useRef(0);
     const lastTime = useRef(performance.now());
 
@@ -97,6 +104,12 @@ export function DebugOverlay() {
                 <div className="debug-row"><span>Power</span><span>{resources.power.toFixed(2)}</span></div>
                 <div className="debug-row"><span>Water</span><span>{resources.water.toFixed(2)}</span></div>
                 <div className="debug-row"><span>Biomass</span><span>{resources.biomass.toFixed(2)}</span></div>
+                <div className="debug-row">
+                    <span>3D Debug</span>
+                    <button className="debug-btn" onClick={toggleDebugOverlay}>
+                        {debugOverlayVisible ? "On" : "Off"}
+                    </button>
+                </div>
             </div>
 
             <div className="debug-section">
@@ -111,14 +124,48 @@ export function DebugOverlay() {
                 <div className="debug-label" style={{ marginTop: 6 }}>{t("debug.forceWeather")}</div>
                 <select
                     className="debug-select"
-                    value={forcedWeather ?? ""}
-                    onChange={(e) => setForcedWeather((e.target.value as WeatherType) || null)}
+                    value={weather.type}
+                    onChange={(e) => {
+                        const type = (e.target.value as WeatherType) || "clear";
+                        setForcedWeather(null);
+                        switch (type) {
+                            case "clear":
+                                setWeather({ type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 });
+                                break;
+                            case "warning":
+                                setWeather({ type: "warning", intensity: 0, remainingTicks: 60, cooldownTicks: 0 });
+                                break;
+                            case "sandstorm":
+                                setWeather({ type: "sandstorm", intensity: 0.7, remainingTicks: 30, cooldownTicks: 0 });
+                                break;
+                            case "meteor_warning":
+                                setWeather({ type: "meteor_warning", intensity: 0, remainingTicks: 15, impactZones: WeatherService.generateImpactZones(), cooldownTicks: 0 });
+                                break;
+                            case "meteor_shower":
+                                setWeather({ type: "meteor_shower", intensity: 1, remainingTicks: 5, impactZones: WeatherService.generateImpactZones(3), cooldownTicks: 0 });
+                                break;
+                        }
+                    }}
                 >
-                    <option value="">{t("debug.normalTick")}</option>
+                    <option value="clear">{t("debug.normalTick")}</option>
                     {WEATHER_OPTIONS.map((w) => (
                         <option key={w} value={w}>{w}</option>
                     ))}
                 </select>
+                <div className="debug-row" style={{ marginTop: 6 }}>
+                    <span>Meteors</span>
+                    <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={meteorCount}
+                        onChange={(e) => setMeteorCount(parseInt(e.target.value) || 10)}
+                        style={{ width: 50 }}
+                    />
+                    <button className="debug-btn" onClick={() => forceMeteorShower(meteorCount)}>
+                        Trigger
+                    </button>
+                </div>
             </div>
 
             <div className="debug-section">
@@ -127,10 +174,21 @@ export function DebugOverlay() {
                 <div className="debug-row"><span>{t("debug.alienShips")}</span><span>{alienState.ships.length}</span></div>
                 <div className="debug-row"><span>{t("debug.alienGround")}</span><span>{alienState.groundUnits.length}</span></div>
                 <div className="debug-row"><span>{t("debug.alienMode")}</span><span>{gameMode}</span></div>
+                <div className="debug-row" style={{ marginTop: 6 }}>
+                    <span>Count</span>
+                    <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={alienCount}
+                        onChange={(e) => setAlienCount(parseInt(e.target.value) || 3)}
+                        style={{ width: 50 }}
+                    />
+                </div>
                 <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                     <button className="debug-btn" onClick={() => triggerAlienWave(0)}>{t("debug.alienClear")}</button>
-                    <button className="debug-btn" onClick={() => triggerAlienWave(1)}>{t("debug.alienWave1")}</button>
-                    <button className="debug-btn" onClick={() => triggerAlienWave(2)}>{t("debug.alienWave2")}</button>
+                    <button className="debug-btn" onClick={() => triggerAlienWave(1, alienCount)}>{t("debug.alienWave1")}</button>
+                    <button className="debug-btn" onClick={() => triggerAlienWave(2, alienCount)}>{t("debug.alienWave2")}</button>
                 </div>
             </div>
 
@@ -167,6 +225,7 @@ export function DebugOverlay() {
                             setSelectedBuilding(BUILDING_DEFINITIONS.hab.id);
                             toggleBuildMode();
                             setSelectedCell({ x, z });
+                            cancelBuild()
                         }
                     }}>{t("debug.select")}</button>
                     <button className="debug-btn" onClick={() => setSelectedCell(null)}>{t("debug.clearSelection")}</button>

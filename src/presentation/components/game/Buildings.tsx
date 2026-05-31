@@ -15,6 +15,15 @@ import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 import { WeatherService } from "../../../domain/services/WeatherService";
 import { NeighborService } from "../../../domain/services/NeighborService";
 
+/** Unique model paths from building definitions for pre-loading. */
+const MODEL_PATHS = Array.from(
+  new Set(
+    Object.values(BUILDING_DEFINITIONS)
+      .map((d) => d.modelPath)
+      .filter((p): p is string => !!p)
+  )
+);
+
 interface ModelProps {
     path: string;
     scale?: number;
@@ -23,18 +32,22 @@ interface ModelProps {
 
 function Model({ path, scale = 1, ghost = false }: ModelProps) {
     const gltf = useGLTF(path) as { scene: Group };
-    const sceneClone = useMemo<Group>(() => gltf.scene.clone(true), [gltf.scene]);
+    const sceneClone = useMemo<Group>(() => {
+        const clone = gltf.scene.clone(true);
+        // Calculate bounding box to center the model's origin at the bottom center
+        const box = new THREE.Box3().setFromObject(clone);
+        const center = box.getCenter(new THREE.Vector3());
+        // Shift children so the group's origin becomes the bottom-center.
+        // We must NOT touch clone.position because <primitive object={clone} />
+        // would treat that as an extra offset inside the parent group.
+        const offset = new THREE.Vector3(-center.x, -box.min.y, -center.z);
+        clone.children.forEach((child) => {
+            child.position.add(offset);
+        });
+        return clone;
+    }, [gltf.scene]);
 
     useEffect(() => {
-        // Calculate bounding box to center the model's origin at the bottom center
-        const box = new THREE.Box3().setFromObject(sceneClone);
-        const center = box.getCenter(new THREE.Vector3());
-        
-        // Shift the model so its origin is at the bottom center
-        sceneClone.position.x = -center.x;
-        sceneClone.position.y = -box.min.y;
-        sceneClone.position.z = -center.z;
-
         if (ghost) {
             sceneClone.traverse((child) => {
                 if ((child as any).isMesh) {
@@ -86,6 +99,11 @@ export function Buildings() {
     const buildMode = useUIStore((state) => state.buildMode);
     const terrainY = useTerrainHeight();
     const demolishBuilding = useGameStore((state) => state.demolishBuilding);
+    const debugOverlayVisible = useUIStore((state) => state.debugOverlayVisible);
+
+    useEffect(() => {
+        MODEL_PATHS.forEach((path) => useGLTF.preload(path));
+    }, []);
 
     const handleBuildingClick = (e: ThreeEvent<MouseEvent>, building: PlacedBuilding) => {
         e.stopPropagation();
@@ -111,11 +129,19 @@ export function Buildings() {
                 const baseY = terrainY(b.position.x, b.position.z) + 0.3;
                 
                 return (
-                    <group 
-                        key={b.id} 
+                    <group
+                        key={b.id}
                         position={[b.position.x, baseY, b.position.z]}
                         onClick={(e) => handleBuildingClick(e, b)}
                     >
+                        {debugOverlayVisible && (
+                            <>
+                                <axesHelper args={[1.5]} />
+                                <Html position={[0, 2, 0]} center style={{ color: "#ffffff", fontSize: 12, pointerEvents: "none" }}>
+                                    <div>Bld: {b.position.x}, {b.position.z}</div>
+                                </Html>
+                            </>
+                        )}
                         {/* Rendered higher to be clearly on top of the foundation */}
                         <group position={[0, -0.1, 0]}>
                             <BuildingMesh defId={b.definitionId} />
@@ -282,6 +308,7 @@ export function HoverGhost() {
     const resources = useGameStore((state) => state.resources);
     const placedBuildings = useGameStore((state) => state.placed);
     const terrainY = useTerrainHeight();
+    const debugOverlayVisible = useUIStore((state) => state.debugOverlayVisible);
 
     if (!hoverCell || !selectedBuildingId || buildMode !== "place") {
         console.warn("HoverGhost: missing hoverCell, selectedBuildingId, or buildMode is not place");
@@ -302,6 +329,14 @@ export function HoverGhost() {
 
     return (
         <group position={[hoverCell.x, baseY, hoverCell.z]}>
+            {debugOverlayVisible && (
+                <>
+                    <axesHelper args={[1.5]} />
+                    <Html position={[0, 2, 0]} center style={{ color: "#00ff88", fontSize: 12, pointerEvents: "none" }}>
+                        <div>Ghost: {hoverCell.x}, {hoverCell.z}</div>
+                    </Html>
+                </>
+            )}
             <group position={[0, -0.1, 0]}>
                 <BuildingMesh defId={selectedBuildingId} ghost={true} />
             </group>

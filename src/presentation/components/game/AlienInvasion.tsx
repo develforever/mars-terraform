@@ -1,4 +1,4 @@
-import { useRef, useMemo, Suspense } from "react";
+import { useRef, useMemo, Suspense, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -12,6 +12,9 @@ const ALIEN_MODEL  = "/models/mars/alien.glb";
 
 useGLTF.preload(SHIP_MODEL);
 useGLTF.preload(ALIEN_MODEL);
+
+/** Tracks current world positions of ships so lasers can originate from the correct point. */
+const shipPositions = new Map<string, THREE.Vector3>();
 
 // ── Ship model ────────────────────────────────────────────────────────────────
 
@@ -41,35 +44,73 @@ function AlienModel() {
     return <primitive object={clone} scale={2} />;
 }
 
-// ── Laser beam (world-space line) ─────────────────────────────────────────────
+// ── World-space lasers (read from shipPositions every frame) ─────────────────
 
-interface LaserBeamProps {
-    from: THREE.Vector3;
+interface WorldLaserProps {
+    shipId: string;
     to: THREE.Vector3;
-    visible: boolean;
 }
 
-function LaserBeam({ from, to, visible }: LaserBeamProps) {
+function WorldLaserBeam({ shipId, to }: WorldLaserProps) {
     const line = useMemo(() => {
         const geo = new THREE.BufferGeometry().setFromPoints([
             new THREE.Vector3(), new THREE.Vector3(),
         ]);
-        const mat = new THREE.LineBasicMaterial({
-            color: "#ff2200",
-            transparent: true,
-            opacity: 0,
-            linewidth: 2,
-        });
+        const mat = new THREE.LineBasicMaterial({ color: "#ff2200", transparent: true, opacity: 0, linewidth: 3 });
         return new THREE.Line(geo, mat);
     }, []);
+    const glowRef = useRef<THREE.Mesh>(null);
 
     useFrame(({ clock }) => {
+        const from = shipPositions.get(shipId);
+        if (!from) return;
         const positions = line.geometry.attributes.position;
         positions.setXYZ(0, from.x, from.y, from.z);
         positions.setXYZ(1, to.x, to.y, to.z);
         positions.needsUpdate = true;
-        (line.material as THREE.LineBasicMaterial).opacity =
-            visible ? 0.85 + Math.sin(clock.elapsedTime * 30) * 0.15 : 0;
+        (line.material as THREE.LineBasicMaterial).opacity = 0.85 + Math.sin(clock.elapsedTime * 30) * 0.15;
+        if (glowRef.current) {
+            glowRef.current.position.copy(from);
+            const pulse = 0.5 + Math.sin(clock.elapsedTime * 15) * 0.3;
+            glowRef.current.scale.setScalar(pulse);
+        }
+    });
+
+    return (
+        <>
+            <primitive object={line} />
+            <mesh ref={glowRef}>
+                <sphereGeometry args={[0.6, 12, 12]} />
+                <meshBasicMaterial color="#ff4400" transparent opacity={0.6} depthWrite={false} />
+            </mesh>
+        </>
+    );
+}
+
+interface WorldChargingProps {
+    shipId: string;
+    to: THREE.Vector3;
+    progress: number;
+}
+
+function WorldChargingLaser({ shipId, to, progress }: WorldChargingProps) {
+    const line = useMemo(() => {
+        const geo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(), new THREE.Vector3(),
+        ]);
+        const mat = new THREE.LineBasicMaterial({ color: "#ffcc00", transparent: true, opacity: 0, linewidth: 2 });
+        return new THREE.Line(geo, mat);
+    }, []);
+
+    useFrame(({ clock }) => {
+        const from = shipPositions.get(shipId);
+        if (!from) return;
+        const positions = line.geometry.attributes.position;
+        positions.setXYZ(0, from.x, from.y, from.z);
+        positions.setXYZ(1, to.x, to.y, to.z);
+        positions.needsUpdate = true;
+        const pulse = Math.sin(clock.elapsedTime * (10 + progress * 20)) * 0.3 + 0.5;
+        (line.material as THREE.LineBasicMaterial).opacity = progress * pulse;
     });
 
     return <primitive object={line} />;
@@ -112,7 +153,11 @@ function ShipMesh({ ship, targetPos }: ShipMeshProps) {
     });
 
     const isFiring = ship.phase === "firing";
-    const from = new THREE.Vector3(ship.position.x, ship.position.y, ship.position.z);
+    const isCharging = ship.phase === "charging";
+
+    useEffect(() => {
+        return () => { shipPositions.delete(ship.id); };
+    }, [ship.id]);
 
     return (
         <group ref={groupRef}>
@@ -124,10 +169,7 @@ function ShipMesh({ ship, targetPos }: ShipMeshProps) {
             }>
                 <ShipModel />
             </Suspense>
-            <pointLight color="#ff4400" intensity={isFiring ? 8 : 3} distance={20} />
-            {isFiring && targetPos && (
-                <LaserBeam from={from} to={targetPos} visible={true} />
-            )}
+            <pointLight color="#ff4400" intensity={isFiring ? 8 : isCharging ? 5 : 3} distance={20} />
         </group>
     );
 }
@@ -182,6 +224,20 @@ export function AlienInvasion() {
     const placed      = useGameStore((s) => s.placed);
     const debugEnabled = useDebugStore((s) => s.enabled);
 
+    // Update shipPositions every frame so lasers have correct world coordinates
+    useFrame(({ clock }) => {
+        const t = clock.elapsedTime;
+        alienState.ships.forEach((ship) => {
+            const hoverY = ship.position.y + Math.sin(t * 1.5) * 0.8;
+            const pos = shipPositions.get(ship.id);
+            if (pos) {
+                pos.set(ship.position.x, hoverY, ship.position.z);
+            } else {
+                shipPositions.set(ship.id, new THREE.Vector3(ship.position.x, hoverY, ship.position.z));
+            }
+        });
+    });
+
     // Show in survival mode OR when debug panel is open (for testing)
     if (gameMode !== "survival" && !debugEnabled) return null;
     if (alienState.wave === 0) return null;
@@ -197,6 +253,25 @@ export function AlienInvasion() {
                     ? new THREE.Vector3(target.position.x, 1, target.position.z)
                     : null;
                 return <ShipMesh key={ship.id} ship={ship} targetPos={targetPos} />;
+            })}
+            {/* Lasers rendered in world space, outside ship groups */}
+            {alienState.ships.map((ship) => {
+                if (ship.phase !== "firing" && ship.phase !== "charging") return null;
+                const target = ship.targetBuildingId
+                    ? placed.find((b) => b.id === ship.targetBuildingId)
+                    : null;
+                if (!target) return null;
+                const to = new THREE.Vector3(target.position.x, 1, target.position.z);
+                return (
+                    <group key={`laser-${ship.id}`}>
+                        {ship.phase === "firing" && (
+                            <WorldLaserBeam shipId={ship.id} to={to} />
+                        )}
+                        {ship.phase === "charging" && (
+                            <WorldChargingLaser shipId={ship.id} to={to} progress={ship.phaseProgress} />
+                        )}
+                    </group>
+                );
             })}
             {alienState.groundUnits.map((unit) => (
                 <GroundUnitMesh key={unit.id} unit={unit} />

@@ -106,10 +106,10 @@ export class WeatherService {
     return { ...currentWeather, cooldownTicks };
   }
 
-  static generateImpactZones(): ImpactZone[] {
-    const count = this.MIN_IMPACTS + Math.floor(Math.random() * (this.MAX_IMPACTS - this.MIN_IMPACTS + 1));
+  static generateImpactZones(count?: number): ImpactZone[] {
+    const zoneCount = count ?? (this.MIN_IMPACTS + Math.floor(Math.random() * (this.MAX_IMPACTS - this.MIN_IMPACTS + 1)));
     const zones: ImpactZone[] = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < zoneCount; i++) {
       zones.push({
         x: Math.round((Math.random() * 2 - 1) * this.HALF_X),
         z: Math.round((Math.random() * 2 - 1) * this.HALF_Z),
