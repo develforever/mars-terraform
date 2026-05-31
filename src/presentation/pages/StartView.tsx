@@ -5,6 +5,7 @@ import { usePageTitle } from "../hooks/usePageTitle";
 import { useModalStore } from "../../ui/ModalManager/store";
 import { useGameStore } from "../../application/store/useGameStore";
 import { useAuthStore } from "../../application/store/useAuthStore";
+import { useUIStore } from "../../application/store/useUIStore";
 import type { DifficultyLevel } from "../../domain/services/TerraformingService";
 import { DIFFICULTY_TARGETS } from "../../domain/services/TerraformingService";
 import type { GameMode } from "../../domain/services/GameModeService";
@@ -19,6 +20,7 @@ export default function StartView() {
     const setDifficulty = useGameStore((s) => s.setDifficulty);
     const setGameMode = useGameStore((s) => s.setGameMode);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    const isLaunching = useUIStore((s) => s.isLaunching);
     const [selected, setSelected] = useState<DifficultyLevel>("normal");
     const [selectedMode, setSelectedMode] = useState<GameMode>("exploration");
 
@@ -40,7 +42,7 @@ export default function StartView() {
 
     return (
         <div className="start-root">
-            <div className="start-panel">
+            <div className={`start-panel${isLaunching ? " start-panel--launching" : ""}`}>
                 {/* Game mode selector */}
                 <div className="start-mode-row">
                     {(Object.entries(GAME_MODE_CONFIGS) as [GameMode, typeof GAME_MODE_CONFIGS[GameMode]][]).map(([mode, cfg]) => (
@@ -48,6 +50,7 @@ export default function StartView() {
                             key={mode}
                             onClick={() => setSelectedMode(mode)}
                             className={`start-mode-btn${selectedMode === mode ? " start-mode-btn--selected" : ""}`}
+                            disabled={isLaunching}
                         >
                             <span className="start-mode-btn__icon">{cfg.icon}</span>
                             <span className="start-mode-btn__label">{cfg.label}</span>
@@ -65,6 +68,7 @@ export default function StartView() {
                                 key={level}
                                 onClick={() => setSelected(level)}
                                 className={`start-diff-btn${selected === level ? " start-diff-btn--selected" : ""}`}
+                                disabled={isLaunching}
                             >
                                 <span className="start-diff-btn__name">{t(`start.difficulty_label.${level}`)}</span>
                                 <span className="start-diff-btn__desc">{DIFFICULTY_DESCRIPTIONS[level]}</span>
@@ -77,18 +81,35 @@ export default function StartView() {
                 </div>
 
                 <div className="start-actions">
-                    <button className="start-btn-primary" onClick={handleStart}>
+                    <button className="start-btn-primary" onClick={handleStart} disabled={isLaunching}>
                         {t("start.startGame")}
                     </button>
                     {isAuthenticated && (
-                        <button className="start-btn-secondary" onClick={handleLoad}>
+                        <button className="start-btn-secondary" onClick={handleLoad} disabled={isLaunching}>
                             {t("start.load")}
                         </button>
                     )}
                 </div>
             </div>
 
-            <StartScene3D onClick={handleStart} />
+            <StartScene3D onClick={handleStart} warpSpeed={isLaunching} />
+
+            {isLaunching && (
+                <div className="launch-overlay">
+                    <div className="launch-overlay__glow" />
+                    <div className="launch-overlay__content">
+                        <div className="launch-overlay__ring" />
+                        <div className="launch-overlay__icon">🚀</div>
+                        <div className="launch-overlay__text">
+                            {t("modal.colony.launching")}
+                        </div>
+                        <div className="launch-overlay__bar">
+                            <div className="launch-overlay__progress" />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="glitch-overlay" aria-hidden="true" />
         </div>
     );

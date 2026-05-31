@@ -18,6 +18,7 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
     const [colonyName, setColonyName] = useState("");
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isLaunching, setIsLaunching] = useState(false);
     const navigate = useNavigate();
     const startNewGame = useGameStore((s) => s.startNewGame);
     const difficulty = useGameStore((s) => s.difficulty);
@@ -25,12 +26,20 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
     const resetUI = useUIStore((s) => s.resetUI);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
+    const setLaunching = useUIStore((s) => s.setLaunching);
+
     const handleConfirm = () => {
-        if (!colonyName.trim()) return;
+        if (!colonyName.trim() || isLaunching) return;
+        setIsLaunching(true);
         resetUI();
         startNewGame(colonyName.trim(), difficulty, gameMode);
-        onConfirm();
-        navigate("/mars");
+        setLaunching(true);
+        onConfirm(); // Close modal immediately — show 3D scene behind
+
+        setTimeout(() => {
+            setLaunching(false);
+            navigate("/mars");
+        }, 3000);
     };
 
     const handleGenerate = useCallback(async () => {
@@ -63,6 +72,24 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
         handleGenerate();
     }, []);
 
+    if (isLaunching) {
+        return (
+            <div className="colony-modal colony-modal--launching">
+                <div className="colony-modal__launch-content">
+                    <div className="colony-modal__launch-ring" />
+                    <div className="colony-modal__launch-icon">🚀</div>
+                    <div className="colony-modal__launch-text">
+                        {t("modal.colony.launching")}
+                    </div>
+                    <div className="colony-modal__launch-name">{colonyName}</div>
+                    <div className="colony-modal__launch-bar">
+                        <div className="colony-modal__launch-progress" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="colony-modal">
             <h2 className="colony-modal__title">{t("modal.colony.title")}</h2>
@@ -80,11 +107,12 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
                     onChange={(e) => setColonyName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleConfirm()}
                     autoFocus
+                    disabled={isLaunching}
                 />
                 <button
                     className="colony-modal__gen-btn"
                     onClick={handleGenerate}
-                    disabled={isGenerating}
+                    disabled={isGenerating || isLaunching}
                     title={isAuthenticated ? t("modal.colony.genAI") : t("modal.colony.genLocal")}
                 >
                     {isGenerating ? "⏳" : isAuthenticated ? "🤖" : "🎲"}
@@ -99,6 +127,7 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
                             <button
                                 key={name}
                                 onClick={() => setColonyName(name)}
+                                disabled={isLaunching}
                                 className={`colony-modal__suggestion-btn${colonyName === name ? " colony-modal__suggestion-btn--selected" : ""}`}
                             >
                                 {name}
@@ -108,6 +137,7 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
                     {suggestions[4] && (
                         <button
                             onClick={() => setColonyName(suggestions[4])}
+                            disabled={isLaunching}
                             className={`colony-modal__suggestion-btn${colonyName === suggestions[4] ? " colony-modal__suggestion-btn--selected" : ""}`}
                         >
                             {suggestions[4]}
@@ -118,13 +148,13 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
 
             {/* Actions */}
             <div className="colony-modal__actions">
-                <button className="colony-modal__cancel-btn" onClick={onCancel}>
+                <button className="colony-modal__cancel-btn" onClick={onCancel} disabled={isLaunching}>
                     {t("modal.colony.back")}
                 </button>
                 <button
                     className="colony-modal__confirm-btn"
                     onClick={handleConfirm}
-                    disabled={!colonyName.trim()}
+                    disabled={!colonyName.trim() || isLaunching}
                 >
                     {t("modal.colony.start")}
                 </button>

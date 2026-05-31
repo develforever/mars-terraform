@@ -25,6 +25,19 @@ function ShipModel() {
         const box = new THREE.Box3().setFromObject(c);
         const center = box.getCenter(new THREE.Vector3());
         c.position.set(-center.x, -box.min.y, -center.z);
+        // Gentle nose-down tilt (15°) — ships fly mostly forward, slightly downward
+        c.rotation.x = -Math.PI / 12;
+        // Very subtle emissive glow
+        c.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+                const mesh = child as THREE.Mesh;
+                const mat = mesh.material as THREE.MeshStandardMaterial;
+                if (mat) {
+                    mat.emissive = new THREE.Color("#ff4400");
+                    mat.emissiveIntensity = 0.15;
+                }
+            }
+        });
         return c;
     }, [gltf.scene]);
     return <primitive object={clone} scale={3} />;
@@ -133,15 +146,15 @@ function ShipMesh({ ship, targetPos }: ShipMeshProps) {
         const px = ship.position.x;
         const pz = ship.position.z;
 
-        // Hover oscillation
-        const hoverY = ship.position.y + Math.sin(t * 1.5) * 0.8;
+        // Hover oscillation — lower amplitude and closer to ground
+        const hoverY = ship.position.y + Math.sin(t * 1.5) * 0.3 - 8;
         groupRef.current.position.set(px, hoverY, pz);
 
-        // Face toward target when available
+        // Face toward target when available (nose points at target)
         if (targetPos) {
             const dx = targetPos.x - px;
             const dz = targetPos.z - pz;
-            groupRef.current.rotation.y = Math.atan2(dx, dz);
+            groupRef.current.rotation.y = Math.atan2(dx, dz) + Math.PI;
         } else {
             groupRef.current.rotation.y = t * 0.4;
         }
@@ -150,6 +163,11 @@ function ShipMesh({ ship, targetPos }: ShipMeshProps) {
         groupRef.current.rotation.z = ship.phase === "approaching"
             ? Math.sin(t * 1.2) * 0.15
             : 0;
+
+        // Update laser origin to ship nose (3 units forward from center)
+        const forward = new THREE.Vector3(0, 0, 1).applyEuler(groupRef.current.rotation);
+        const nosePos = groupRef.current.position.clone().add(forward.multiplyScalar(3));
+        shipPositions.set(ship.id, nosePos);
     });
 
     const isFiring = ship.phase === "firing";
@@ -169,7 +187,7 @@ function ShipMesh({ ship, targetPos }: ShipMeshProps) {
             }>
                 <ShipModel />
             </Suspense>
-            <pointLight color="#ff4400" intensity={isFiring ? 8 : isCharging ? 5 : 3} distance={20} />
+            <pointLight color="#ff4400" intensity={isFiring ? 15 : isCharging ? 10 : 6} distance={30} />
         </group>
     );
 }
@@ -223,20 +241,6 @@ export function AlienInvasion() {
     const gameMode    = useGameStore((s) => s.gameMode);
     const placed      = useGameStore((s) => s.placed);
     const debugEnabled = useDebugStore((s) => s.enabled);
-
-    // Update shipPositions every frame so lasers have correct world coordinates
-    useFrame(({ clock }) => {
-        const t = clock.elapsedTime;
-        alienState.ships.forEach((ship) => {
-            const hoverY = ship.position.y + Math.sin(t * 1.5) * 0.8;
-            const pos = shipPositions.get(ship.id);
-            if (pos) {
-                pos.set(ship.position.x, hoverY, ship.position.z);
-            } else {
-                shipPositions.set(ship.id, new THREE.Vector3(ship.position.x, hoverY, ship.position.z));
-            }
-        });
-    });
 
     // Show in survival mode OR when debug panel is open (for testing)
     if (gameMode !== "survival" && !debugEnabled) return null;

@@ -37,11 +37,12 @@ export function MeteorShower() {
 
     const ringGeo   = useMemo(() => new THREE.RingGeometry(0.85, 1.0, 32), []);
     const dotGeo    = useMemo(() => new THREE.CircleGeometry(0.18, 16), []);
-    const flashGeo  = useMemo(() => new THREE.CircleGeometry(1.2, 24), []);
-    const sphereGeo = useMemo(() => new THREE.SphereGeometry(0.28, 8, 8), []);
+    const flashGeo  = useMemo(() => new THREE.CircleGeometry(2.5, 32), []);
+    const glowGeo   = useMemo(() => new THREE.CircleGeometry(4.0, 32), []);
+    const sphereGeo = useMemo(() => new THREE.SphereGeometry(0.6, 12, 12), []);
     const trailGeo  = useMemo(() => {
         const geo = new THREE.BufferGeometry();
-        geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array([0, 5, 0, 0, 0, 0]), 3));
+        geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array([0, 8, 0, 0, 0, 0]), 3));
         return geo;
     }, []);
 
@@ -56,7 +57,7 @@ export function MeteorShower() {
     return (
         <>
             {isWarning && zones.map((zone, i) => {
-                const y = getHeight(zone.x, zone.z) + 0.15;
+                const y = getHeight(zone.x, zone.z) + 2.0;
                 return (
                     <group key={i} position={[zone.x, y, zone.z]}>
                         <mesh rotation-x={-Math.PI / 2} geometry={ringGeo}
@@ -76,10 +77,10 @@ export function MeteorShower() {
                 return (
                     <group key={i} position={[zone.x, currentY, zone.z]}>
                         <lineSegments geometry={trailGeo}>
-                            <lineBasicMaterial color="#ffaa44" transparent opacity={0.9} />
+                            <lineBasicMaterial color="#ffaa44" transparent opacity={0.9} depthWrite={false} />
                         </lineSegments>
                         <mesh geometry={sphereGeo}>
-                            <meshBasicMaterial color="#ff6600" transparent opacity={0.95} />
+                            <meshBasicMaterial color="#ff6600" transparent opacity={0.95} depthWrite={false} />
                         </mesh>
                     </group>
                 );
@@ -88,12 +89,14 @@ export function MeteorShower() {
             {isShower && progress >= 1 && flashOpacity > 0 && zones.map((zone, i) => {
                 const y = getHeight(zone.x, zone.z) + 0.2;
                 return (
-                    <mesh key={i} position={[zone.x, y, zone.z]}
-                        rotation-x={-Math.PI / 2}
-                        geometry={flashGeo}
-                        scale={[flashScale, flashScale, 1]}>
-                        <meshBasicMaterial color="#ff8800" transparent opacity={flashOpacity} depthWrite={false} />
-                    </mesh>
+                    <group key={i} position={[zone.x, y, zone.z]}>
+                        <mesh rotation-x={-Math.PI / 2} geometry={glowGeo} scale={[flashScale, flashScale, 1]}>
+                            <meshBasicMaterial color="#ff4400" transparent opacity={flashOpacity * 0.35} depthWrite={false} blending={THREE.AdditiveBlending} />
+                        </mesh>
+                        <mesh rotation-x={-Math.PI / 2} geometry={flashGeo} scale={[flashScale, flashScale, 1]}>
+                            <meshBasicMaterial color="#ff8800" transparent opacity={flashOpacity} depthWrite={false} />
+                        </mesh>
+                    </group>
                 );
             })}
         </>

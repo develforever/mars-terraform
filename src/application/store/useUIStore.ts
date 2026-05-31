@@ -22,6 +22,9 @@ export interface UIState {
   // Debug overlay visibility
   debugOverlayVisible: boolean;
 
+  // Launch transition
+  isLaunching: boolean;
+
   // Actions
   setSelectedBuilding: (id: string | null) => void;
   setHoverCell: (cell: { x: number; z: number } | null) => void;
@@ -31,6 +34,7 @@ export interface UIState {
   setInspectedInstance: (id: string | null) => void;
   toggleHUD: () => void;
   toggleDebugOverlay: () => void;
+  setLaunching: (value: boolean) => void;
   resetUI: () => void;
 }
 
@@ -43,6 +47,7 @@ export const useUIStore = create<UIState>()(
       inspectedInstanceId: null,
       isHUDVisible: false,
       debugOverlayVisible: false,
+      isLaunching: false,
 
       setSelectedBuilding: (id) => set({ selectedBuildingId: id }),
       
@@ -65,6 +70,8 @@ export const useUIStore = create<UIState>()(
       toggleHUD: () => set({ isHUDVisible: !get().isHUDVisible }),
 
       toggleDebugOverlay: () => set({ debugOverlayVisible: !get().debugOverlayVisible }),
+
+      setLaunching: (value) => set({ isLaunching: value }),
 
       resetUI: () =>
         set({

@@ -1,10 +1,107 @@
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Stars, useGLTF } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import { PostProcessingComposer } from "./PostProcessingComposer";
 import * as THREE from "three";
 import { Mars } from "./Mars";
 import { Sun } from "./Sun";
+
+const WARP_LINE_COUNT = 8000;
+
+function WarpStarLines({ warpSpeed = false }: { warpSpeed?: boolean }) {
+    const meshRef = useRef<THREE.LineSegments>(null);
+    const matRef = useRef<THREE.LineBasicMaterial | null>(null);
+    const timeRef = useRef(0);
+    const warpRef = useRef(0);
+
+    const { basePositions, speeds } = useMemo(() => {
+        const positions = new Float32Array(WARP_LINE_COUNT * 6);
+        const spd = new Float32Array(WARP_LINE_COUNT);
+
+        for (let i = 0; i < WARP_LINE_COUNT; i++) {
+            const r = 150 + Math.random() * 800;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+
+            positions[i * 6] = x;
+            positions[i * 6 + 1] = y;
+            positions[i * 6 + 2] = z;
+            positions[i * 6 + 3] = x;
+            positions[i * 6 + 4] = y;
+            positions[i * 6 + 5] = z;
+
+            spd[i] = 0.5 + Math.random() * 2.0;
+        }
+
+        return { basePositions: positions.slice(), speeds: spd };
+    }, []);
+
+    useFrame((_state, delta) => {
+        timeRef.current += delta;
+
+        const target = warpSpeed ? 1.0 : 0.0;
+        warpRef.current += (target - warpRef.current) * 0.04;
+        const w = warpRef.current;
+
+        if (matRef.current) {
+            matRef.current.opacity = 0.7 + w * 0.3;
+            const r = 1.0;
+            const g = 0.95 + w * 0.05;
+            const b = 0.85 + w * 0.15;
+            matRef.current.color.setRGB(r, g, b);
+        }
+
+        const geo = meshRef.current?.geometry;
+        if (!geo) return;
+        const posAttr = geo.attributes.position;
+        const pos = posAttr.array as Float32Array;
+        const t = timeRef.current;
+        const speedMul = 0.15 + w * 50.0;
+        const stretch = 0.5 + w * 250.0;
+
+        for (let i = 0; i < WARP_LINE_COUNT; i++) {
+            const bx = basePositions[i * 6];
+            const by = basePositions[i * 6 + 1];
+            const bz = basePositions[i * 6 + 2];
+            const s = speeds[i];
+
+            const move = t * speedMul * s;
+            const z = ((bz + move) % 2000) - 1000;
+
+            pos[i * 6] = bx;
+            pos[i * 6 + 1] = by;
+            pos[i * 6 + 2] = z;
+            pos[i * 6 + 3] = bx;
+            pos[i * 6 + 4] = by;
+            pos[i * 6 + 5] = z + stretch;
+        }
+
+        posAttr.needsUpdate = true;
+    });
+
+    const geo = useMemo(() => {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.BufferAttribute(basePositions.slice(), 3));
+        return g;
+    }, [basePositions]);
+
+    return (
+        <lineSegments ref={meshRef} geometry={geo}>
+            <lineBasicMaterial
+                ref={matRef}
+                color="#ffffff"
+                transparent
+                opacity={0.7}
+                blending={THREE.AdditiveBlending}
+                depthWrite={false}
+            />
+        </lineSegments>
+    );
+}
 
 const SHIP_MODELS = [
     "/models/mars/craft_speederA.glb",
@@ -21,18 +118,19 @@ SHIP_MODELS.forEach((path) => useGLTF.preload(path));
 
 interface Scene3DProps {
     onClick: () => void;
+    warpSpeed?: boolean;
 }
 
 const CAM_POS: [number, number, number] = [52, -10, 44];
 const LOOK_AT = new THREE.Vector3(0, 6, 0);
 
-export function StartScene3D({ onClick }: Scene3DProps) {
+export function StartScene3D({ onClick, warpSpeed = false }: Scene3DProps) {
     return (
         <Canvas
             className="main-canvas"
             camera={{ fov: 45, position: CAM_POS, near: 0.1, far: 250000 }}
         >
-            <World onClick={onClick} />
+            <World onClick={onClick} warpSpeed={warpSpeed} />
         </Canvas>
     );
 }
@@ -90,7 +188,11 @@ function MarsAtmosphere() {
     );
 }
 
-function StartEnvironment() {
+interface StartEnvironmentProps {
+    warpSpeed?: boolean;
+}
+
+function StartEnvironment({ warpSpeed = false }: StartEnvironmentProps) {
     return (
         <>
             <color attach="background" args={["#050308"]} />
@@ -105,15 +207,7 @@ function StartEnvironment() {
                 color="#445588"
             />
 
-            <Stars
-                radius={25000}
-                depth={5000}
-                count={12000}
-                factor={15}
-                saturation={0}
-                fade
-                speed={0.2}
-            />
+            <WarpStarLines warpSpeed={warpSpeed} />
         </>
     );
 }
@@ -212,7 +306,7 @@ function StartSun() {
     );
 }
 
-function World({ onClick }: Scene3DProps) {
+function World({ onClick, warpSpeed }: Scene3DProps) {
     const cameraTarget = useRef(LOOK_AT.clone());
 
     useFrame((state) => {
@@ -221,7 +315,7 @@ function World({ onClick }: Scene3DProps) {
 
     return (
         <>
-            <StartEnvironment />
+            <StartEnvironment warpSpeed={warpSpeed} />
             <Mars onClick={onClick} />
             <MarsAtmosphere />
             <StartSun />

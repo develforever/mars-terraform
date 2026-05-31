@@ -134,3 +134,102 @@
     color: #4b5563;
     cursor: not-allowed;
 }
+
+/* Launch transition effect */
+.colony-modal--launching {
+    animation: launch-glow 1.4s ease-out forwards;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+}
+
+@keyframes launch-glow {
+    0% {
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(231, 76, 60, 0.15);
+        border-color: rgba(231, 76, 60, 0.4);
+    }
+    30% {
+        box-shadow: 0 24px 80px rgba(255, 200, 100, 0.4), 0 0 60px rgba(231, 76, 60, 0.3);
+        border-color: rgba(255, 180, 80, 0.8);
+    }
+    70% {
+        box-shadow: 0 24px 100px rgba(255, 220, 150, 0.6), 0 0 100px rgba(255, 200, 100, 0.4);
+        border-color: rgba(255, 220, 150, 1);
+    }
+    100% {
+        box-shadow: 0 24px 120px rgba(255, 255, 255, 0.5), 0 0 140px rgba(255, 220, 150, 0.3);
+        border-color: rgba(255, 255, 255, 0.9);
+        background: rgba(20, 24, 40, 0.98);
+    }
+}
+
+.colony-modal__launch-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    animation: launch-fade-in 0.4s ease-out;
+}
+
+@keyframes launch-fade-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.colony-modal__launch-ring {
+    width: 80px;
+    height: 80px;
+    border: 3px solid rgba(231, 76, 60, 0.3);
+    border-top-color: #ffaa55;
+    border-radius: 50%;
+    animation: launch-spin 1s linear infinite;
+}
+
+@keyframes launch-spin {
+    to { transform: rotate(360deg); }
+}
+
+.colony-modal__launch-icon {
+    font-size: 32px;
+    animation: launch-bounce 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes launch-bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-6px); }
+}
+
+.colony-modal__launch-text {
+    font-size: 13px;
+    color: #9ca3af;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.colony-modal__launch-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(231, 76, 60, 0.6);
+}
+
+.colony-modal__launch-bar {
+    width: 200px;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.colony-modal__launch-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #e74c3c, #ffaa55);
+    border-radius: 2px;
+    animation: launch-progress 1.4s ease-out forwards;
+}
+
+@keyframes launch-progress {
+    from { width: 0%; }
+    to { width: 100%; }
+}
