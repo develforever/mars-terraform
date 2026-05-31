@@ -283,9 +283,13 @@ export function HoverGhost() {
     const placedBuildings = useGameStore((state) => state.placed);
     const terrainY = useTerrainHeight();
 
-    if (!hoverCell || !selectedBuildingId || buildMode !== "place") return null;
+    if (!hoverCell || !selectedBuildingId || buildMode !== "place") {
+        console.warn("HoverGhost: missing hoverCell, selectedBuildingId, or buildMode is not place");
+        return null;
+    }
 
     if (hoverCell.x < -TERRAIN_BOUNDS.halfX || hoverCell.x > TERRAIN_BOUNDS.halfX || hoverCell.z < -TERRAIN_BOUNDS.halfZ || hoverCell.z > TERRAIN_BOUNDS.halfZ) {
+        console.warn("HoverGhost: hoverCell is outside terrain bounds");
         return null;
     }
 

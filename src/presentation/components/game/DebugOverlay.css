@@ -28,7 +28,7 @@
     left: 12px;
     z-index: 200;
     pointer-events: auto;
-    width: 260px;
+    max-width: 400px;
     max-height: calc(100vh - 80px);
     overflow-y: auto;
     background: rgba(6, 9, 16, 0.94);

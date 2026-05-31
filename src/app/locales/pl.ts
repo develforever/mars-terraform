@@ -247,6 +247,10 @@ const pl = {
             alienClear:   "Wyłącz",
             alienWave1:   "Fala 1",
             alienWave2:   "Fala 2",
+            cell:         "Komórka",
+            cellSelected: "Wybrana komórka",
+            clearSelection: "Wyczyść wybór",
+            select:       "Wybierz",
         },
         popover: {
             integrity: "Integralność strukturalna",

@@ -4,6 +4,8 @@ import { useDebugStore } from "../../../application/store/useDebugStore";
 import { useGameStore } from "../../../application/store/useGameStore";
 import type { WeatherType } from "../../../domain/services/WeatherService";
 import "./DebugOverlay.css";
+import { useUIStore } from "../../../application/store/useUIStore";
+import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 
 const WEATHER_OPTIONS: WeatherType[] = ["clear", "warning", "sandstorm", "meteor_warning", "meteor_shower"];
 
@@ -20,6 +22,12 @@ export function DebugOverlay() {
     const alienState = useGameStore((s) => s.alienState);
     const gameMode = useGameStore((s) => s.gameMode);
     const triggerAlienWave = useGameStore((s) => s.triggerAlienWave);
+    const selectedCell = useUIStore((s) => s.hoverCell);
+    const setSelectedCell = useUIStore((s) => s.setHoverCell);
+    const [selectedCellValue, setSelectedCellValue] = useState<string>("0,0");
+    const toggleBuildMode = useUIStore((s) => s.toggleBuildMode);
+    const cancelBuild = useUIStore((s) => s.cancelBuild);
+    const setSelectedBuilding = useUIStore((s) => s.setSelectedBuilding);
 
     const [fps, setFps] = useState(0);
     const frameCount = useRef(0);
@@ -142,6 +150,29 @@ export function DebugOverlay() {
                     ))}
                     {placed.length === 0 && <div className="debug-empty">{t("debug.noBuildings")}</div>}
                 </div>
+            </div>
+
+            <div className="debug-section">
+                <div className="debug-label">{t("debug.cell")}</div>
+                <div className="debug-row"><span>{t("debug.cellSelected")}</span><span>{selectedCell ? `${selectedCell.x},${selectedCell.z}` : "-"}</span></div>
+                <div className="debug-row">
+                    <span>{t("debug.cellSelected")}</span>
+                    <input type="text" value={`${selectedCellValue}`} onChange={(e) => {
+                        setSelectedCellValue(e.target.value);
+                    }} />
+                    <button className="debug-btn" onClick={() => {
+                        const [x, z] = selectedCellValue.split(",").map((v) => parseInt(v));
+                        if (!isNaN(x) && !isNaN(z)) {
+                            cancelBuild()
+                            setSelectedBuilding(BUILDING_DEFINITIONS.hab.id);
+                            toggleBuildMode();
+                            setSelectedCell({ x, z });
+                        }
+                    }}>{t("debug.select")}</button>
+                    <button className="debug-btn" onClick={() => setSelectedCell(null)}>{t("debug.clearSelection")}</button>
+                </div>
+
+
             </div>
         </div>
     );
