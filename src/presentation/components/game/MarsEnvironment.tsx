@@ -102,7 +102,8 @@ export function MarsEnvironment() {
 
     return (
         <>
-            <ambientLight ref={ambientRef} intensity={0.3} />
+            <ambientLight ref={ambientRef} intensity={0.6} />
+            <hemisphereLight color="#b06040" groundColor="#1a0f0a" intensity={0.8} />
             <directionalLight
                 ref={moonLightRef}
                 intensity={0.5}

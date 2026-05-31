@@ -62,6 +62,11 @@ export function BuildingPalette({
     const checkRequirements = (def: BuildingDefinition) =>
         BuildingService.hasRequirements(def, placedBuildings);
 
+    const placedIds = useMemo(
+        () => new Set(placedBuildings.map((b) => b.definitionId)),
+        [placedBuildings]
+    );
+
     return (
         <div className="hud-dock__categories">
             {(Object.entries(buildingsByCategory) as [string, BuildingDefinition[]][]).map(([cat, items]) => (
@@ -72,6 +77,7 @@ export function BuildingPalette({
                             const active    = selectedBuildingId === def.id;
                             const affordable = canAfford(def.id);
                             const reqsMet   = checkRequirements(def);
+                            const isPlaced  = placedIds.has(def.id);
                             const costEntries = (Object.entries(def.cost) as [ResourceKey, number][])
                                 .filter(([, v]) => v !== undefined && v > 0);
                             const prodEntries = (Object.entries(def.production || {}) as [ResourceKey, number][])
@@ -150,10 +156,11 @@ export function BuildingPalette({
                                 <BuildingTooltip key={def.id} content={tooltipContent}>
                                     <button
                                         type="button"
-                                        className={`${active ? "active" : ""} ${!reqsMet ? "locked" : ""}`}
+                                        className={`${active ? "active" : ""} ${!reqsMet ? "locked" : ""} ${isPlaced ? "placed" : ""}`}
                                         disabled={!affordable || !reqsMet || demolishActive}
                                         onClick={() => onSelect(def.id)}
                                     >
+                                        {isPlaced && <span style={{ color: "#4ade80", marginRight: 4 }}>●</span>}
                                         {def.name}
                                         {!affordable && reqsMet ? ` · ${t("hud.shortage")}` : ""}
                                         {!reqsMet ? " 🔒" : ""}

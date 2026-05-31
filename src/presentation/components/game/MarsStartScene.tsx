@@ -1,9 +1,22 @@
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Stars } from "@react-three/drei";
+import { Stars, useGLTF } from "@react-three/drei";
 import { EffectComposer, Glitch } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { Mars } from "./Mars";
+
+const SHIP_MODELS = [
+    "/models/mars/craft_speederA.glb",
+    "/models/mars/craft_speederB.glb",
+    "/models/mars/craft_speederC.glb",
+    "/models/mars/craft_speederD.glb",
+    "/models/mars/craft_racer.glb",
+    "/models/mars/craft_miner.glb",
+    "/models/mars/craft_cargoA.glb",
+    "/models/mars/rover.glb",
+];
+
+SHIP_MODELS.forEach((path) => useGLTF.preload(path));
 
 interface Scene3DProps {
     onClick: () => void;
@@ -34,26 +47,32 @@ const atmosphereVertexShader = `
 `;
 
 const atmosphereFragmentShader = `
+  uniform float uOpacity;
   varying vec3 vNormal;
   varying vec3 vPosition;
   void main() {
     vec3 viewDir = normalize(-vPosition);
     float dotVN = dot(viewDir, vNormal);
     float fresnel = pow(1.0 - max(dotVN, 0.0), 3.0);
+    float edgeFade = 1.0 - smoothstep(0.7, 1.0, fresnel);
     vec3 innerColor = vec3(1.0, 0.55, 0.25);
     vec3 outerColor = vec3(0.75, 0.25, 0.08);
     vec3 color = mix(outerColor, innerColor, fresnel);
-    gl_FragColor = vec4(color, fresnel * 0.85);
+    gl_FragColor = vec4(color, fresnel * 0.7 * edgeFade * uOpacity);
   }
 `;
 
 function MarsAtmosphere() {
     const uniforms = useMemo(
         () => ({
-            uTime: { value: 0 },
+            uOpacity: { value: 1.0 },
         }),
         []
     );
+
+    useFrame(() => {
+        uniforms.uOpacity.value = 0.75 + Math.sin(Date.now() * 0.0008) * 0.15;
+    });
 
     return (
         <mesh scale={[1.05, 1.05, 1.05]}>
@@ -104,6 +123,70 @@ function StartEnvironment() {
     );
 }
 
+interface ShipOrbit {
+    path: string;
+    radius: number;
+    speed: number;
+    yOffset: number;
+    phase: number;
+    scale: number;
+}
+
+const ORBITS: ShipOrbit[] = [
+    { path: SHIP_MODELS[0], radius: 21.5, speed: 0.5, yOffset: 0.3, phase: 0.0, scale: 0.12 },
+    { path: SHIP_MODELS[1], radius: 22.2, speed: 0.35, yOffset: -0.2, phase: 0.8, scale: 0.12 },
+    { path: SHIP_MODELS[2], radius: 21.8, speed: 0.42, yOffset: 0.5, phase: 1.6, scale: 0.12 },
+    { path: SHIP_MODELS[3], radius: 22.5, speed: 0.28, yOffset: -0.4, phase: 2.4, scale: 0.12 },
+    { path: SHIP_MODELS[4], radius: 21.2, speed: 0.55, yOffset: 0.1, phase: 3.2, scale: 0.10 },
+    { path: SHIP_MODELS[5], radius: 22.8, speed: 0.22, yOffset: -0.1, phase: 4.0, scale: 0.12 },
+    { path: SHIP_MODELS[6], radius: 21.0, speed: 0.18, yOffset: 0.4, phase: 4.8, scale: 0.14 },
+    { path: SHIP_MODELS[7], radius: 21.6, speed: 0.12, yOffset: -0.3, phase: 5.6, scale: 0.10 },
+];
+
+function OrbitingShip({ orbit }: { orbit: ShipOrbit }) {
+    const gltf = useGLTF(orbit.path) as { scene: THREE.Group };
+    const meshRef = useRef<THREE.Group>(gltf.scene.clone(true));
+    const phaseRef = useRef(orbit.phase);
+
+    useFrame((_, delta) => {
+        phaseRef.current += delta * orbit.speed;
+        const x = Math.cos(phaseRef.current) * orbit.radius;
+        const z = Math.sin(phaseRef.current) * orbit.radius;
+        const y = orbit.yOffset;
+
+        meshRef.current.position.set(x, y, z);
+
+        const nextX = Math.cos(phaseRef.current + 0.05) * orbit.radius;
+        const nextZ = Math.sin(phaseRef.current + 0.05) * orbit.radius;
+
+        // Bottom of ship faces toward Mars center
+        meshRef.current.up.set(-x, -y, -z).normalize();
+        meshRef.current.lookAt(nextX, y, nextZ);
+    });
+
+    return (
+        <group>
+            <primitive object={meshRef.current} scale={orbit.scale} />
+            <group position={[0, 0, 0.6]}>
+                <mesh>
+                    <coneGeometry args={[0.02, 0.3, 8]} />
+                    <meshBasicMaterial color="#ff5522" transparent opacity={0.6} blending={THREE.AdditiveBlending} depthWrite={false} />
+                </mesh>
+            </group>
+        </group>
+    );
+}
+
+function OrbitShips() {
+    return (
+        <>
+            {ORBITS.map((orbit, i) => (
+                <OrbitingShip key={i} orbit={orbit} />
+            ))}
+        </>
+    );
+}
+
 function World({ onClick }: Scene3DProps) {
     const cameraTarget = useRef(LOOK_AT.clone());
 
@@ -116,6 +199,7 @@ function World({ onClick }: Scene3DProps) {
             <StartEnvironment />
             <Mars onClick={onClick} />
             <MarsAtmosphere />
+            <OrbitShips />
             <EffectComposer>
                 <Glitch
                     delay={new THREE.Vector2(1.5, 3.5)}
