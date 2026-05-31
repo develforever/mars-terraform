@@ -87,7 +87,7 @@ export function Sun({ position }: SunProps) {
         <group ref={sunRef}>
             {/* Główne ciało słońca */}
             <mesh>
-                <sphereGeometry args={[5, 64, 64]} />
+                <sphereGeometry args={[7, 64, 64]} />
                 <meshStandardMaterial
                     map={colorMap}
                     displacementMap={dispMap}
@@ -103,7 +103,7 @@ export function Sun({ position }: SunProps) {
 
             {/* Gorąca wewnętrzna korona */}
             <mesh ref={glowRef}>
-                <sphereGeometry args={[8, 64, 64]} />
+                <sphereGeometry args={[9, 64, 64]} />
                 <meshBasicMaterial
                     color="#fff5bb"
                     transparent
