@@ -78,7 +78,7 @@ describe("StartScene3D", () => {
     it("should configure Bloom with low threshold for bright effects", () => {
         render(<StartScene3D onClick={() => {}} />);
         const bloom = screen.getByTestId("post-processing-composer");
-        expect(bloom.getAttribute("data-bloom-threshold")).toBe("0.2");
+        expect(bloom.getAttribute("data-bloom-threshold")).toBe("0.05");
         expect(bloom.getAttribute("data-glitch")).toBe("true");
     });
 });

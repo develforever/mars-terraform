@@ -7,6 +7,55 @@ interface SunProps {
     position: THREE.Vector3;
 }
 
+interface FresnelGlowProps {
+    radius: number;
+    color: string;
+    opacity: number;
+    power?: number;
+}
+
+function FresnelGlow({ radius, color, opacity, power = 2.0 }: FresnelGlowProps) {
+    return (
+        <mesh>
+            <sphereGeometry args={[radius, 64, 64]} />
+            <shaderMaterial
+                transparent
+                depthWrite={false}
+                blending={THREE.AdditiveBlending}
+                side={THREE.BackSide}
+                fog={false}
+                uniforms={{
+                    uColor: { value: new THREE.Color(color) },
+                    uOpacity: { value: opacity },
+                    uPower: { value: power },
+                }}
+                vertexShader={`
+                    varying vec3 vNormal;
+                    varying vec3 vViewDir;
+                    void main() {
+                        vNormal = normalize(normalMatrix * normal);
+                        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                        vViewDir = normalize(cameraPosition - worldPos.xyz);
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `}
+                fragmentShader={`
+                    varying vec3 vNormal;
+                    varying vec3 vViewDir;
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    uniform float uPower;
+                    void main() {
+                        float fresnel = 1.0 - abs(dot(vNormal, vViewDir));
+                        fresnel = pow(fresnel, uPower);
+                        gl_FragColor = vec4(uColor, fresnel * uOpacity);
+                    }
+                `}
+            />
+        </mesh>
+    );
+}
+
 export function Sun({ position }: SunProps) {
     const sunRef = useRef<THREE.Group>(null);
     const glowRef = useRef<THREE.Mesh>(null);
@@ -30,17 +79,15 @@ export function Sun({ position }: SunProps) {
         }
 
         if (glowRef.current) {
-            const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
-            glowRef.current.scale.set(scale, scale, scale);
             glowRef.current.rotation.z += 0.005;
         }
     });
 
     return (
         <group ref={sunRef}>
-            {/* Główne ciało słońca — minimalne, praktycznie niewidoczne z oddali */}
+            {/* Główne ciało słońca */}
             <mesh>
-                <sphereGeometry args={[5, 32, 32]} />
+                <sphereGeometry args={[5, 64, 64]} />
                 <meshStandardMaterial
                     map={colorMap}
                     displacementMap={dispMap}
@@ -54,76 +101,22 @@ export function Sun({ position }: SunProps) {
                 />
             </mesh>
 
-            {/* Wewnętrzna gorąca korona */}
+            {/* Gorąca wewnętrzna korona */}
             <mesh ref={glowRef}>
-                <sphereGeometry args={[12, 32, 32]} />
+                <sphereGeometry args={[8, 64, 64]} />
                 <meshBasicMaterial
                     color="#fff5bb"
                     transparent
-                    opacity={0.8}
+                    opacity={0.6}
                     blending={THREE.AdditiveBlending}
                     fog={false}
                 />
             </mesh>
 
-            {/* Główna poświata (aura) */}
-            <mesh>
-                <sphereGeometry args={[25, 32, 32]} />
-                <meshBasicMaterial
-                    color="#ffcc33"
-                    transparent
-                    opacity={0.5}
-                    blending={THREE.AdditiveBlending}
-                    side={THREE.BackSide}
-                    fog={false}
-                />
-            </mesh>
-
-            {/* Szeroka atmosfera słoneczna */}
-            <mesh>
-                <sphereGeometry args={[50, 32, 32]} />
-                <meshBasicMaterial
-                    color="#ff6600"
-                    transparent
-                    opacity={0.2}
-                    blending={THREE.AdditiveBlending}
-                    side={THREE.BackSide}
-                    fog={false}
-                />
-            </mesh>
-
-            {/* Efekt "halo" / Flara - Proceduralna poświata radialna */}
-            <mesh>
-                <planeGeometry args={[800, 800]} />
-                <shaderMaterial
-                    transparent
-                    depthWrite={false}
-                    blending={THREE.AdditiveBlending}
-                    fog={false}
-                    uniforms={{
-                        uColor: { value: new THREE.Color("#ffccaa") },
-                        uOpacity: { value: 0.15 }
-                    }}
-                    vertexShader={`
-                        varying vec2 vUv;
-                        void main() {
-                            vUv = uv;
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                        }
-                    `}
-                    fragmentShader={`
-                        varying vec2 vUv;
-                        uniform vec3 uColor;
-                        uniform float uOpacity;
-                        void main() {
-                            float dist = distance(vUv, vec2(0.5));
-                            float glow = smoothstep(0.5, 0.0, dist);
-                            glow = pow(glow, 2.0); // Bardziej miękkie przejście
-                            gl_FragColor = vec4(uColor, glow * uOpacity);
-                        }
-                    `}
-                />
-            </mesh>
+            {/* Fresnel glow layers — smooth edge falloff */}
+            <FresnelGlow radius={12} color="#ffeebb" opacity={0.5} power={1.5} />
+            <FresnelGlow radius={22} color="#ffcc33" opacity={0.35} power={2.5} />
+            <FresnelGlow radius={45} color="#ff6600" opacity={0.15} power={4.0} />
         </group>
     );
 }

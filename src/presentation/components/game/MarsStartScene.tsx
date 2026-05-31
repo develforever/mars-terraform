@@ -96,19 +96,13 @@ function StartEnvironment() {
             <color attach="background" args={["#050308"]} />
             <fogExp2 attach="fog" args={["#050308", 0.002]} />
 
-            <ambientLight intensity={0.25} />
+            <ambientLight intensity={0.35} />
 
-            <directionalLight
-                position={[60, 15, 50]}
-                intensity={2.2}
-                color="#ffeedd"
-                castShadow
-            />
-
+            {/* Blue fill light — subtle bounce from space */}
             <directionalLight
                 position={[-30, -10, -20]}
-                intensity={0.3}
-                color="#4455aa"
+                intensity={0.35}
+                color="#445588"
             />
 
             <Stars
@@ -206,6 +200,13 @@ function StartSun() {
 
     return (
         <group ref={groupRef}>
+            <directionalLight
+                intensity={2.5}
+                color="#ffeedd"
+                castShadow
+            >
+                <primitive object={new THREE.Object3D()} attach="target" position={[0, 0, 0]} />
+            </directionalLight>
             <Sun position={new THREE.Vector3(0, 0, 0)} />
         </group>
     );
