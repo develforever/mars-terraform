@@ -45,6 +45,7 @@ export function MarsEnvironment() {
 
         if (sunGroupRef.current) {
             sunGroupRef.current.position.copy(SUN_POSITION);
+            sunGroupRef.current.visible = SUN_POSITION.y > -80;
         }
 
         // Pozycja słońca dla tła nieba - wektor kierunkowy od kamery do słońca

@@ -170,6 +170,7 @@ export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
                     displacementScale={TERRAIN_DISPLACEMENT_SCALE}
                     roughness={0.9}
                     metalness={0.1}
+                    transparent
                     onBeforeCompile={(shader) => {
                         shader.uniforms.uVisibilityMap = uniforms.uVisibilityMap;
                         shader.uniforms.uDataMap = uniforms.uDataMap;
