@@ -1,9 +1,10 @@
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Stars, useGLTF } from "@react-three/drei";
-import { EffectComposer, Glitch } from "@react-three/postprocessing";
+import { PostProcessingComposer } from "./PostProcessingComposer";
 import * as THREE from "three";
 import { Mars } from "./Mars";
+import { Sun } from "./Sun";
 
 const SHIP_MODELS = [
     "/models/mars/craft_speederA.glb",
@@ -133,14 +134,14 @@ interface ShipOrbit {
 }
 
 const ORBITS: ShipOrbit[] = [
-    { path: SHIP_MODELS[0], radius: 21.5, speed: 0.5, yOffset: 0.3, phase: 0.0, scale: 0.12 },
-    { path: SHIP_MODELS[1], radius: 22.2, speed: 0.35, yOffset: -0.2, phase: 0.8, scale: 0.12 },
-    { path: SHIP_MODELS[2], radius: 21.8, speed: 0.42, yOffset: 0.5, phase: 1.6, scale: 0.12 },
-    { path: SHIP_MODELS[3], radius: 22.5, speed: 0.28, yOffset: -0.4, phase: 2.4, scale: 0.12 },
-    { path: SHIP_MODELS[4], radius: 21.2, speed: 0.55, yOffset: 0.1, phase: 3.2, scale: 0.10 },
-    { path: SHIP_MODELS[5], radius: 22.8, speed: 0.22, yOffset: -0.1, phase: 4.0, scale: 0.12 },
-    { path: SHIP_MODELS[6], radius: 21.0, speed: 0.18, yOffset: 0.4, phase: 4.8, scale: 0.14 },
-    { path: SHIP_MODELS[7], radius: 21.6, speed: 0.12, yOffset: -0.3, phase: 5.6, scale: 0.10 },
+    { path: SHIP_MODELS[0], radius: 21.5, speed: 0.12, yOffset: 0.3, phase: 0.0, scale: 0.12 },
+    { path: SHIP_MODELS[1], radius: 22.2, speed: 0.08, yOffset: -0.2, phase: 0.8, scale: 0.12 },
+    { path: SHIP_MODELS[2], radius: 21.8, speed: 0.10, yOffset: 0.5, phase: 1.6, scale: 0.12 },
+    { path: SHIP_MODELS[3], radius: 22.5, speed: 0.07, yOffset: -0.4, phase: 2.4, scale: 0.12 },
+    { path: SHIP_MODELS[4], radius: 21.2, speed: 0.14, yOffset: 0.1, phase: 3.2, scale: 0.10 },
+    { path: SHIP_MODELS[5], radius: 22.8, speed: 0.06, yOffset: -0.1, phase: 4.0, scale: 0.12 },
+    { path: SHIP_MODELS[6], radius: 21.0, speed: 0.05, yOffset: 0.4, phase: 4.8, scale: 0.14 },
+    { path: SHIP_MODELS[7], radius: 21.6, speed: 0.04, yOffset: -0.3, phase: 5.6, scale: 0.10 },
 ];
 
 function OrbitingShip({ orbit }: { orbit: ShipOrbit }) {
@@ -187,6 +188,29 @@ function OrbitShips() {
     );
 }
 
+function StartSun() {
+    const groupRef = useRef<THREE.Group>(null);
+    const angleRef = useRef(Math.PI + 0.2);
+
+    useFrame((_, delta) => {
+        angleRef.current += delta * 0.005;
+        const r = 60;
+        if (groupRef.current) {
+            groupRef.current.position.set(
+                Math.cos(angleRef.current) * r,
+                0,
+                Math.sin(angleRef.current) * r
+            );
+        }
+    });
+
+    return (
+        <group ref={groupRef}>
+            <Sun position={new THREE.Vector3(0, 0, 0)} />
+        </group>
+    );
+}
+
 function World({ onClick }: Scene3DProps) {
     const cameraTarget = useRef(LOOK_AT.clone());
 
@@ -199,16 +223,14 @@ function World({ onClick }: Scene3DProps) {
             <StartEnvironment />
             <Mars onClick={onClick} />
             <MarsAtmosphere />
+            <StartSun />
             <OrbitShips />
-            <EffectComposer>
-                <Glitch
-                    delay={new THREE.Vector2(1.5, 3.5)}
-                    duration={new THREE.Vector2(0.1, 0.3)}
-                    strength={new THREE.Vector2(0.1, 0.3)}
-                    active
-                    ratio={0.85}
-                />
-            </EffectComposer>
+            <PostProcessingComposer
+                bloomIntensity={3.0}
+                bloomThreshold={0.05}
+                bloomSmoothing={0.5}
+                glitch
+            />
         </>
     );
 }

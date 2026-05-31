@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, useTexture } from "@react-three/drei";
+import { PostProcessingComposer } from "./PostProcessingComposer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { usePlacement } from "../../../application/hooks/usePlacement";
@@ -107,6 +108,12 @@ function World() {
                     minPolarAngle={0}
                     maxPolarAngle={Math.PI / 2.1}
                     target={target}
+                />
+
+                <PostProcessingComposer
+                    bloomIntensity={1.2}
+                    bloomThreshold={0.2}
+                    bloomSmoothing={0.9}
                 />
             </>
         </TerrainHeightContext.Provider>
