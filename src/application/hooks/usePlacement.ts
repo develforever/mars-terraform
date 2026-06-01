@@ -13,7 +13,7 @@ const HIT = new THREE.Vector3();
 interface UsePlacementOptions {
   grid?: number;
   getHeightAt?: (x: number, z: number) => number;
-  terrainMesh?: THREE.Mesh | null;
+  terrainMesh?: React.RefObject<THREE.Mesh | null>;
 }
 
 export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacementOptions) {
@@ -65,8 +65,8 @@ export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacemen
       RAY.setFromCamera(MOUSE, camera);
 
       let hitPoint: THREE.Vector3 | null = null;
-      if (terrainMesh) {
-        const intersects = RAY.intersectObject(terrainMesh, false);
+      if (terrainMesh?.current) {
+        const intersects = RAY.intersectObject(terrainMesh.current, false);
         if (intersects.length > 0) {
           hitPoint = intersects[0].point;
         }
@@ -108,8 +108,8 @@ export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacemen
     RAY.setFromCamera(MOUSE, camera);
 
     let hitPoint: THREE.Vector3 | null = null;
-    if (terrainMesh) {
-      const intersects = RAY.intersectObject(terrainMesh, false);
+    if (terrainMesh?.current) {
+      const intersects = RAY.intersectObject(terrainMesh.current, false);
       if (intersects.length > 0) {
         hitPoint = intersects[0].point;
       }

@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useEffect } from "react";
+import { Suspense, useMemo, useEffect, useRef } from "react";
 import { useGLTF, Html } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { Group } from "three";
@@ -14,6 +14,7 @@ import type { PlacedBuilding } from "../../../domain/entities/Building";
 import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 import { WeatherService } from "../../../domain/services/WeatherService";
 import { NeighborService } from "../../../domain/services/NeighborService";
+import { useOutlineEffect } from "./OutlineEffectContext";
 
 /** Unique model paths from building definitions for pre-loading. */
 const MODEL_PATHS = Array.from(
@@ -92,6 +93,101 @@ function BuildingMesh({ defId, ghost = false }: BuildingMeshProps) {
     );
 }
 
+interface BuildingGroupProps {
+    b: PlacedBuilding;
+    isSelected: boolean;
+    debugOverlayVisible: boolean;
+    onClick: (e: ThreeEvent<MouseEvent>, b: PlacedBuilding) => void;
+    baseY: number;
+}
+
+function BuildingGroup({ b, isSelected, debugOverlayVisible, onClick, baseY }: BuildingGroupProps) {
+    const groupRef = useRef<THREE.Group>(null);
+    const outlineEffect = useOutlineEffect();
+    const rafRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (!outlineEffect) return;
+
+        rafRef.current = requestAnimationFrame(() => {
+            if (!groupRef.current) return;
+
+            // Only outline GLTF model meshes, not foundation cylinders
+            const modelGroup = groupRef.current.children.find(
+                (c) => (c as THREE.Group).userData?.isModelGroup
+            );
+            const target = modelGroup ?? groupRef.current;
+
+            const meshes: THREE.Mesh[] = [];
+            target.traverse((child) => {
+                if ((child as THREE.Mesh).isMesh) meshes.push(child as THREE.Mesh);
+            });
+
+            meshes.forEach((m) => outlineEffect.selection.delete(m));
+
+            if (isSelected) {
+                meshes.forEach((m) => outlineEffect.selection.add(m));
+            }
+        });
+
+        return () => {
+            if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+            if (outlineEffect && groupRef.current) {
+                const modelGroup = groupRef.current.children.find(
+                    (c) => (c as THREE.Group).userData?.isModelGroup
+                );
+                const target = modelGroup ?? groupRef.current;
+                target.traverse((child) => {
+                    if ((child as THREE.Mesh).isMesh) {
+                        outlineEffect.selection.delete(child as THREE.Mesh);
+                    }
+                });
+            }
+        };
+    }, [isSelected, outlineEffect]);
+
+    return (
+        <group
+            ref={groupRef}
+            position={[b.position.x, baseY, b.position.z]}
+            onClick={(e) => onClick(e, b)}
+        >
+            {debugOverlayVisible && (
+                <>
+                    <axesHelper args={[1.5]} />
+                    <Html position={[0, 2, 0]} center style={{ color: "#ffffff", fontSize: 12, pointerEvents: "none" }}>
+                        <div>Bld: {b.position.x}, {b.position.z}</div>
+                    </Html>
+                </>
+            )}
+            {/* Rendered higher to be clearly on top of the foundation */}
+            <group position={[0, -0.1, 0]} userData={{ isModelGroup: true }}>
+                <BuildingMesh defId={b.definitionId} />
+            </group>
+
+            {/* Visual foundation base */}
+            <mesh position={[0, -0.35, 0]}>
+                <cylinderGeometry args={[1.0, 1.1, 0.4, 32]} />
+                <meshStandardMaterial
+                    color={isSelected ? "#00ffff" : "#3a3a3a"}
+                    emissive={isSelected ? "#003333" : "#000000"}
+                    metalness={0.8}
+                    roughness={0.2}
+                />
+            </mesh>
+
+            <mesh position={[0, -0.7, 0]}>
+                <cylinderGeometry args={[1.1, 1.2, 0.3, 32]} />
+                <meshStandardMaterial color="#1a1a1a" />
+            </mesh>
+
+            {isSelected && (
+                <BuildingInspectionPopover building={b} />
+            )}
+        </group>
+    );
+}
+
 export function Buildings() {
     const placed = useGameStore((state) => state.placed);
     const inspectedInstanceId = useUIStore((state) => state.inspectedInstanceId);
@@ -107,75 +203,30 @@ export function Buildings() {
 
     const handleBuildingClick = (e: ThreeEvent<MouseEvent>, building: PlacedBuilding) => {
         e.stopPropagation();
-        
+
         if (buildMode === "demolish") {
             demolishBuilding({ x: building.position.x, z: building.position.z });
             return;
         }
-        
-        // Only allow selection if not in build mode
+
         if (buildMode !== null) return;
-        
+
         setInspectedInstance(building.id === inspectedInstanceId ? null : building.id);
     };
 
     return (
         <>
             {placed.map((b) => {
-                const isSelected = b.id === inspectedInstanceId;
-                // Sample live terrain height so buildings always sit on the
-                // displaced surface, regardless of when the texture was decoded.
-                // Increased offset to account for foundation base height
                 const baseY = terrainY(b.position.x, b.position.z) + 0.3;
-                
                 return (
-                    <group
+                    <BuildingGroup
                         key={b.id}
-                        position={[b.position.x, baseY, b.position.z]}
-                        onClick={(e) => handleBuildingClick(e, b)}
-                    >
-                        {debugOverlayVisible && (
-                            <>
-                                <axesHelper args={[1.5]} />
-                                <Html position={[0, 2, 0]} center style={{ color: "#ffffff", fontSize: 12, pointerEvents: "none" }}>
-                                    <div>Bld: {b.position.x}, {b.position.z}</div>
-                                </Html>
-                            </>
-                        )}
-                        {/* Rendered higher to be clearly on top of the foundation */}
-                        <group position={[0, -0.1, 0]}>
-                            <BuildingMesh defId={b.definitionId} />
-                        </group>
-                        
-                        {/* Visual foundation base - Wide flat platform to bridge terrain gaps */}
-                        <mesh position={[0, -0.35, 0]}>
-                            <cylinderGeometry args={[1.0, 1.1, 0.4, 32]} />
-                            <meshStandardMaterial 
-                                color={isSelected ? "#00ffff" : "#3a3a3a"} 
-                                emissive={isSelected ? "#003333" : "#000000"}
-                                metalness={0.8} 
-                                roughness={0.2} 
-                            />
-                        </mesh>
-                        
-                        {/* Selection Ring */}
-                        {isSelected && (
-                            <mesh position={[0, 0.35, 0]} rotation-x={-Math.PI / 2}>
-                                <ringGeometry args={[0.9, 1.1, 32]} />
-                                <meshBasicMaterial color="#00ffff" transparent opacity={0.5} side={THREE.DoubleSide} />
-                            </mesh>
-                        )}
-
-                        <mesh position={[0, -0.7, 0]}>
-                            <cylinderGeometry args={[1.1, 1.2, 0.3, 32]} />
-                            <meshStandardMaterial color="#1a1a1a" />
-                        </mesh>
-
-                        {/* Popover logic */}
-                        {isSelected && (
-                             <BuildingInspectionPopover building={b} />
-                        )}
-                    </group>
+                        b={b}
+                        isSelected={b.id === inspectedInstanceId}
+                        debugOverlayVisible={debugOverlayVisible}
+                        onClick={handleBuildingClick}
+                        baseY={baseY}
+                    />
                 );
             })}
         </>
