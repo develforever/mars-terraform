@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import type { PlacedBuilding } from "../../domain/entities/Building";
-import type { Resources, ResourceCapacity, ResourceDelta } from "../../domain/entities/Resources";
+import type { Resources, ResourceCapacity, ResourceDelta, ResourceKey } from "../../domain/entities/Resources";
 import { INITIAL_COLONY_STATE } from "../../domain/entities/Colony";
 import { BUILDING_DEFINITIONS } from "../../domain/config/buildings";
 import { BuildingService } from "../../domain/services/BuildingService";
@@ -72,10 +72,22 @@ function getInitialGameState() {
     terraforming: 0,
     o2Accumulated: 0,
     won: false,
+    difficulty: "normal" as DifficultyLevel,
     gameMode: "exploration" as GameMode,
     alienState: INITIAL_ALIEN_STATE,
     lastDelta: {} as ResourceDelta,
   };
+}
+
+function applyResourceDelta(
+  resources: Resources,
+  delta: ResourceDelta,
+): Resources {
+  const result = { ...resources };
+  for (const [key, value] of Object.entries(delta)) {
+    result[key as ResourceKey] += value ?? 0;
+  }
+  return result;
 }
 
 function applyCapacityDelta(
@@ -93,7 +105,6 @@ export const useGameStore = create<GameState>()(
   devtools(
     (set, get) => ({
       ...getInitialGameState(),
-      difficulty: "normal" as DifficultyLevel,
 
       setSun: (factor) => {
         set({ sun: Math.max(0, Math.min(1, factor)) });
@@ -128,6 +139,7 @@ export const useGameStore = create<GameState>()(
 
       triggerAlienWave: (wave, count = 3) => {
         const { placed } = get();
+        if (placed.length === 0) return;
         const ships: AlienShip[] = [];
         const groundUnits: AlienGroundUnit[] = [];
 
@@ -197,14 +209,9 @@ export const useGameStore = create<GameState>()(
         if (!result.success || !result.building) return false;
 
         // Apply cost
-        const newResources = { ...state.resources };
-        if (result.costDelta) {
-          for (const [key, value] of Object.entries(result.costDelta)) {
-            if (value !== undefined) {
-              newResources[key as keyof Resources] += value;
-            }
-          }
-        }
+        const newResources = result.costDelta
+          ? applyResourceDelta(state.resources, result.costDelta)
+          : { ...state.resources };
 
         // Apply capacity
         const newCapacity = applyCapacityDelta(
@@ -242,14 +249,9 @@ export const useGameStore = create<GameState>()(
         if (!result.success) return false;
 
         // Apply refund
-        const newResources = { ...state.resources };
-        if (result.refundDelta) {
-          for (const [key, value] of Object.entries(result.refundDelta)) {
-            if (value !== undefined) {
-              newResources[key as keyof Resources] += value;
-            }
-          }
-        }
+        const newResources = result.refundDelta
+          ? applyResourceDelta(state.resources, result.refundDelta)
+          : { ...state.resources };
 
         // Remove capacity
         const newCapacity = applyCapacityDelta(
@@ -381,6 +383,8 @@ export const useGameStore = create<GameState>()(
                 o2Accumulated: state.o2Accumulated,
                 difficulty: state.difficulty,
                 gameMode: state.gameMode,
+                sun: state.sun,
+                alienState: state.alienState,
               }
             })
           });
@@ -414,8 +418,10 @@ export const useGameStore = create<GameState>()(
             o2Accumulated: gameState.o2Accumulated ?? 0,
             difficulty: gameState.difficulty ?? "normal",
             gameMode: gameState.gameMode ?? "exploration",
+            sun: gameState.sun ?? INITIAL_COLONY_STATE.sun,
+            alienState: gameState.alienState ?? INITIAL_ALIEN_STATE,
             won: TerraformingService.isComplete(gameState.terraforming ?? 0),
-            alive: true
+            alive: true,
           });
           return true;
         } catch (error) {
