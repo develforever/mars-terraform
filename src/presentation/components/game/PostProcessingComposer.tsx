@@ -9,7 +9,9 @@ import {
     ToneMappingEffect,
     GlitchEffect,
     ToneMappingMode,
+    BlendFunction,
     Effect,
+    OutlineEffect,
 } from "postprocessing";
 
 interface PostProcessingComposerProps {
@@ -17,6 +19,8 @@ interface PostProcessingComposerProps {
     bloomThreshold?: number;
     bloomSmoothing?: number;
     glitch?: boolean;
+    outline?: boolean;
+    onOutlineReady?: (effect: OutlineEffect | null) => void;
 }
 
 export function PostProcessingComposer({
@@ -24,13 +28,16 @@ export function PostProcessingComposer({
     bloomThreshold = 0.2,
     bloomSmoothing = 0.9,
     glitch = false,
+    outline = false,
+    onOutlineReady,
 }: PostProcessingComposerProps) {
     const { gl, scene, camera, size } = useThree();
     const composerRef = useRef<EffectComposer | null>(null);
+    const bloomRef = useRef<BloomEffect | null>(null);
 
     useEffect(() => {
         const composer = new EffectComposer(gl, {
-            multisampling: 8,
+            multisampling: 0,
         });
         composer.addPass(new RenderPass(scene, camera));
 
@@ -40,12 +47,27 @@ export function PostProcessingComposer({
             intensity: bloomIntensity,
             mipmapBlur: true,
         });
+        bloomRef.current = bloomEffect;
 
         const toneMappingEffect = new ToneMappingEffect({
             mode: ToneMappingMode.ACES_FILMIC,
         });
 
         const effects: Effect[] = [bloomEffect, toneMappingEffect];
+
+        if (outline) {
+            const outlineEffect = new OutlineEffect(scene, camera, {
+                blendFunction: BlendFunction.ADD,
+                edgeStrength: 5,
+                pulseSpeed: 0.0,
+                visibleEdgeColor: 0x00ffff,
+                hiddenEdgeColor: 0x003333,
+                blur: false,
+                xRay: false,
+            });
+            effects.push(outlineEffect);
+            onOutlineReady?.(outlineEffect);
+        }
 
         if (glitch) {
             effects.push(new GlitchEffect({
@@ -57,28 +79,43 @@ export function PostProcessingComposer({
         }
 
         composer.addPass(new EffectPass(camera, ...effects));
-
         composerRef.current = composer;
 
         return () => {
+            bloomRef.current = null;
+            onOutlineReady?.(null);
             composer.dispose();
             composerRef.current = null;
         };
-    }, [gl, scene, camera, bloomIntensity, bloomThreshold, bloomSmoothing, glitch]);
+    }, [gl, scene, camera, glitch, outline]);
+
+    // Update bloom params without rebuilding the composer
+    useEffect(() => {
+        if (!bloomRef.current) return;
+        bloomRef.current.intensity = bloomIntensity;
+    }, [bloomIntensity]);
 
     useEffect(() => {
-        if (composerRef.current && size && size.width > 0 && size.height > 0) {
+        if (!bloomRef.current) return;
+        const mat = bloomRef.current.luminancePass.fullscreenMaterial as THREE.ShaderMaterial & {
+            threshold: number;
+            smoothing: number;
+        };
+        mat.threshold = bloomThreshold;
+        mat.smoothing = bloomSmoothing;
+    }, [bloomThreshold, bloomSmoothing]);
+
+    useEffect(() => {
+        if (composerRef.current && size.width > 0 && size.height > 0) {
             composerRef.current.setSize(size.width, size.height);
         }
     }, [size]);
 
     useFrame((_, delta) => {
-        if (composerRef.current) {
-            const currentAutoClear = gl.autoClear;
-            gl.autoClear = true;
-            composerRef.current.render(delta);
-            gl.autoClear = currentAutoClear;
-        }
+        if (!composerRef.current) return;
+        // autoClear=true needed so RenderPass clears its buffer before rendering
+        gl.autoClear = true;
+        composerRef.current.render(delta);
     }, 1);
 
     return null;
