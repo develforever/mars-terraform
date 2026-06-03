@@ -74,6 +74,13 @@ function WorldLaserBeam({ shipId, to }: WorldLaserProps) {
     }, []);
     const glowRef = useRef<THREE.Mesh>(null);
 
+    useEffect(() => {
+        return () => {
+            line.geometry.dispose();
+            (line.material as THREE.LineBasicMaterial).dispose();
+        };
+    }, [line]);
+
     useFrame(({ clock }) => {
         const from = shipPositions.get(shipId);
         if (!from) return;
@@ -114,6 +121,13 @@ function WorldChargingLaser({ shipId, to, progress }: WorldChargingProps) {
         const mat = new THREE.LineBasicMaterial({ color: "#ffcc00", transparent: true, opacity: 0, linewidth: 2 });
         return new THREE.Line(geo, mat);
     }, []);
+
+    useEffect(() => {
+        return () => {
+            line.geometry.dispose();
+            (line.material as THREE.LineBasicMaterial).dispose();
+        };
+    }, [line]);
 
     useFrame(({ clock }) => {
         const from = shipPositions.get(shipId);

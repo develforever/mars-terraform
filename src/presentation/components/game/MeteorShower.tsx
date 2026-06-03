@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState } from "react";
+import { useRef, useMemo, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useGameStore } from "../../../application/store/useGameStore";
@@ -45,6 +45,17 @@ export function MeteorShower() {
         geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array([0, 8, 0, 0, 0, 0]), 3));
         return geo;
     }, []);
+
+    useEffect(() => {
+        return () => {
+            ringGeo.dispose();
+            dotGeo.dispose();
+            flashGeo.dispose();
+            glowGeo.dispose();
+            sphereGeo.dispose();
+            trailGeo.dispose();
+        };
+    }, [ringGeo, dotGeo, flashGeo, glowGeo, sphereGeo, trailGeo]);
 
     if (!isWarning && !isShower) return null;
     if (!zones.length) return null;

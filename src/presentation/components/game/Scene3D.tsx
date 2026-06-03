@@ -50,7 +50,6 @@ export function Scene3D() {
 function World() {
     const terrainRef = useRef<THREE.Mesh>(null);
     const buildMode = useUIStore((state: { buildMode: "place" | "demolish" | null }) => state.buildMode);
-    const cancelBuild = useUIStore((state) => state.cancelBuild);
 
     const [colorMap, dispMap] = useTexture([
         "/textures/mars_colorx1.png",

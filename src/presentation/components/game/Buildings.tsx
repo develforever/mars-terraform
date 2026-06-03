@@ -63,6 +63,15 @@ function Model({ path, scale = 1, ghost = false }: ModelProps) {
         }
     }, [sceneClone, ghost]);
 
+    useEffect(() => {
+        sceneClone.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+    }, [sceneClone]);
+
     return (
         <primitive object={sceneClone} scale={scale} />
     );
@@ -166,7 +175,7 @@ function BuildingGroup({ b, isSelected, debugOverlayVisible, onClick, baseY }: B
             </group>
 
             {/* Visual foundation base */}
-            <mesh position={[0, -0.35, 0]}>
+            <mesh position={[0, -0.35, 0]} castShadow receiveShadow>
                 <cylinderGeometry args={[1.0, 1.1, 0.4, 32]} />
                 <meshStandardMaterial
                     color={isSelected ? "#00ffff" : "#3a3a3a"}
@@ -176,7 +185,7 @@ function BuildingGroup({ b, isSelected, debugOverlayVisible, onClick, baseY }: B
                 />
             </mesh>
 
-            <mesh position={[0, -0.7, 0]}>
+            <mesh position={[0, -0.7, 0]} castShadow receiveShadow>
                 <cylinderGeometry args={[1.1, 1.2, 0.3, 32]} />
                 <meshStandardMaterial color="#1a1a1a" />
             </mesh>

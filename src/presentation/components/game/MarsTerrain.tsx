@@ -88,7 +88,8 @@ const GRID_FRAG = `
     float g1 = gridLine(vWorldPos.xz, 1.0);
     float g2 = gridLine(vWorldPos.xz, 0.2);
     vec3 gridCol = mix(vec3(0.44, 0.44, 0.44), vec3(1.0, 0.36, 0.1), g2);
-    float gridAlpha = max(g1 * 0.25, g2 * 0.45) * (0.15 + vis * 0.85);
+    float buildFactor = (uBuildMode > 0) ? 1.0 : 0.08;
+    float gridAlpha = max(g1 * 0.25, g2 * 0.45) * (0.15 + vis * 0.85) * buildFactor;
     color.rgb = mix(color.rgb, gridCol, gridAlpha * edgeFade);
 
     // 5. Cell highlight
@@ -182,8 +183,7 @@ export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
                         shader.vertexShader = shader.vertexShader.replace(
                             `#include <common>`,
                             `#include <common>
-                             ${GRID_VERT}
-                             void insertedCommon();`
+                             ${GRID_VERT}`
                         );
                         shader.vertexShader = shader.vertexShader.replace(
                             `#include <uv_vertex>`,

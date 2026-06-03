@@ -96,7 +96,6 @@ export function MarsEnvironment() {
         }
         if (starsRef.current) {
             starsRef.current.visible = dayFactor < 0.3 && weather.type !== "sandstorm";
-            starsRef.current.rotation.y += delta * 0.01;
         }
     });
 
@@ -114,7 +113,7 @@ export function MarsEnvironment() {
                 ref={sunRef}
                 intensity={2.5}
                 castShadow
-                shadow-mapSize={[2048, 2048]}
+                shadow-mapSize={[1024, 1024]}
                 distance={0}
                 decay={0}
             />
