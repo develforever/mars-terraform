@@ -18,6 +18,7 @@ import { BuildingConnections } from "./BuildingConnections";
 import { AlienInvasion } from "./AlienInvasion";
 import { OutlineEffectContext } from "./OutlineEffectContext";
 import type { OutlineEffect } from "postprocessing";
+import MapOverlay from "./MapOverlay";
 
 export function Scene3D() {
     return (
@@ -108,6 +109,7 @@ function World() {
             <MeteorShower />
             <BuildingConnections />
             <AlienInvasion />
+            <MapOverlay />
 
             <OrbitControls
                 enabled={buildMode === null}

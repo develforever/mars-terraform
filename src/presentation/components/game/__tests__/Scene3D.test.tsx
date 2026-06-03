@@ -22,6 +22,8 @@ vi.mock("@react-three/drei", () => ({
     OrbitControls: () => <div data-testid="orbit-controls" />,
     useTexture: () => [{ image: { width: 512 } }, { image: { width: 512 } }],
     Html: ({ children }: any) => <div data-testid="mock-html">{children}</div>,
+    Loader: () => <div data-testid="mock-loader" />,
+    useProgress: () => ({ progress: 100, active: false }),
 }));
 
 vi.mock("../PostProcessingComposer", () => ({

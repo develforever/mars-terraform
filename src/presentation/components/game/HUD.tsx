@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { useAuthStore } from "../../../application/store/useAuthStore";
+import { useMapConfigStore } from "../../../application/store/useMapConfigStore";
 import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 import type { ResourceKey } from "../../../domain/entities/Resources";
 import { HintService } from "../../../domain/services/HintService";
@@ -35,6 +36,7 @@ export function HUD() {
     const cancelBuild    = useUIStore((state) => state.cancelBuild);
     const resetGame      = useGameStore((state) => state.resetGame);
     const resetUI        = useUIStore((state) => state.resetUI);
+    const { loadMapFromFile, loaded: mapLoaded, mapName, clearMap } = useMapConfigStore();
     const isHUDVisible   = useUIStore((state) => state.isHUDVisible);
     const toggleHUD      = useUIStore((state) => state.toggleHUD);
     const saveGame       = useGameStore((state) => state.saveGame);
@@ -161,6 +163,18 @@ export function HUD() {
                     <button type="button" onClick={cancelBuild}>
                         {t("hud.cancel")} <span aria-hidden="true">&nbsp;(Esc)</span>
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => loadMapFromFile().catch(e => alert(e.message))}
+                        title="Load map config from generator JSON"
+                    >
+                        🗺 {mapLoaded ? mapName : 'Load Map'}
+                    </button>
+                    {mapLoaded && (
+                        <button type="button" onClick={clearMap} title="Clear loaded map">
+                            ✕ Map
+                        </button>
+                    )}
                     <button type="button" onClick={() => setShowDepTree(true)}>
                         {t("hud.depTree")}
                     </button>

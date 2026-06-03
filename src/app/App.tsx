@@ -1,7 +1,8 @@
 import { useEffect } from "react";
-import { Route, Routes, useSearchParams, useNavigate } from "react-router";
+import { Route, Routes, useSearchParams, useNavigate, useLocation } from "react-router";
 import StartView from "../presentation/pages/StartView";
 import MarsView from "../presentation/pages/MarsView";
+import GeneratorPage from "../presentation/generator/GeneratorPage";
 import TopMenu from "../presentation/components/ui/TopMenu";
 import ModalManager from "../presentation/components/ui/ModalManager";
 import { useAuthStore } from "../application/store/useAuthStore";
@@ -65,6 +66,8 @@ export default function App() {
     const { fetchUser } = useAuthStore();
     const alive = useGameStore(state => state.alive);
     const { start, stop } = useEconomy();
+    const location = useLocation();
+    const isGenerator = location.pathname === '/generate';
 
     useEffect(() => {
         fetchUser();
@@ -81,8 +84,8 @@ export default function App() {
 
     return (
         <div data-testid="app" className="app-root w-full h-full min-h-0">
-            <TopMenu />
-            <div className="mars-root">
+            {!isGenerator && <TopMenu />}
+            <div className={isGenerator ? 'w-full h-full' : 'mars-root'}>
                 <Routes>
                     <Route path="/" element={<><AuthRouteHandler /><StartView /></>} />
                     <Route
@@ -95,6 +98,7 @@ export default function App() {
                     />
                     <Route path="/reset-password" element={<AuthRouteHandler />} />
                     <Route path="/verify-email" element={<AuthRouteHandler />} />
+                    <Route path="/generate" element={<GeneratorPage />} />
                 </Routes>
             </div>
             <ModalManager />

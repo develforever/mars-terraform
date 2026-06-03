@@ -1,0 +1,212 @@
+import { useState } from 'react'
+import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
+import { validateMap } from '../utils/validateMap'
+import type { ValidationResult } from '../utils/validateMap'
+
+// ─── Validation modal ─────────────────────────────────────────────────────────
+
+const ValidationModal = ({
+  result,
+  onConfirm,
+  onCancel,
+}: {
+  result: ValidationResult
+  onConfirm: () => void
+  onCancel: () => void
+}) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+    <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-5 w-96 shadow-2xl">
+      <h2 className="text-sm font-bold text-zinc-100 mb-3">
+        {result.valid ? '⚠️ Map Warnings' : '🚫 Map Errors'}
+      </h2>
+
+      <ul className="flex flex-col gap-1.5 mb-4 max-h-60 overflow-y-auto">
+        {result.errors.map((e, i) => (
+          <li key={i} className={`text-xs flex gap-2 items-start ${
+            e.level === 'error' ? 'text-red-400' : 'text-yellow-400'
+          }`}>
+            <span>{e.level === 'error' ? '✖' : '⚠'}</span>
+            <span>{e.message}</span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex gap-2 justify-end">
+        <button
+          onClick={onCancel}
+          className="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors"
+        >
+          Cancel
+        </button>
+        {result.valid && (
+          <button
+            onClick={onConfirm}
+            className="px-3 py-1.5 rounded bg-orange-700 hover:bg-orange-600 text-white text-xs font-medium transition-colors"
+          >
+            Export Anyway
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)
+
+// ─── Toolbar ──────────────────────────────────────────────────────────────────
+
+const GeneratorToolbar = () => {
+  const toggleGrid = useMapEditorStore(s => s.toggleGrid)
+  const showGrid = useMapEditorStore(s => s.showGrid)
+  const resetMap = useMapEditorStore(s => s.resetMap)
+  const exportToJSON = useMapEditorStore(s => s.exportToJSON)
+  const loadFromJSON = useMapEditorStore(s => s.loadFromJSON)
+  const meta = useMapEditorStore(s => s.meta)
+  const undo = useMapEditorStore(s => s.undo)
+
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
+  const [pendingExportData, setPendingExportData] = useState<string | null>(null)
+
+  const doDownload = (json: string, name: string) => {
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${name || 'map'}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleExport = () => {
+    const data = exportToJSON()
+    const result = validateMap(data)
+    const json = JSON.stringify(data, null, 2)
+
+    if (result.errors.length === 0) {
+      // No issues — export immediately
+      doDownload(json, meta.name)
+    } else {
+      // Show modal
+      setPendingExportData(json)
+      setValidationResult(result)
+    }
+  }
+
+  const handleValidationConfirm = () => {
+    if (pendingExportData) doDownload(pendingExportData, meta.name)
+    setValidationResult(null)
+    setPendingExportData(null)
+  }
+
+  const handleValidationCancel = () => {
+    setValidationResult(null)
+    setPendingExportData(null)
+  }
+
+  const handleImport = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      try {
+        const text = await file.text()
+        const data = JSON.parse(text)
+        loadFromJSON(data)
+      } catch {
+        alert('Invalid map JSON file.')
+      }
+    }
+    input.click()
+  }
+
+  const handleReset = () => {
+    if (window.confirm('Reset the entire map? This cannot be undone.')) resetMap()
+  }
+
+  // Live validation badge
+  const liveResult = validateMap(exportToJSON())
+  const errorCount = liveResult.errors.filter(e => e.level === 'error').length
+  const warnCount = liveResult.errors.filter(e => e.level === 'warning').length
+
+  return (
+    <>
+      {validationResult && (
+        <ValidationModal
+          result={validationResult}
+          onConfirm={handleValidationConfirm}
+          onCancel={handleValidationCancel}
+        />
+      )}
+
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-950 border-b border-zinc-700 text-sm select-none">
+        <span className="text-orange-500 font-bold tracking-wider text-xs uppercase mr-2">
+          🪐 Map Generator
+        </span>
+
+        <div className="w-px h-4 bg-zinc-700" />
+
+        <button onClick={handleReset}
+          className="px-2 py-1 rounded hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors text-xs">
+          🗺 New
+        </button>
+
+        <button onClick={handleImport}
+          className="px-2 py-1 rounded hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors text-xs">
+          📂 Load
+        </button>
+
+        <button
+          onClick={handleExport}
+          className={`px-2 py-1 rounded text-white transition-colors text-xs font-medium relative
+            ${errorCount > 0 ? 'bg-red-800 hover:bg-red-700' : 'bg-orange-700 hover:bg-orange-600'}`}
+        >
+          💾 Export JSON
+          {errorCount > 0 && (
+            <span className="ml-1.5 bg-red-500 text-white text-xs rounded-full px-1">{errorCount}</span>
+          )}
+          {errorCount === 0 && warnCount > 0 && (
+            <span className="ml-1.5 bg-yellow-500 text-black text-xs rounded-full px-1">{warnCount}</span>
+          )}
+        </button>
+
+        <div className="w-px h-4 bg-zinc-700" />
+
+        <button onClick={undo}
+          className="px-2 py-1 rounded hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors text-xs"
+          title="Ctrl+Z">
+          ↩ Undo
+        </button>
+
+        <button onClick={toggleGrid}
+          className={`px-2 py-1 rounded text-xs transition-colors ${
+            showGrid ? 'bg-zinc-700 text-orange-400' : 'hover:bg-zinc-800 text-zinc-500'}`}>
+          ⊞ Grid
+        </button>
+
+        <div className="flex-1" />
+
+        {/* Live validation status */}
+        {liveResult.errors.length > 0 ? (
+          <div className="flex items-center gap-1">
+            {errorCount > 0 && (
+              <span className="text-xs text-red-400 font-mono">✖ {errorCount} error{errorCount > 1 ? 's' : ''}</span>
+            )}
+            {warnCount > 0 && (
+              <span className="text-xs text-yellow-400 font-mono">⚠ {warnCount} warn{warnCount > 1 ? 's' : ''}</span>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-green-500 font-mono">✓ Valid</span>
+        )}
+
+        <div className="w-px h-4 bg-zinc-700 mx-1" />
+
+        <span className="text-xs text-zinc-500 font-mono">
+          {meta.name} · 100×100
+        </span>
+      </div>
+    </>
+  )
+}
+
+export default GeneratorToolbar
