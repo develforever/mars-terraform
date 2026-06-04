@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, GizmoHelper, GizmoViewport, Html, useProgress } from '@react-three/drei'
 import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
 import HexTerrain from './viewport/HexTerrain'
+import SmoothTerrain from './viewport/SmoothTerrain'
 import HexGridLines from './viewport/HexGridLines'
 import HexInteraction from './viewport/HexInteraction'
 import BuildNodeMarkers from './viewport/BuildNodeMarkers'
@@ -56,13 +57,13 @@ const SceneLighting = () => (
 // ─── Viewport ─────────────────────────────────────────────────────────────────
 
 const GeneratorViewport = () => {
-  const showGrid = useMapEditorStore(s => s.showGrid)
-  const activeTool = useMapEditorStore(s => s.activeTool)
+  const showGrid      = useMapEditorStore(s => s.showGrid)
+  const activeTool    = useMapEditorStore(s => s.activeTool)
+  const isPreviewMode = useMapEditorStore(s => s.isPreviewMode)
   const generateHexGrid = useMapEditorStore(s => s.generateHexGrid)
-  const hexGrid = useMapEditorStore(s => s.hexGrid)
-  const orbitEnabled = activeTool === 'select'
+  const hexGrid       = useMapEditorStore(s => s.hexGrid)
+  const orbitEnabled  = activeTool === 'select'
 
-  // Generate hex grid on mount if not already done
   useEffect(() => {
     if (!hexGrid) generateHexGrid()
   }, [])
@@ -75,45 +76,37 @@ const GeneratorViewport = () => {
         gl={{ antialias: true, toneMapping: CineonToneMapping, toneMappingExposure: 1.97 }}
         onCreated={({ gl }) => { gl.toneMappingExposure = 1.0 }}
       >
-          <SceneLighting />
+        <SceneLighting />
 
-          <Suspense fallback={<Loader />}>
-            <HexTerrain />
-          </Suspense>
+        <Suspense fallback={<Loader />}>
+          {isPreviewMode ? <SmoothTerrain /> : <HexTerrain />}
+        </Suspense>
 
-          <HexInteraction />
-          <BuildNodeMarkers />
-          <ResourceNodeMarkers />
-          <SpawnPointMarkers />
+        <HexInteraction />
+        <BuildNodeMarkers />
+        <ResourceNodeMarkers />
+        <SpawnPointMarkers />
 
-          {showGrid && <HexGridLines />}
+        {showGrid && <HexGridLines />}
 
-          <OrbitControls
-            minPolarAngle={Math.PI / 6}
-            maxPolarAngle={Math.PI / 2.35}
-            minDistance={25}
-            maxDistance={140}
-            target={[0, 2, 0]}
-            enablePan={false}
-            enableDamping
-            dampingFactor={0.08}
-            enabled={orbitEnabled}
+        <OrbitControls
+          minPolarAngle={Math.PI / 6}
+          maxPolarAngle={Math.PI / 2.35}
+          minDistance={25}
+          maxDistance={140}
+          target={[0, 2, 0]}
+          enablePan={false}
+          enableDamping
+          dampingFactor={0.08}
+          enabled={orbitEnabled}
+        />
+
+        <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
+          <GizmoViewport
+            axisColors={['#ff4444', '#44ff44', '#4488ff']}
+            labelColor="white"
           />
-
-          {/* <OrbitControls
-            target={[0, 2, 0]}
-            enablePan={false}
-            enableDamping
-            dampingFactor={0.08}
-            enabled={orbitEnabled}
-          /> */}
-
-          <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
-            <GizmoViewport
-              axisColors={['#ff4444', '#44ff44', '#4488ff']}
-              labelColor="white"
-            />
-          </GizmoHelper>
+        </GizmoHelper>
       </Canvas>
       <Minimap />
     </div>

@@ -54,9 +54,11 @@ const ValidationModal = ({
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
 const GeneratorToolbar = () => {
-  const toggleGrid = useMapEditorStore(s => s.toggleGrid)
-  const showGrid = useMapEditorStore(s => s.showGrid)
-  const resetMap = useMapEditorStore(s => s.resetMap)
+  const toggleGrid    = useMapEditorStore(s => s.toggleGrid)
+  const showGrid      = useMapEditorStore(s => s.showGrid)
+  const togglePreview = useMapEditorStore(s => s.togglePreview)
+  const isPreviewMode = useMapEditorStore(s => s.isPreviewMode)
+  const resetMap      = useMapEditorStore(s => s.resetMap)
   const exportToJSON = useMapEditorStore(s => s.exportToJSON)
   const loadFromJSON = useMapEditorStore(s => s.loadFromJSON)
   const meta = useMapEditorStore(s => s.meta)
@@ -181,6 +183,15 @@ const GeneratorToolbar = () => {
           className={`px-2 py-1 rounded text-xs transition-colors ${
             showGrid ? 'bg-zinc-700 text-orange-400' : 'hover:bg-zinc-800 text-zinc-500'}`}>
           ⊞ Grid
+        </button>
+
+        <button onClick={togglePreview}
+          className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+            isPreviewMode
+              ? 'bg-orange-700 text-white'
+              : 'hover:bg-zinc-800 text-zinc-400'}`}
+          title="Podgląd płynnego terenu gry">
+          ◈ Preview
         </button>
 
         <div className="flex-1" />

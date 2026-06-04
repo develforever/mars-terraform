@@ -42,6 +42,7 @@ interface MapEditorState {
   selectedHex: { q: number; r: number } | null
   hoveredHex: [number, number] | null
   showGrid: boolean
+  isPreviewMode: boolean
   undoStack: MapSnapshot[]
 
   // Node actions
@@ -64,6 +65,7 @@ interface MapEditorState {
   setHoveredHex: (hex: [number, number] | null) => void
   setShowGrid: (show: boolean) => void
   toggleGrid: () => void
+  togglePreview: () => void
   updateMeta: (patch: Partial<MapMeta>) => void
 
   // Hex grid actions
@@ -127,6 +129,7 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
   selectedHex: null,
   hoveredHex: null,
   showGrid: true,
+  isPreviewMode: false,
   undoStack: [],
 
   // ── Node actions ───────────────────────────────────────────────────────────
@@ -187,6 +190,7 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
   setHoveredHex: (hex) => set({ hoveredHex: hex }),
   setShowGrid: (show) => set({ showGrid: show }),
   toggleGrid: () => set(state => ({ showGrid: !state.showGrid })),
+  togglePreview: () => set(state => ({ isPreviewMode: !state.isPreviewMode })),
   updateMeta: (patch) => set(state => ({ meta: { ...state.meta, ...patch } })),
 
   // ── Hex grid actions ───────────────────────────────────────────────────────
