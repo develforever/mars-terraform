@@ -12,10 +12,6 @@ const TILE_COLORS: Record<number, THREE.Color> = {
   4: new THREE.Color('#0088ff'), // spawn
 }
 
-const TILE_TYPE_INDEX: Record<string, number> = {
-  empty: 0, build: 1, resource: 2, blocked: 3, spawn: 4,
-}
-
 const HOVER_COLOR = new THREE.Color('#ffffff')
 const TRANSPARENT = new THREE.Color('#000000')
 

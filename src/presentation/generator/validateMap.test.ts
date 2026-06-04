@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { validateMap } from '../utils/validateMap'
-import type { MapExportJSON } from '../../../domain/mapEditorTypes'
+import { validateMap } from './utils/validateMap'
+import type { MapExportJSON } from '../../domain/mapEditorTypes'
 
 const BASE_MAP: MapExportJSON = {
   meta: { name: 'test', description: '', size: [100, 100], tileSize: 1, players: 2, terrainFile: 'x.glb', seed: null },

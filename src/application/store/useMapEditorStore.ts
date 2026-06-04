@@ -11,11 +11,14 @@ import type {
   MapExportJSON,
   MapSnapshot,
 } from '../../domain/mapEditorTypes'
+import { HexGrid } from '../../presentation/generator/hex/HexGrid'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const MAP_SIZE = 100
 const MAX_UNDO = 20
+const HEX_RADIUS = 20
+const DEFAULT_SEED = 42
 
 // ─── Scatter options ──────────────────────────────────────────────────────────
 
@@ -59,6 +62,10 @@ interface MapEditorState {
   spawnPoints: SpawnPoint[]
   decor: DecorItem[]
 
+  // Hex grid (new terrain system)
+  hexGrid: HexGrid | null
+  hexSeed: number
+
   // UI state
   activeTool: ToolMode
   brushSize: BrushSize
@@ -100,6 +107,12 @@ interface MapEditorState {
 
   // Auto-scatter
   autoScatter: (opts: ScatterOptions) => void
+
+  // Hex grid actions
+  generateHexGrid: (seed?: number) => void
+  setHexUserType: (q: number, r: number, type: TileType | null) => void
+  paintHexes: (coords: [number, number][], type: TileType | null) => void
+  setHexSeed: (seed: number) => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -111,6 +124,7 @@ const snapshot = (state: MapEditorState): MapSnapshot => ({
   buildNodes: JSON.parse(JSON.stringify(state.buildNodes)),
   resourceNodes: JSON.parse(JSON.stringify(state.resourceNodes)),
   spawnPoints: JSON.parse(JSON.stringify(state.spawnPoints)),
+  decor: JSON.parse(JSON.stringify(state.decor)),
 })
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -122,6 +136,9 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
   resourceNodes: [],
   spawnPoints: [],
   decor: [],
+
+  hexGrid: null,
+  hexSeed: DEFAULT_SEED,
 
   activeTool: 'select',
   brushSize: 1,
@@ -225,6 +242,7 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
         buildNodes: prev.buildNodes,
         resourceNodes: prev.resourceNodes,
         spawnPoints: prev.spawnPoints,
+        decor: prev.decor,
         undoStack: stack,
       }
     })
@@ -279,8 +297,6 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
 
   autoScatter: (opts) => {
     get().pushUndo()
-
-    // Seeded pseudo-random (simple LCG)
     let seed = opts.seed >>> 0
     const rand = () => {
       seed = (seed * 1664525 + 1013904223) >>> 0
@@ -353,4 +369,34 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
       return { tiles, decor: newDecor, resourceNodes: newResources }
     })
   },
+
+  // ─── Hex grid actions ───────────────────────────────────────────────────────
+
+  generateHexGrid: (seed?: number) => {
+    const s = seed ?? get().hexSeed
+    const grid = new HexGrid(HEX_RADIUS, s)
+    grid.generate()
+    set({ hexGrid: grid, hexSeed: s })
+  },
+
+  setHexUserType: (q, r, type) => {
+    const grid = get().hexGrid
+    if (!grid) return
+    const snap = grid.snapshot()
+    grid.setUserType(q, r, type)
+    // Trigger re-render by replacing hexGrid reference
+    set({ hexGrid: Object.assign(Object.create(Object.getPrototypeOf(grid)), grid) })
+    void snap // keep reference for potential undo integration
+  },
+
+  paintHexes: (coords, type) => {
+    const grid = get().hexGrid
+    if (!grid) return
+    for (const [q, r] of coords) {
+      grid.setUserType(q, r, type)
+    }
+    set({ hexGrid: Object.assign(Object.create(Object.getPrototypeOf(grid)), grid) })
+  },
+
+  setHexSeed: (seed) => set({ hexSeed: seed }),
 }))

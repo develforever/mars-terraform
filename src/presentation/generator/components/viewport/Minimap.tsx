@@ -1,93 +1,95 @@
 import { useEffect, useRef } from 'react'
 import { useMapEditorStore } from '../../../../application/store/useMapEditorStore'
+import { hexToWorld, hexCorners, HEX_SIZE } from '../../hex/HexMath'
+import { TERRAIN_COLORS } from '../../hex/HexGrid'
 
-const MAP_SIZE = 100
 const CANVAS_SIZE = 180
+const PLAYER_COLORS = ['#4488ff', '#ff4444', '#44ff88', '#ffaa00']
 
-const TILE_COLORS: Record<number, string> = {
-  0: '#1a0e08',
-  1: '#00cc66',
-  2: '#ccaa00',
-  3: '#cc2200',
-  4: '#2266ff',
+const USER_COLORS: Record<string, string> = {
+  build:    '#00ff88',
+  resource: '#ffcc00',
+  blocked:  '#ff3300',
+  spawn:    '#0088ff',
 }
 
 const Minimap = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const tiles = useMapEditorStore(s => s.tiles)
+  const hexGrid = useMapEditorStore(s => s.hexGrid)
   const buildNodes = useMapEditorStore(s => s.buildNodes)
   const resourceNodes = useMapEditorStore(s => s.resourceNodes)
   const spawnPoints = useMapEditorStore(s => s.spawnPoints)
 
-  const PLAYER_COLORS = ['#4488ff', '#ff4444', '#44ff88', '#ffaa00']
-
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas || !hexGrid) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    const cellSize = CANVAS_SIZE / MAP_SIZE
+    // Find world bounds for scaling
+    const MAP_RADIUS = hexGrid.radius
+    const HEX_HORIZ = HEX_SIZE * 1.5
+    const worldExtent = MAP_RADIUS * HEX_HORIZ * 1.15
+    const scale = (CANVAS_SIZE / 2) / worldExtent
+    const cx = CANVAS_SIZE / 2
+    const cy = CANVAS_SIZE / 2
 
-    // Background
     ctx.fillStyle = '#0a0604'
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
 
-    // Tiles
-    for (let z = 0; z < MAP_SIZE; z++) {
-      for (let x = 0; x < MAP_SIZE; x++) {
-        const val = tiles[z * MAP_SIZE + x]
-        if (val === 0) continue
-        ctx.fillStyle = TILE_COLORS[val] ?? '#333'
-        ctx.globalAlpha = 0.7
-        ctx.fillRect(x * cellSize, z * cellSize, cellSize, cellSize)
+    // Draw hex cells
+    for (const cell of hexGrid.getAllCells()) {
+      const [wx, wz] = hexToWorld(cell.q, cell.r)
+      const px = cx + wx * scale
+      const py = cy + wz * scale
+
+      // Base terrain color
+      const [r, g, b] = TERRAIN_COLORS[cell.terrainType]
+      let fillColor = `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`
+
+      // User type overlay
+      if (cell.userType && cell.userType !== 'empty') {
+        fillColor = USER_COLORS[cell.userType] ?? fillColor
       }
+
+      // Draw tiny hex
+      const corners = hexCorners(0, 0, HEX_SIZE * scale * 0.95)
+      ctx.beginPath()
+      ctx.moveTo(px + corners[0][0], py + corners[0][1])
+      for (let i = 1; i < 6; i++) {
+        ctx.lineTo(px + corners[i][0], py + corners[i][1])
+      }
+      ctx.closePath()
+      ctx.fillStyle = fillColor
+      ctx.globalAlpha = cell.userType && cell.userType !== 'empty' ? 0.9 : 0.85
+      ctx.fill()
     }
     ctx.globalAlpha = 1
 
-    // Build node markers
-    for (const node of buildNodes) {
-      const [tx, tz] = node.pos
-      const px = tx * cellSize
-      const pz = tz * cellSize
-      ctx.strokeStyle = '#00ff88'
-      ctx.lineWidth = 1
-      ctx.strokeRect(px, pz, node.footprint[0] * cellSize, node.footprint[1] * cellSize)
-    }
-
-    // Resource node markers
-    for (const node of resourceNodes) {
-      const [tx, tz] = node.pos
-      const px = (tx + 0.5) * cellSize
-      const pz = (tz + 0.5) * cellSize
-      ctx.beginPath()
-      ctx.arc(px, pz, cellSize * 1.2, 0, Math.PI * 2)
-      ctx.fillStyle = '#ffcc00'
-      ctx.fill()
-    }
-
     // Spawn points
     for (const spawn of spawnPoints) {
-      const [tx, tz] = spawn.pos
-      const px = (tx + 0.5) * cellSize
-      const pz = (tz + 0.5) * cellSize
+      const node = resourceNodes.find(n => n.pos[0] === spawn.pos[0] && n.pos[1] === spawn.pos[1])
+      void node
       const color = PLAYER_COLORS[(spawn.player - 1) % 4]
+      // Spawn positions are now hex coords stored in pos
+      const px2 = cx + spawn.pos[0] * scale
+      const py2 = cy + spawn.pos[1] * scale
       ctx.beginPath()
-      ctx.arc(px, pz, cellSize * 1.8, 0, Math.PI * 2)
+      ctx.arc(px2, py2, 4, 0, Math.PI * 2)
       ctx.fillStyle = color
       ctx.fill()
       ctx.fillStyle = '#fff'
-      ctx.font = `bold ${Math.max(6, cellSize * 2.5)}px monospace`
+      ctx.font = 'bold 6px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(String(spawn.player), px, pz)
+      ctx.fillText(String(spawn.player), px2, py2)
     }
 
     // Border
     ctx.strokeStyle = '#3a2010'
     ctx.lineWidth = 1
     ctx.strokeRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
-  }, [tiles, buildNodes, resourceNodes, spawnPoints])
+  }, [hexGrid, buildNodes, resourceNodes, spawnPoints])
 
   return (
     <div className="absolute bottom-3 left-3 z-10 rounded overflow-hidden border border-zinc-700 shadow-lg">

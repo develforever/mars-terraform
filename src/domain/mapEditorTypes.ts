@@ -75,4 +75,5 @@ export interface MapSnapshot {
   buildNodes: BuildNode[]
   resourceNodes: ResourceNode[]
   spawnPoints: SpawnPoint[]
+  decor: DecorItem[]
 }

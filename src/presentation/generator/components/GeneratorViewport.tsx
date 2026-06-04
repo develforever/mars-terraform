@@ -1,9 +1,9 @@
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, GizmoHelper, GizmoViewport, Html, useProgress } from '@react-three/drei'
 import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
-import TerrainMesh from './viewport/TerrainMesh'
-import GridOverlay from './viewport/GridOverlay'
+import HexTerrain from './viewport/HexTerrain'
+import HexGridLines from './viewport/HexGridLines'
 import TileOverlay from './viewport/TileOverlay'
 import BuildNodeMarkers from './viewport/BuildNodeMarkers'
 import ResourceNodeMarkers from './viewport/ResourceNodeMarkers'
@@ -31,26 +31,26 @@ const Loader = () => {
   )
 }
 
-// ─── Scene lighting matching Blender Sun_Mars ─────────────────────────────────
+// ─── Scene lighting ───────────────────────────────────────────────────────────
 
 const SceneLighting = () => (
   <>
-    <ambientLight intensity={0.25} color="#ffddcc" />
+    <ambientLight intensity={0.6} color="#ffddcc" />
     <directionalLight
       position={[30, 60, 30]}
-      intensity={2}
+      intensity={2.5}
       color="#fff5e0"
       castShadow
       shadow-mapSize={[2048, 2048]}
       shadow-camera-near={1}
       shadow-camera-far={300}
-      shadow-camera-left={-60}
-      shadow-camera-right={60}
-      shadow-camera-top={60}
-      shadow-camera-bottom={-60}
+      shadow-camera-left={-80}
+      shadow-camera-right={80}
+      shadow-camera-top={80}
+      shadow-camera-bottom={-80}
     />
-    {/* Subtle fill light from below for crater depth */}
-    <hemisphereLight args={['#c1440e', '#1a0a00', 0.15]} />
+    <directionalLight position={[-20, 30, -20]} intensity={0.8} color="#ff8844" />
+    <hemisphereLight args={['#ffaa66', '#3d1f0a', 0.4]} />
   </>
 )
 
@@ -59,22 +59,29 @@ const SceneLighting = () => (
 const GeneratorViewport = () => {
   const showGrid = useMapEditorStore(s => s.showGrid)
   const activeTool = useMapEditorStore(s => s.activeTool)
+  const generateHexGrid = useMapEditorStore(s => s.generateHexGrid)
+  const hexGrid = useMapEditorStore(s => s.hexGrid)
   const terrainHeightCtx = useTerrainHeightProvider()
   const orbitEnabled = activeTool === 'select'
+
+  // Generate hex grid on mount if not already done
+  useEffect(() => {
+    if (!hexGrid) generateHexGrid()
+  }, [])
 
   return (
     <div className="relative w-full h-full bg-zinc-950" style={{ cursor: orbitEnabled ? 'default' : 'crosshair' }}>
       <Canvas
-        camera={{ position: [0, 70, 70], fov: 50, near: 0.1, far: 1000 }}
+        camera={{ position: [0, 70, 65], fov: 45, near: 0.1, far: 1000 }}
         shadows
-        gl={{ antialias: true, toneMapping: 2 }}
-        onCreated={({ gl }) => { gl.toneMappingExposure = 1.2 }}
+        gl={{ antialias: true, toneMapping: 0 }}
+        onCreated={({ gl }) => { gl.toneMappingExposure = 1.0 }}
       >
         <TerrainHeightContext.Provider value={terrainHeightCtx}>
-        <SceneLighting />
+          <SceneLighting />
 
           <Suspense fallback={<Loader />}>
-            <TerrainMesh />
+            <HexTerrain />
           </Suspense>
 
           <TileOverlay />
@@ -83,13 +90,15 @@ const GeneratorViewport = () => {
           <SpawnPointMarkers />
           <DecorMarkers />
 
-          {showGrid && <GridOverlay />}
+          {showGrid && <HexGridLines />}
 
           <OrbitControls
-            maxPolarAngle={Math.PI / 2.1}
-            minDistance={15}
-            maxDistance={160}
-            target={[0, 0, 0]}
+            minPolarAngle={Math.PI / 6}
+            maxPolarAngle={Math.PI / 2.35}
+            minDistance={25}
+            maxDistance={140}
+            target={[0, 2, 0]}
+            enablePan={false}
             enableDamping
             dampingFactor={0.08}
             enabled={orbitEnabled}
