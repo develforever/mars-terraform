@@ -30,7 +30,7 @@ describe('HexGrid — construction', () => {
   })
 })
 
-describe('HexGrid — cell values', () => {
+describe('HexGrid — cell values (flat terrain)', () => {
   let grid: HexGrid
 
   beforeEach(() => {
@@ -38,23 +38,21 @@ describe('HexGrid — cell values', () => {
     grid.generate()
   })
 
-  it('all cells have height in [0, 1]', () => {
+  it('all cells have height = 0', () => {
     for (const cell of grid.getAllCells()) {
-      expect(cell.height).toBeGreaterThanOrEqual(0)
-      expect(cell.height).toBeLessThanOrEqual(1)
+      expect(cell.height).toBe(0)
     }
   })
 
-  it('all cells have valid terrainType', () => {
-    const valid = new Set(['deep_crater', 'lowland', 'plains', 'highland', 'rocky', 'peak'])
+  it('all cells have worldY = TERRAIN_HEIGHT[plains]', () => {
     for (const cell of grid.getAllCells()) {
-      expect(valid.has(cell.terrainType)).toBe(true)
+      expect(cell.worldY).toBe(1.2) // plains = 1.2
     }
   })
 
-  it('all cells have worldY matching their terrainType', () => {
+  it('all cells start as plains terrainType', () => {
     for (const cell of grid.getAllCells()) {
-      expect(cell.worldY).toBe(TERRAIN_HEIGHT[cell.terrainType])
+      expect(cell.terrainType).toBe('plains')
     }
   })
 
@@ -85,44 +83,9 @@ describe('HexGrid — determinism', () => {
     const cells2 = g2.getAllCells().sort((a, b) => hexKey(a.q, a.r).localeCompare(hexKey(b.q, b.r)))
 
     for (let i = 0; i < cells1.length; i++) {
-      expect(cells1[i].height).toBeCloseTo(cells2[i].height, 6)
       expect(cells1[i].terrainType).toBe(cells2[i].terrainType)
+      expect(cells1[i].height).toBe(cells2[i].height)
     }
-  })
-
-  it('different seeds produce different grids', () => {
-    const g1 = new HexGrid(10, 1)
-    const g2 = new HexGrid(10, 9999)
-    g1.generate()
-    g2.generate()
-
-    let diffCount = 0
-    for (const cell1 of g1.getAllCells()) {
-      const cell2 = g2.getCell(cell1.q, cell1.r)
-      if (cell2 && cell1.terrainType !== cell2.terrainType) diffCount++
-    }
-    // Most cells should differ
-    expect(diffCount).toBeGreaterThan(50)
-  })
-})
-
-describe('HexGrid — edge falloff', () => {
-  it('center region has higher average height than edge', () => {
-    const grid = new HexGrid(20, 42)
-    grid.generate()
-
-    let centerH = 0, centerCount = 0
-    let edgeH = 0, edgeCount = 0
-
-    for (const cell of grid.getAllCells()) {
-      const dist = Math.sqrt(cell.q * cell.q + cell.r * cell.r + cell.q * cell.r)
-      if (dist < 5) { centerH += cell.height; centerCount++ }
-      if (dist > 15) { edgeH += cell.height; edgeCount++ }
-    }
-
-    const avgCenter = centerH / centerCount
-    const avgEdge = edgeH / edgeCount
-    expect(avgCenter).toBeGreaterThan(avgEdge)
   })
 })
 
@@ -159,6 +122,34 @@ describe('HexGrid — setUserType', () => {
   })
 })
 
+describe('HexGrid — setTerrainType', () => {
+  it('sets terrainType on existing cell', () => {
+    const grid = new HexGrid(5, 1)
+    grid.generate()
+    grid.setTerrainType(0, 0, 'rocky')
+    expect(grid.getCell(0, 0)!.terrainType).toBe('rocky')
+  })
+
+  it('updates worldY when terrainType changes', () => {
+    const grid = new HexGrid(5, 1)
+    grid.generate()
+    grid.setTerrainType(0, 0, 'peak')
+    expect(grid.getCell(0, 0)!.worldY).toBe(TERRAIN_HEIGHT['peak'])
+    grid.setTerrainType(0, 0, 'deep_crater')
+    expect(grid.getCell(0, 0)!.worldY).toBe(TERRAIN_HEIGHT['deep_crater'])
+  })
+
+  it('does not affect other cells', () => {
+    const grid = new HexGrid(5, 1)
+    grid.generate()
+    grid.setTerrainType(0, 0, 'highland')
+    for (const cell of grid.getAllCells()) {
+      if (cell.q === 0 && cell.r === 0) continue
+      expect(cell.terrainType).toBe('plains')
+    }
+  })
+})
+
 describe('HexGrid — snapshot / restore', () => {
   it('snapshot captures current state', () => {
     const grid = new HexGrid(5, 1)
@@ -179,10 +170,11 @@ describe('HexGrid — snapshot / restore', () => {
 })
 
 describe('HexGrid — stats', () => {
-  it('getTerrainStats counts all cells', () => {
+  it('getTerrainStats counts all cells as plains', () => {
     const grid = new HexGrid(10, 42)
     grid.generate()
     const stats = grid.getTerrainStats()
+    expect(stats.plains).toBe(grid.getCellCount())
     const total = Object.values(stats).reduce((a, b) => a + b, 0)
     expect(total).toBe(grid.getCellCount())
   })
@@ -208,26 +200,27 @@ describe('HexGrid — stats', () => {
 })
 
 describe('HexGrid — serialization', () => {
-  it('toJSON / fromJSON roundtrip preserves terrain', () => {
+  it('toJSON / fromJSON roundtrip preserves data', () => {
     const grid = new HexGrid(5, 42)
     grid.generate()
     grid.setUserType(0, 0, 'build')
+    grid.setTerrainType(0, 0, 'rocky')
     grid.setUserType(1, -1, 'resource')
 
-    const json = grid.toJSON() as any
+    const json = grid.toJSON() as { hexes: Partial<import('./HexGrid').HexCell>[] }
     const grid2 = new HexGrid(5, 42)
     grid2.fromJSON(json)
 
     expect(grid2.getCellCount()).toBe(grid.getCellCount())
     expect(grid2.getCell(0, 0)!.userType).toBe('build')
+    expect(grid2.getCell(0, 0)!.terrainType).toBe('rocky')
     expect(grid2.getCell(1, -1)!.userType).toBe('resource')
-    expect(grid2.getCell(0, 0)!.terrainType).toBe(grid.getCell(0, 0)!.terrainType)
   })
 
   it('toJSON includes version and gridType', () => {
     const grid = new HexGrid(5, 1)
     grid.generate()
-    const json = grid.toJSON() as any
+    const json = grid.toJSON() as Record<string, unknown>
     expect(json.version).toBe(2)
     expect(json.gridType).toBe('hex-flat-top')
     expect(json.radius).toBe(5)

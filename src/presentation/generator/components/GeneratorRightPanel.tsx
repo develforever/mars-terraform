@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
 import type { BuildingType, ResourceType, Richness } from '../../../domain/mapEditorTypes'
+import type { HexTerrainType } from '../hex/HexGrid'
 
 type Tab = 'settings' | 'inspector' | 'json'
 
-// ─── Building type options ────────────────────────────────────────────────────
+// ─── Building / Resource type options ────────────────────────────────────────
 
 const BUILDING_TYPES: { value: BuildingType; label: string }[] = [
   { value: 'colony',            label: '🏠 Colony' },
@@ -21,21 +22,87 @@ const RESOURCE_TYPES: { value: ResourceType; label: string }[] = [
   { value: 'energy',   label: '⚡ Energy' },
 ]
 
+const TERRAIN_TYPES: { value: HexTerrainType; label: string; color: string }[] = [
+  { value: 'deep_crater', label: 'Deep Crater', color: '#3d1f0a' },
+  { value: 'lowland',     label: 'Lowland',     color: '#8b3a1a' },
+  { value: 'plains',      label: 'Plains',      color: '#c1440e' },
+  { value: 'highland',    label: 'Highland',    color: '#d4622a' },
+  { value: 'rocky',       label: 'Rocky',       color: '#6b4c32' },
+  { value: 'peak',        label: 'Peak',        color: '#9e8060' },
+]
+
+// ─── Hex Inspector ────────────────────────────────────────────────────────────
+
+const HexInspector = ({ q, r }: { q: number; r: number }) => {
+  const hexGrid = useMapEditorStore(s => s.hexGrid)
+  const setHexTerrainType = useMapEditorStore(s => s.setHexTerrainType)
+  const setHexUserType = useMapEditorStore(s => s.setHexUserType)
+
+  const cell = hexGrid?.getCell(q, r)
+  if (!cell) return (
+    <p className="text-zinc-500 text-xs text-center mt-4">Hex not found.</p>
+  )
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="text-xs font-mono text-zinc-400 border-b border-zinc-700 pb-2">
+        Hex <span className="text-orange-400">({q}, {r})</span>
+      </div>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-zinc-400">Terrain type</span>
+        <select
+          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-orange-500"
+          value={cell.terrainType}
+          onChange={e => setHexTerrainType(q, r, e.target.value as HexTerrainType)}
+        >
+          {TERRAIN_TYPES.map(tt => (
+            <option key={tt.value} value={tt.value}>{tt.label}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-zinc-400">User type (overlay)</span>
+        <select
+          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-orange-500"
+          value={cell.userType ?? 'empty'}
+          onChange={e => {
+            const v = e.target.value
+            setHexUserType(q, r, v === 'empty' ? null : v as import('../../../domain/mapEditorTypes').TileType)
+          }}
+        >
+          <option value="empty">— none —</option>
+          <option value="build">Build</option>
+          <option value="resource">Resource</option>
+          <option value="blocked">Blocked</option>
+          <option value="spawn">Spawn</option>
+        </select>
+      </label>
+
+      {cell.decor && (
+        <div className="text-xs text-zinc-500 font-mono">
+          decor: {cell.decor}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Build Node Inspector ─────────────────────────────────────────────────────
 
 const BuildNodeInspector = ({ nodeId }: { nodeId: string }) => {
   const node = useMapEditorStore(s => s.buildNodes.find(n => n.id === nodeId))
-  const updateBuildNode = useMapEditorStore(s => s.updateBuildNode)
-  const removeBuildNode = useMapEditorStore(s => s.removeBuildNode)
+  const updateBuildNode  = useMapEditorStore(s => s.updateBuildNode)
+  const removeBuildNode  = useMapEditorStore(s => s.removeBuildNode)
   const setSelectedNodeId = useMapEditorStore(s => s.setSelectedNodeId)
 
   if (!node) return <p className="text-zinc-500 text-xs text-center mt-4">Node not found.</p>
 
   const toggleType = (type: BuildingType) => {
-    const current = node.allowedTypes
-    const next = current.includes(type)
-      ? current.filter(t => t !== type)
-      : [...current, type]
+    const next = node.allowedTypes.includes(type)
+      ? node.allowedTypes.filter(t => t !== type)
+      : [...node.allowedTypes, type]
     if (next.length > 0) updateBuildNode(nodeId, { allowedTypes: next })
   }
 
@@ -50,24 +117,6 @@ const BuildNodeInspector = ({ nodeId }: { nodeId: string }) => {
           🗑 Remove
         </button>
       </div>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-xs text-zinc-400">Footprint size (tiles)</span>
-        <div className="flex gap-1">
-          {([1, 2, 3, 4, 5] as const).map(s => (
-            <button
-              key={s}
-              onClick={() => updateBuildNode(nodeId, { footprint: [s, s] })}
-              className={`flex-1 py-1 rounded text-xs font-mono transition-colors
-                ${node.footprint[0] === s
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'}`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </label>
 
       <div className="flex flex-col gap-1">
         <span className="text-xs text-zinc-400">Allowed building types</span>
@@ -87,7 +136,7 @@ const BuildNodeInspector = ({ nodeId }: { nodeId: string }) => {
       </div>
 
       <div className="text-xs text-zinc-500 font-mono border-t border-zinc-700 pt-2">
-        pos: [{node.pos[0]}, {node.pos[1]}]
+        hex: ({node.pos[0]}, {node.pos[1]})
       </div>
     </div>
   )
@@ -99,7 +148,7 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
   const node = useMapEditorStore(s => s.resourceNodes.find(n => n.id === nodeId))
   const updateResourceNode = useMapEditorStore(s => s.updateResourceNode)
   const removeResourceNode = useMapEditorStore(s => s.removeResourceNode)
-  const setSelectedNodeId = useMapEditorStore(s => s.setSelectedNodeId)
+  const setSelectedNodeId  = useMapEditorStore(s => s.setSelectedNodeId)
 
   if (!node) return <p className="text-zinc-500 text-xs text-center mt-4">Node not found.</p>
 
@@ -122,26 +171,17 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
           value={node.type}
           onChange={e => updateResourceNode(nodeId, { type: e.target.value as ResourceType })}
         >
-          {RESOURCE_TYPES.map(rt => (
-            <option key={rt.value} value={rt.value}>{rt.label}</option>
-          ))}
+          {RESOURCE_TYPES.map(rt => <option key={rt.value} value={rt.value}>{rt.label}</option>)}
         </select>
       </label>
 
       <label className="flex flex-col gap-1">
         <span className="text-xs text-zinc-400">Amount: {node.amount}</span>
         <input
-          type="range"
-          min={100}
-          max={5000}
-          step={100}
-          value={node.amount}
+          type="range" min={100} max={5000} step={100} value={node.amount}
           onChange={e => updateResourceNode(nodeId, { amount: Number(e.target.value) })}
           className="accent-orange-500"
         />
-        <div className="flex justify-between text-xs text-zinc-600">
-          <span>100</span><span>5000</span>
-        </div>
       </label>
 
       <label className="flex flex-col gap-1">
@@ -163,7 +203,7 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
       </label>
 
       <div className="text-xs text-zinc-500 font-mono border-t border-zinc-700 pt-2">
-        pos: [{node.pos[0]}, {node.pos[1]}]
+        hex: ({node.pos[0]}, {node.pos[1]})
       </div>
     </div>
   )
@@ -173,8 +213,8 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
 
 const SpawnInspector = ({ spawnKey }: { spawnKey: string }) => {
   const player = parseInt(spawnKey.replace('spawn-', ''))
-  const spawn = useMapEditorStore(s => s.spawnPoints.find(s => s.player === player))
-  const removeSpawnPoint = useMapEditorStore(s => s.removeSpawnPoint)
+  const spawn  = useMapEditorStore(s => s.spawnPoints.find(s => s.player === player))
+  const removeSpawnPoint  = useMapEditorStore(s => s.removeSpawnPoint)
   const setSelectedNodeId = useMapEditorStore(s => s.setSelectedNodeId)
 
   if (!spawn) return null
@@ -184,9 +224,7 @@ const SpawnInspector = ({ spawnKey }: { spawnKey: string }) => {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-bold" style={{ color }}>
-          🚩 Player {spawn.player} Spawn
-        </span>
+        <span className="text-sm font-bold" style={{ color }}>🚩 Player {spawn.player} Spawn</span>
         <button
           onClick={() => { removeSpawnPoint(spawn.player); setSelectedNodeId(null) }}
           className="text-xs text-red-500 hover:text-red-400 px-1"
@@ -195,7 +233,7 @@ const SpawnInspector = ({ spawnKey }: { spawnKey: string }) => {
         </button>
       </div>
       <div className="text-xs text-zinc-500 font-mono border-t border-zinc-700 pt-2">
-        pos: [{spawn.pos[0]}, {spawn.pos[1]}]
+        hex: ({spawn.pos[0]}, {spawn.pos[1]})
       </div>
     </div>
   )
@@ -205,36 +243,43 @@ const SpawnInspector = ({ spawnKey }: { spawnKey: string }) => {
 
 const GeneratorRightPanel = () => {
   const [activeTab, setActiveTab] = useState<Tab>('settings')
-  const meta = useMapEditorStore(s => s.meta)
-  const updateMeta = useMapEditorStore(s => s.updateMeta)
-  const exportToJSON = useMapEditorStore(s => s.exportToJSON)
-  const tiles = useMapEditorStore(s => s.tiles)
+
+  const meta           = useMapEditorStore(s => s.meta)
+  const updateMeta     = useMapEditorStore(s => s.updateMeta)
+  const exportToJSON   = useMapEditorStore(s => s.exportToJSON)
   const selectedNodeId = useMapEditorStore(s => s.selectedNodeId)
-  const buildNodes = useMapEditorStore(s => s.buildNodes)
-  const resourceNodes = useMapEditorStore(s => s.resourceNodes)
+  const selectedHex    = useMapEditorStore(s => s.selectedHex)
+  const buildNodes     = useMapEditorStore(s => s.buildNodes)
+  const resourceNodes  = useMapEditorStore(s => s.resourceNodes)
+  const hexGrid        = useMapEditorStore(s => s.hexGrid)
+  const hexRadius      = useMapEditorStore(s => s.hexRadius)
 
-  // Auto-switch to inspector tab when something is selected
-  const effectiveTab = selectedNodeId ? 'inspector' : activeTab
+  const hasInspector = !!(selectedNodeId || selectedHex)
 
-  // Tile stats
-  const stats = { build: 0, resource: 0, blocked: 0, spawn: 0, empty: 0 }
-  for (const v of tiles) {
-    if (v === 1) stats.build++
-    else if (v === 2) stats.resource++
-    else if (v === 3) stats.blocked++
-    else if (v === 4) stats.spawn++
-    else stats.empty++
-  }
+  // Auto-switch to inspector when something is selected, but don't lock the tab
+  useEffect(() => {
+    if (hasInspector) setActiveTab('inspector')
+  }, [hasInspector])
+
+  const effectiveTab = activeTab
+
+  // Terrain stats from hexGrid
+  const terrainStats = hexGrid?.getTerrainStats()
+  const userStats    = hexGrid?.getUserTypeStats()
+  const totalHexes   = hexGrid?.getCellCount() ?? 0
 
   const jsonPreview = JSON.stringify(exportToJSON(), null, 2)
 
   const renderInspector = () => {
+    if (selectedHex && !selectedNodeId) {
+      return <HexInspector q={selectedHex.q} r={selectedHex.r} />
+    }
     if (!selectedNodeId) {
       return (
         <div className="text-zinc-500 text-xs text-center mt-8 px-2">
-          <p>Select a node on the map</p>
+          <p>Select a hex or node on the map</p>
           <p className="mt-1 text-zinc-600">
-            Use <span className="text-orange-400">↖ Select</span> tool then click a marker
+            Use <span className="text-orange-400">↖ Select</span> tool then click
           </p>
           <div className="mt-4 border-t border-zinc-800 pt-4 text-left">
             <p className="text-zinc-400 mb-2">Nodes placed:</p>
@@ -264,7 +309,7 @@ const GeneratorRightPanel = () => {
                 : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             {tab}
-            {tab === 'inspector' && selectedNodeId && (
+            {tab === 'inspector' && hasInspector && (
               <span className="ml-1 w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
             )}
           </button>
@@ -284,6 +329,7 @@ const GeneratorRightPanel = () => {
                 onChange={e => updateMeta({ name: e.target.value })}
               />
             </label>
+
             <label className="flex flex-col gap-1">
               <span className="text-xs text-zinc-400">Description</span>
               <textarea
@@ -293,6 +339,7 @@ const GeneratorRightPanel = () => {
                 onChange={e => updateMeta({ description: e.target.value })}
               />
             </label>
+
             <label className="flex flex-col gap-1">
               <span className="text-xs text-zinc-400">Players (1–4)</span>
               <div className="flex gap-1">
@@ -311,22 +358,49 @@ const GeneratorRightPanel = () => {
               </div>
             </label>
 
-            {/* Tile stats */}
+            {/* Map info */}
             <div className="border-t border-zinc-700 pt-3 mt-1">
-              <p className="text-xs text-zinc-500 uppercase tracking-widest mb-2">Tile stats</p>
-              {([
-                ['Build',    stats.build,    'text-green-400'],
-                ['Resource', stats.resource, 'text-yellow-400'],
-                ['Blocked',  stats.blocked,  'text-red-400'],
-                ['Spawn',    stats.spawn,    'text-blue-400'],
-                ['Empty',    stats.empty,    'text-zinc-500'],
-              ] as [string, number, string][]).map(([label, count, cls]) => (
-                <div key={label} className="flex justify-between py-0.5">
-                  <span className={`text-xs ${cls}`}>{label}</span>
-                  <span className="text-xs font-mono text-zinc-300">{count}</span>
-                </div>
-              ))}
+              <p className="text-xs text-zinc-500 uppercase tracking-widest mb-2">Map info</p>
+              <div className="flex justify-between py-0.5">
+                <span className="text-xs text-zinc-400">Radius</span>
+                <span className="text-xs font-mono text-zinc-300">{hexRadius}</span>
+              </div>
+              <div className="flex justify-between py-0.5">
+                <span className="text-xs text-zinc-400">Total hexes</span>
+                <span className="text-xs font-mono text-zinc-300">{totalHexes}</span>
+              </div>
             </div>
+
+            {/* Terrain stats */}
+            {terrainStats && (
+              <div className="border-t border-zinc-700 pt-3">
+                <p className="text-xs text-zinc-500 uppercase tracking-widest mb-2">Terrain</p>
+                {Object.entries(terrainStats).map(([type, count]) => count > 0 && (
+                  <div key={type} className="flex justify-between py-0.5">
+                    <span className="text-xs text-zinc-400 capitalize">{type.replace('_', ' ')}</span>
+                    <span className="text-xs font-mono text-zinc-300">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* User type stats */}
+            {userStats && (
+              <div className="border-t border-zinc-700 pt-3">
+                <p className="text-xs text-zinc-500 uppercase tracking-widest mb-2">User types</p>
+                {([
+                  ['Build',    userStats.build,    'text-green-400'],
+                  ['Resource', userStats.resource, 'text-yellow-400'],
+                  ['Blocked',  userStats.blocked,  'text-red-400'],
+                  ['Spawn',    userStats.spawn,    'text-blue-400'],
+                ] as [string, number, string][]).map(([label, count, cls]) => (
+                  <div key={label} className="flex justify-between py-0.5">
+                    <span className={`text-xs ${cls}`}>{label}</span>
+                    <span className="text-xs font-mono text-zinc-300">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

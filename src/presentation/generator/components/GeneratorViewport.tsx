@@ -4,13 +4,11 @@ import { OrbitControls, GizmoHelper, GizmoViewport, Html, useProgress } from '@r
 import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
 import HexTerrain from './viewport/HexTerrain'
 import HexGridLines from './viewport/HexGridLines'
-import TileOverlay from './viewport/TileOverlay'
+import HexInteraction from './viewport/HexInteraction'
 import BuildNodeMarkers from './viewport/BuildNodeMarkers'
 import ResourceNodeMarkers from './viewport/ResourceNodeMarkers'
 import SpawnPointMarkers from './viewport/SpawnPointMarkers'
-import DecorMarkers from './viewport/DecorMarkers'
 import Minimap from './viewport/Minimap'
-import { TerrainHeightContext, useTerrainHeightProvider } from '../hooks/useTerrainHeight'
 import { CineonToneMapping } from 'three'
 
 // ─── Loading overlay ──────────────────────────────────────────────────────────
@@ -62,7 +60,6 @@ const GeneratorViewport = () => {
   const activeTool = useMapEditorStore(s => s.activeTool)
   const generateHexGrid = useMapEditorStore(s => s.generateHexGrid)
   const hexGrid = useMapEditorStore(s => s.hexGrid)
-  const terrainHeightCtx = useTerrainHeightProvider()
   const orbitEnabled = activeTool === 'select'
 
   // Generate hex grid on mount if not already done
@@ -78,18 +75,16 @@ const GeneratorViewport = () => {
         gl={{ antialias: true, toneMapping: CineonToneMapping, toneMappingExposure: 1.97 }}
         onCreated={({ gl }) => { gl.toneMappingExposure = 1.0 }}
       >
-        <TerrainHeightContext.Provider value={terrainHeightCtx}>
           <SceneLighting />
 
           <Suspense fallback={<Loader />}>
             <HexTerrain />
           </Suspense>
 
-          <TileOverlay />
+          <HexInteraction />
           <BuildNodeMarkers />
           <ResourceNodeMarkers />
           <SpawnPointMarkers />
-          <DecorMarkers />
 
           {showGrid && <HexGridLines />}
 
@@ -119,7 +114,6 @@ const GeneratorViewport = () => {
               labelColor="white"
             />
           </GizmoHelper>
-        </TerrainHeightContext.Provider>
       </Canvas>
       <Minimap />
     </div>

@@ -3,12 +3,21 @@ import { validateMap } from './utils/validateMap'
 import type { MapExportJSON } from '../../domain/mapEditorTypes'
 
 const BASE_MAP: MapExportJSON = {
-  meta: { name: 'test', description: '', size: [100, 100], tileSize: 1, players: 2, terrainFile: 'x.glb', seed: null },
-  buildNodes: [{ id: 'b1', pos: [10, 10], footprint: [3, 3], allowedTypes: ['colony'] }],
-  resourceNodes: [{ id: 'r1', type: 'minerals', pos: [50, 50], amount: 1000, richness: 'med', model: 'm' }],
-  spawnPoints: [{ player: 1, pos: [5, 5] }, { player: 2, pos: [90, 90] }],
+  meta: {
+    name: 'test',
+    description: '',
+    version: '2.0',
+    gridType: 'hex-flat-top',
+    hexSize: 1.2,
+    hexRadius: 20,
+    players: 2,
+    seed: 42,
+  },
+  hexes: [],
+  buildNodes: [{ id: 'b1', pos: [0, 0], footprint: [1, 1], allowedTypes: ['colony'] }],
+  resourceNodes: [{ id: 'r1', type: 'minerals', pos: [3, -2], amount: 1000, richness: 'med', model: 'm' }],
+  spawnPoints: [{ player: 1, pos: [-15, 10] }, { player: 2, pos: [15, -10] }],
   decor: [],
-  blockedTiles: btoa(new Array(10000).fill(0).map(String).join('').slice(0, 10000)),
 }
 
 describe('validateMap', () => {
@@ -25,7 +34,7 @@ describe('validateMap', () => {
   })
 
   it('missing spawn points for players count is an error', () => {
-    const result = validateMap({ ...BASE_MAP, spawnPoints: [{ player: 1, pos: [5, 5] }] })
+    const result = validateMap({ ...BASE_MAP, spawnPoints: [{ player: 1, pos: [-15, 10] }] })
     expect(result.valid).toBe(false)
     expect(result.errors.some(e => e.message.includes('spawn'))).toBe(true)
   })
@@ -33,19 +42,10 @@ describe('validateMap', () => {
   it('duplicate spawn players is an error', () => {
     const result = validateMap({
       ...BASE_MAP,
-      spawnPoints: [{ player: 1, pos: [5, 5] }, { player: 1, pos: [90, 90] }],
+      spawnPoints: [{ player: 1, pos: [-15, 10] }, { player: 1, pos: [15, -10] }],
     })
     expect(result.valid).toBe(false)
     expect(result.errors.some(e => e.message.includes('Duplicate'))).toBe(true)
-  })
-
-  it('out-of-bounds build node is an error', () => {
-    const result = validateMap({
-      ...BASE_MAP,
-      buildNodes: [{ id: 'b1', pos: [150, 10], footprint: [3, 3], allowedTypes: ['colony'] }],
-    })
-    expect(result.valid).toBe(false)
-    expect(result.errors.some(e => e.message.includes('out of map bounds'))).toBe(true)
   })
 
   it('no build nodes is a warning not error', () => {

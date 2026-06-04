@@ -11,72 +11,38 @@ import type {
   MapExportJSON,
   MapSnapshot,
 } from '../../domain/mapEditorTypes'
-import { HexGrid } from '../../presentation/generator/hex/HexGrid'
+import { HexGrid, type HexTerrainType } from '../../presentation/generator/hex/HexGrid'
+import { HEX_SIZE } from '../../presentation/generator/hex/HexMath'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MAP_SIZE = 100
 const MAX_UNDO = 20
-const HEX_RADIUS = 2
+const DEFAULT_HEX_RADIUS = 20
 const DEFAULT_SEED = 42
-
-// ─── Scatter options ──────────────────────────────────────────────────────────
-
-export interface ScatterOptions {
-  rocks: number        // number of rock decor items
-  minerals: number     // number of mineral resource nodes
-  ice: number          // number of ice resource nodes
-  organics: number     // number of organics resource nodes
-  energy: number       // number of energy resource nodes
-  clearExisting: boolean
-  seed: number
-}
-
-const TILE_TYPE_INDEX: Record<TileType, number> = {
-  empty: 0,
-  build: 1,
-  resource: 2,
-  blocked: 3,
-  spawn: 4,
-}
-
-const INDEX_TO_TILE: TileType[] = ['empty', 'build', 'resource', 'blocked', 'spawn']
-
-const defaultMeta: MapMeta = {
-  name: 'mars_map',
-  description: '',
-  size: [MAP_SIZE, MAP_SIZE],
-  tileSize: 1,
-  players: 2,
-  terrainFile: 'mars_terrain.glb',
-  seed: null,
-}
 
 // ─── State interface ──────────────────────────────────────────────────────────
 
 interface MapEditorState {
   meta: MapMeta
-  tiles: Uint8Array
   buildNodes: BuildNode[]
   resourceNodes: ResourceNode[]
   spawnPoints: SpawnPoint[]
   decor: DecorItem[]
 
-  // Hex grid (new terrain system)
+  // Hex grid
   hexGrid: HexGrid | null
+  hexRadius: number
   hexSeed: number
 
   // UI state
   activeTool: ToolMode
   brushSize: BrushSize
+  activeTerrainType: HexTerrainType
   selectedNodeId: string | null
+  selectedHex: { q: number; r: number } | null
+  hoveredHex: [number, number] | null
   showGrid: boolean
   undoStack: MapSnapshot[]
-
-  // Tile accessors
-  getTileType: (x: number, z: number) => TileType
-  setTile: (x: number, z: number, type: TileType) => void
-  paintTiles: (coords: [number, number][], type: TileType) => void
 
   // Node actions
   addBuildNode: (node: BuildNode) => void
@@ -91,10 +57,23 @@ interface MapEditorState {
   // UI actions
   setActiveTool: (tool: ToolMode) => void
   setBrushSize: (size: BrushSize) => void
+  setActiveTerrainType: (type: HexTerrainType) => void
   setSelectedNodeId: (id: string | null) => void
+  selectHex: (q: number, r: number) => void
+  clearSelection: () => void
+  setHoveredHex: (hex: [number, number] | null) => void
   setShowGrid: (show: boolean) => void
   toggleGrid: () => void
   updateMeta: (patch: Partial<MapMeta>) => void
+
+  // Hex grid actions
+  generateHexGrid: (radius?: number, seed?: number) => void
+  setHexRadius: (radius: number) => void
+  setHexSeed: (seed: number) => void
+  setHexUserType: (q: number, r: number, type: TileType | null) => void
+  paintHexes: (coords: [number, number][], type: TileType | null) => void
+  setHexTerrainType: (q: number, r: number, type: HexTerrainType) => void
+  paintHexTerrainType: (coords: [number, number][], type: HexTerrainType) => void
 
   // Undo
   pushUndo: () => void
@@ -102,75 +81,55 @@ interface MapEditorState {
 
   // Import / Export
   exportToJSON: () => MapExportJSON
-  loadFromJSON: (data: MapExportJSON) => void
+  loadFromJSON: (data: unknown) => void
   resetMap: () => void
-
-  // Auto-scatter
-  autoScatter: (opts: ScatterOptions) => void
-
-  // Hex grid actions
-  generateHexGrid: (seed?: number) => void
-  setHexUserType: (q: number, r: number, type: TileType | null) => void
-  paintHexes: (coords: [number, number][], type: TileType | null) => void
-  setHexSeed: (seed: number) => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const tileIndex = (x: number, z: number) => z * MAP_SIZE + x
+const defaultMeta: MapMeta = {
+  name: 'mars_map',
+  description: '',
+  players: 2,
+}
 
-const snapshot = (state: MapEditorState): MapSnapshot => ({
-  tiles: new Uint8Array(state.tiles),
+const makeSnapshot = (state: MapEditorState): MapSnapshot => ({
+  hexCells: state.hexGrid
+    ? Array.from(state.hexGrid.snapshot().entries()).map(([k, v]) => [k, { ...v } as Record<string, unknown>])
+    : [],
   buildNodes: JSON.parse(JSON.stringify(state.buildNodes)),
   resourceNodes: JSON.parse(JSON.stringify(state.resourceNodes)),
   spawnPoints: JSON.parse(JSON.stringify(state.spawnPoints)),
   decor: JSON.parse(JSON.stringify(state.decor)),
 })
 
+// Force Zustand re-render by replacing HexGrid reference (same class, same cells)
+const refreshGrid = (grid: HexGrid): HexGrid =>
+  Object.assign(Object.create(Object.getPrototypeOf(grid)), grid)
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useMapEditorStore = create<MapEditorState>((set, get) => ({
   meta: { ...defaultMeta },
-  tiles: new Uint8Array(MAP_SIZE * MAP_SIZE),
   buildNodes: [],
   resourceNodes: [],
   spawnPoints: [],
   decor: [],
 
   hexGrid: null,
+  hexRadius: DEFAULT_HEX_RADIUS,
   hexSeed: DEFAULT_SEED,
 
   activeTool: 'select',
   brushSize: 1,
+  activeTerrainType: 'plains',
   selectedNodeId: null,
+  selectedHex: null,
+  hoveredHex: null,
   showGrid: true,
   undoStack: [],
 
-  getTileType: (x, z) => {
-    const val = get().tiles[tileIndex(x, z)]
-    return INDEX_TO_TILE[val] ?? 'empty'
-  },
-
-  setTile: (x, z, type) => {
-    set(state => {
-      const tiles = new Uint8Array(state.tiles)
-      tiles[tileIndex(x, z)] = TILE_TYPE_INDEX[type]
-      return { tiles }
-    })
-  },
-
-  paintTiles: (coords, type) => {
-    get().pushUndo()
-    set(state => {
-      const tiles = new Uint8Array(state.tiles)
-      for (const [x, z] of coords) {
-        if (x >= 0 && x < MAP_SIZE && z >= 0 && z < MAP_SIZE) {
-          tiles[tileIndex(x, z)] = TILE_TYPE_INDEX[type]
-        }
-      }
-      return { tiles }
-    })
-  },
+  // ── Node actions ───────────────────────────────────────────────────────────
 
   addBuildNode: (node) => {
     get().pushUndo()
@@ -217,186 +176,180 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
     set(state => ({ spawnPoints: state.spawnPoints.filter(s => s.player !== player) }))
   },
 
+  // ── UI actions ─────────────────────────────────────────────────────────────
+
   setActiveTool: (tool) => set({ activeTool: tool }),
   setBrushSize: (size) => set({ brushSize: size }),
+  setActiveTerrainType: (type) => set({ activeTerrainType: type }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+  selectHex: (q, r) => set({ selectedHex: { q, r }, selectedNodeId: null }),
+  clearSelection: () => set({ selectedHex: null, selectedNodeId: null }),
+  setHoveredHex: (hex) => set({ hoveredHex: hex }),
   setShowGrid: (show) => set({ showGrid: show }),
   toggleGrid: () => set(state => ({ showGrid: !state.showGrid })),
   updateMeta: (patch) => set(state => ({ meta: { ...state.meta, ...patch } })),
 
+  // ── Hex grid actions ───────────────────────────────────────────────────────
+
+  generateHexGrid: (radius, seed) => {
+    const r = radius ?? get().hexRadius
+    const s = seed ?? get().hexSeed
+    const grid = new HexGrid(r, s)
+    grid.generate()
+    set({ hexGrid: grid, hexRadius: r, hexSeed: s, selectedHex: null, selectedNodeId: null })
+  },
+
+  setHexRadius: (radius) => set({ hexRadius: radius }),
+  setHexSeed: (seed) => set({ hexSeed: seed }),
+
+  setHexUserType: (q, r, type) => {
+    const grid = get().hexGrid
+    if (!grid) return
+    get().pushUndo()
+    grid.setUserType(q, r, type)
+    set({ hexGrid: refreshGrid(grid) })
+  },
+
+  paintHexes: (coords, type) => {
+    const grid = get().hexGrid
+    if (!grid) return
+    get().pushUndo()
+    for (const [q, r] of coords) grid.setUserType(q, r, type)
+    set({ hexGrid: refreshGrid(grid) })
+  },
+
+  setHexTerrainType: (q, r, type) => {
+    const grid = get().hexGrid
+    if (!grid) return
+    get().pushUndo()
+    grid.setTerrainType(q, r, type)
+    set({ hexGrid: refreshGrid(grid) })
+  },
+
+  paintHexTerrainType: (coords, type) => {
+    const grid = get().hexGrid
+    if (!grid) return
+    get().pushUndo()
+    for (const [q, r] of coords) grid.setTerrainType(q, r, type)
+    set({ hexGrid: refreshGrid(grid) })
+  },
+
+  // ── Undo ───────────────────────────────────────────────────────────────────
+
   pushUndo: () => {
     set(state => {
-      const stack = [...state.undoStack, snapshot(state)]
+      const stack = [...state.undoStack, makeSnapshot(state)]
       if (stack.length > MAX_UNDO) stack.shift()
       return { undoStack: stack }
     })
   },
 
   undo: () => {
-    set(state => {
-      if (state.undoStack.length === 0) return {}
-      const stack = [...state.undoStack]
-      const prev = stack.pop()!
-      return {
-        tiles: prev.tiles,
-        buildNodes: prev.buildNodes,
-        resourceNodes: prev.resourceNodes,
-        spawnPoints: prev.spawnPoints,
-        decor: prev.decor,
-        undoStack: stack,
-      }
+    const state = get()
+    if (state.undoStack.length === 0) return
+    const stack = [...state.undoStack]
+    const prev = stack.pop()!
+
+    let hexGrid = state.hexGrid
+    if (hexGrid && prev.hexCells.length > 0) {
+      // Rebuild Map<string, HexCell> from serialized snapshot
+      type HexCellLike = import('../../presentation/generator/hex/HexGrid').HexCell
+      const snap = new Map(
+        prev.hexCells.map(([k, v]) => [k, v as unknown as HexCellLike])
+      )
+      hexGrid.restoreSnapshot(snap)
+      hexGrid = refreshGrid(hexGrid)
+    }
+
+    set({
+      hexGrid,
+      buildNodes: prev.buildNodes,
+      resourceNodes: prev.resourceNodes,
+      spawnPoints: prev.spawnPoints,
+      decor: prev.decor,
+      undoStack: stack,
     })
   },
 
+  // ── Import / Export ────────────────────────────────────────────────────────
+
   exportToJSON: (): MapExportJSON => {
     const state = get()
-    // Simple base64 encode of blocked tiles bitmask (pako added later)
-    const blocked = btoa(String.fromCharCode(...state.tiles))
+    const hexes = state.hexGrid
+      ? state.hexGrid.getAllCells().map(c => ({
+          q: c.q,
+          r: c.r,
+          terrainType: c.terrainType,
+          userType: c.userType,
+          decor: c.decor,
+        }))
+      : []
+
     return {
-      meta: { ...state.meta },
+      meta: {
+        name: state.meta.name,
+        description: state.meta.description,
+        version: '2.0',
+        gridType: 'hex-flat-top',
+        hexSize: HEX_SIZE,
+        hexRadius: state.hexRadius,
+        players: state.meta.players,
+        seed: state.hexSeed,
+      },
+      hexes,
       buildNodes: JSON.parse(JSON.stringify(state.buildNodes)),
       resourceNodes: JSON.parse(JSON.stringify(state.resourceNodes)),
       spawnPoints: JSON.parse(JSON.stringify(state.spawnPoints)),
       decor: JSON.parse(JSON.stringify(state.decor)),
-      blockedTiles: blocked,
     }
   },
 
-  loadFromJSON: (data) => {
-    const tiles = new Uint8Array(MAP_SIZE * MAP_SIZE)
-    try {
-      const raw = atob(data.blockedTiles)
-      for (let i = 0; i < raw.length && i < tiles.length; i++) {
-        tiles[i] = raw.charCodeAt(i)
-      }
-    } catch {
-      // ignore corrupt blockedTiles
+  loadFromJSON: (data: unknown) => {
+    const d = data as Record<string, unknown>
+    const meta = (d.meta ?? {}) as Record<string, unknown>
+    const isV2 = meta.version === '2.0' || Array.isArray(d.hexes)
+
+    if (isV2) {
+      const radius = (meta.hexRadius as number) ?? DEFAULT_HEX_RADIUS
+      const seed = (meta.seed as number) ?? DEFAULT_SEED
+      const grid = new HexGrid(radius, seed)
+      grid.generate()
+      grid.fromJSON({ hexes: (d.hexes as Partial<import('../../presentation/generator/hex/HexGrid').HexCell>[]) ?? [] })
+
+      set({
+        meta: {
+          name: (meta.name as string) ?? 'mars_map',
+          description: (meta.description as string) ?? '',
+          players: (meta.players as number) ?? 2,
+        },
+        hexGrid: grid,
+        hexRadius: radius,
+        hexSeed: seed,
+        buildNodes: (d.buildNodes as BuildNode[]) ?? [],
+        resourceNodes: (d.resourceNodes as ResourceNode[]) ?? [],
+        spawnPoints: (d.spawnPoints as SpawnPoint[]) ?? [],
+        decor: (d.decor as DecorItem[]) ?? [],
+        undoStack: [],
+        selectedHex: null,
+        selectedNodeId: null,
+      })
     }
-    set({
-      meta: { ...defaultMeta, ...data.meta },
-      tiles,
-      buildNodes: data.buildNodes ?? [],
-      resourceNodes: data.resourceNodes ?? [],
-      spawnPoints: data.spawnPoints ?? [],
-      decor: data.decor ?? [],
-      undoStack: [],
-    })
   },
 
-  resetMap: () =>
+  resetMap: () => {
+    const state = get()
+    const grid = new HexGrid(state.hexRadius, state.hexSeed)
+    grid.generate()
     set({
       meta: { ...defaultMeta },
-      tiles: new Uint8Array(MAP_SIZE * MAP_SIZE),
+      hexGrid: grid,
       buildNodes: [],
       resourceNodes: [],
       spawnPoints: [],
       decor: [],
       undoStack: [],
+      selectedHex: null,
       selectedNodeId: null,
-    }),
-
-  autoScatter: (opts) => {
-    get().pushUndo()
-    let seed = opts.seed >>> 0
-    const rand = () => {
-      seed = (seed * 1664525 + 1013904223) >>> 0
-      return seed / 0xFFFFFFFF
-    }
-    const randInt = (min: number, max: number) => Math.floor(rand() * (max - min + 1)) + min
-    const randTile = (): [number, number] => [randInt(2, MAP_SIZE - 3), randInt(2, MAP_SIZE - 3)]
-
-    set(state => {
-      const tiles = new Uint8Array(state.tiles)
-      const newDecor: DecorItem[] = opts.clearExisting ? [] : [...state.decor]
-      const newResources: ResourceNode[] = opts.clearExisting ? [] : [...state.resourceNodes]
-
-      // Occupied set — don't double-place
-      const occupied = new Set<number>()
-      for (let i = 0; i < tiles.length; i++) {
-        if (tiles[i] !== 0) occupied.add(i)
-      }
-      const occupy = (x: number, z: number) => occupied.add(z * MAP_SIZE + x)
-      const isFree = (x: number, z: number) => !occupied.has(z * MAP_SIZE + x)
-
-      // Scatter rocks (decor + blocked tiles)
-      const ROCK_MODELS = ['rock_a', 'rock_b', 'rock_c', 'rock_cluster']
-      let placed = 0
-      let attempts = 0
-      while (placed < opts.rocks && attempts < opts.rocks * 10) {
-        attempts++
-        const [x, z] = randTile()
-        if (!isFree(x, z)) continue
-        newDecor.push({
-          model: ROCK_MODELS[randInt(0, ROCK_MODELS.length - 1)],
-          pos: [x, z],
-          rot: rand() * Math.PI * 2,
-          scale: 0.6 + rand() * 0.8,
-        })
-        tiles[z * MAP_SIZE + x] = 3 // blocked
-        occupy(x, z)
-        placed++
-      }
-
-      // Scatter resource nodes
-      const resourceDefs: { type: ResourceNode['type']; count: number }[] = [
-        { type: 'minerals', count: opts.minerals },
-        { type: 'ice',      count: opts.ice },
-        { type: 'organics', count: opts.organics },
-        { type: 'energy',   count: opts.energy },
-      ]
-
-      for (const { type, count } of resourceDefs) {
-        let rPlaced = 0
-        let rAttempts = 0
-        while (rPlaced < count && rAttempts < count * 10) {
-          rAttempts++
-          const [x, z] = randTile()
-          if (!isFree(x, z)) continue
-          newResources.push({
-            id: `r${Date.now()}${rPlaced}${type[0]}`,
-            type,
-            pos: [x, z],
-            amount: randInt(500, 3000),
-            richness: (['low', 'med', 'high'] as const)[randInt(0, 2)],
-            model: `${type}_pile_0${randInt(1, 2)}`,
-          })
-          tiles[z * MAP_SIZE + x] = 2 // resource
-          occupy(x, z)
-          rPlaced++
-        }
-      }
-
-      return { tiles, decor: newDecor, resourceNodes: newResources }
     })
   },
-
-  // ─── Hex grid actions ───────────────────────────────────────────────────────
-
-  generateHexGrid: (seed?: number) => {
-    const s = seed ?? get().hexSeed
-    const grid = new HexGrid(HEX_RADIUS, s)
-    grid.generate()
-    set({ hexGrid: grid, hexSeed: s })
-  },
-
-  setHexUserType: (q, r, type) => {
-    const grid = get().hexGrid
-    if (!grid) return
-    const snap = grid.snapshot()
-    grid.setUserType(q, r, type)
-    // Trigger re-render by replacing hexGrid reference
-    set({ hexGrid: Object.assign(Object.create(Object.getPrototypeOf(grid)), grid) })
-    void snap // keep reference for potential undo integration
-  },
-
-  paintHexes: (coords, type) => {
-    const grid = get().hexGrid
-    if (!grid) return
-    for (const [q, r] of coords) {
-      grid.setUserType(q, r, type)
-    }
-    set({ hexGrid: Object.assign(Object.create(Object.getPrototypeOf(grid)), grid) })
-  },
-
-  setHexSeed: (seed) => set({ hexSeed: seed }),
 }))

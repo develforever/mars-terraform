@@ -36,7 +36,7 @@ export const useMapConfigStore = create<MapConfigState>((set) => ({
       resourceNodes: data.resourceNodes ?? [],
       spawnPoints: data.spawnPoints ?? [],
       decor: data.decor ?? [],
-      terrainFile: data.meta.terrainFile ?? 'mars_terrain.glb',
+      terrainFile: 'mars_terrain.glb',
     })
   },
 
@@ -58,7 +58,7 @@ export const useMapConfigStore = create<MapConfigState>((set) => ({
             resourceNodes: data.resourceNodes ?? [],
             spawnPoints: data.spawnPoints ?? [],
             decor: data.decor ?? [],
-            terrainFile: data.meta.terrainFile ?? 'mars_terrain.glb',
+            terrainFile: 'mars_terrain.glb',
           })
           resolve()
         } catch (err) {

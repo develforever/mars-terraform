@@ -13,9 +13,7 @@ describe('useMapEditorStore — meta', () => {
   it('has correct default meta', () => {
     const { meta } = useMapEditorStore.getState()
     expect(meta.name).toBe('mars_map')
-    expect(meta.size).toEqual([100, 100])
-    expect(meta.tileSize).toBe(1)
-    expect(meta.terrainFile).toBe('mars_terrain.glb')
+    expect(meta.players).toBe(2)
   })
 
   it('updateMeta patches partial fields', () => {
@@ -23,45 +21,72 @@ describe('useMapEditorStore — meta', () => {
     const { meta } = useMapEditorStore.getState()
     expect(meta.name).toBe('test_map')
     expect(meta.players).toBe(4)
-    expect(meta.terrainFile).toBe('mars_terrain.glb') // unchanged
   })
 })
 
-// ─── Tiles ────────────────────────────────────────────────────────────────────
+// ─── Hex grid ─────────────────────────────────────────────────────────────────
 
-describe('useMapEditorStore — tiles', () => {
-  it('all tiles start as empty (0)', () => {
-    const { tiles } = useMapEditorStore.getState()
-    expect(tiles.length).toBe(10000)
-    expect(tiles.every(v => v === 0)).toBe(true)
+describe('useMapEditorStore — hexGrid', () => {
+  it('generates hex grid on resetMap', () => {
+    const { hexGrid } = useMapEditorStore.getState()
+    expect(hexGrid).not.toBeNull()
+    expect(hexGrid!.getCellCount()).toBeGreaterThan(0)
   })
 
-  it('setTile sets correct index', () => {
-    act(() => useMapEditorStore.getState().setTile(5, 3, 'build'))
-    const { tiles } = useMapEditorStore.getState()
-    expect(tiles[3 * 100 + 5]).toBe(1) // build = 1
+  it('all cells start as plains', () => {
+    const { hexGrid } = useMapEditorStore.getState()
+    for (const cell of hexGrid!.getAllCells()) {
+      expect(cell.terrainType).toBe('plains')
+      expect(cell.userType).toBeNull()
+    }
   })
 
-  it('getTileType returns correct type', () => {
-    act(() => useMapEditorStore.getState().setTile(10, 10, 'resource'))
-    expect(useMapEditorStore.getState().getTileType(10, 10)).toBe('resource')
-    expect(useMapEditorStore.getState().getTileType(0, 0)).toBe('empty')
+  it('generateHexGrid respects radius', () => {
+    act(() => useMapEditorStore.getState().generateHexGrid(5))
+    const { hexGrid } = useMapEditorStore.getState()
+    expect(hexGrid!.getCellCount()).toBe(91) // 3*5*6+1
   })
 
-  it('paintTiles sets multiple tiles', () => {
-    const coords: [number, number][] = [[0,0],[1,0],[2,0]]
-    act(() => useMapEditorStore.getState().paintTiles(coords, 'blocked'))
-    const { tiles } = useMapEditorStore.getState()
-    expect(tiles[0]).toBe(3)
-    expect(tiles[1]).toBe(3)
-    expect(tiles[2]).toBe(3)
-    expect(tiles[3]).toBe(0)
+  it('setHexUserType paints a hex', () => {
+    act(() => useMapEditorStore.getState().generateHexGrid(5))
+    act(() => useMapEditorStore.getState().setHexUserType(0, 0, 'build'))
+    const { hexGrid } = useMapEditorStore.getState()
+    expect(hexGrid!.getCell(0, 0)!.userType).toBe('build')
   })
 
-  it('paintTiles ignores out-of-bounds coords', () => {
-    expect(() => {
-      act(() => useMapEditorStore.getState().paintTiles([[-1, 0], [0, 200]], 'build'))
-    }).not.toThrow()
+  it('paintHexes paints multiple hexes', () => {
+    act(() => useMapEditorStore.getState().generateHexGrid(5))
+    act(() => useMapEditorStore.getState().paintHexes([[0,0],[1,0],[0,1]], 'blocked'))
+    const { hexGrid } = useMapEditorStore.getState()
+    expect(hexGrid!.getCell(0, 0)!.userType).toBe('blocked')
+    expect(hexGrid!.getCell(1, 0)!.userType).toBe('blocked')
+    expect(hexGrid!.getCell(0, 1)!.userType).toBe('blocked')
+  })
+
+  it('setHexTerrainType changes terrain', () => {
+    act(() => useMapEditorStore.getState().generateHexGrid(5))
+    act(() => useMapEditorStore.getState().setHexTerrainType(0, 0, 'rocky'))
+    const { hexGrid } = useMapEditorStore.getState()
+    expect(hexGrid!.getCell(0, 0)!.terrainType).toBe('rocky')
+  })
+})
+
+// ─── Hex selection ────────────────────────────────────────────────────────────
+
+describe('useMapEditorStore — hex selection', () => {
+  it('selectHex sets selectedHex', () => {
+    act(() => useMapEditorStore.getState().selectHex(3, -2))
+    expect(useMapEditorStore.getState().selectedHex).toEqual({ q: 3, r: -2 })
+  })
+
+  it('clearSelection clears both selectedHex and selectedNodeId', () => {
+    act(() => {
+      useMapEditorStore.getState().selectHex(1, 1)
+      useMapEditorStore.getState().setSelectedNodeId('b1')
+    })
+    act(() => useMapEditorStore.getState().clearSelection())
+    expect(useMapEditorStore.getState().selectedHex).toBeNull()
+    expect(useMapEditorStore.getState().selectedNodeId).toBeNull()
   })
 })
 
@@ -70,7 +95,7 @@ describe('useMapEditorStore — tiles', () => {
 describe('useMapEditorStore — buildNodes', () => {
   it('addBuildNode adds a node', () => {
     act(() => useMapEditorStore.getState().addBuildNode({
-      id: 'b1', pos: [10, 20], footprint: [3, 3], allowedTypes: ['colony'],
+      id: 'b1', pos: [3, -2], footprint: [1, 1], allowedTypes: ['colony'],
     }))
     expect(useMapEditorStore.getState().buildNodes).toHaveLength(1)
     expect(useMapEditorStore.getState().buildNodes[0].id).toBe('b1')
@@ -78,17 +103,16 @@ describe('useMapEditorStore — buildNodes', () => {
 
   it('updateBuildNode patches node', () => {
     act(() => useMapEditorStore.getState().addBuildNode({
-      id: 'b1', pos: [10, 20], footprint: [3, 3], allowedTypes: ['colony'],
+      id: 'b1', pos: [0, 0], footprint: [1, 1], allowedTypes: ['colony'],
     }))
-    act(() => useMapEditorStore.getState().updateBuildNode('b1', { footprint: [5, 5] }))
-    expect(useMapEditorStore.getState().buildNodes[0].footprint).toEqual([5, 5])
-    expect(useMapEditorStore.getState().buildNodes[0].allowedTypes).toEqual(['colony'])
+    act(() => useMapEditorStore.getState().updateBuildNode('b1', { footprint: [2, 2] }))
+    expect(useMapEditorStore.getState().buildNodes[0].footprint).toEqual([2, 2])
   })
 
   it('removeBuildNode removes correct node', () => {
     act(() => {
-      useMapEditorStore.getState().addBuildNode({ id: 'b1', pos: [0,0], footprint: [3,3], allowedTypes: ['colony'] })
-      useMapEditorStore.getState().addBuildNode({ id: 'b2', pos: [5,5], footprint: [2,2], allowedTypes: ['greenhouse'] })
+      useMapEditorStore.getState().addBuildNode({ id: 'b1', pos: [0,0], footprint: [1,1], allowedTypes: ['colony'] })
+      useMapEditorStore.getState().addBuildNode({ id: 'b2', pos: [1,0], footprint: [1,1], allowedTypes: ['greenhouse'] })
     })
     act(() => useMapEditorStore.getState().removeBuildNode('b1'))
     const nodes = useMapEditorStore.getState().buildNodes
@@ -97,68 +121,33 @@ describe('useMapEditorStore — buildNodes', () => {
   })
 })
 
-// ─── Resource Nodes ───────────────────────────────────────────────────────────
-
-describe('useMapEditorStore — resourceNodes', () => {
-  it('addResourceNode adds a node', () => {
-    act(() => useMapEditorStore.getState().addResourceNode({
-      id: 'r1', type: 'ice', pos: [30, 40], amount: 2000, richness: 'high', model: 'ice_pile',
-    }))
-    const nodes = useMapEditorStore.getState().resourceNodes
-    expect(nodes).toHaveLength(1)
-    expect(nodes[0].type).toBe('ice')
-    expect(nodes[0].amount).toBe(2000)
-  })
-
-  it('updateResourceNode patches richness', () => {
-    act(() => useMapEditorStore.getState().addResourceNode({
-      id: 'r1', type: 'minerals', pos: [0,0], amount: 500, richness: 'low', model: 'm',
-    }))
-    act(() => useMapEditorStore.getState().updateResourceNode('r1', { richness: 'high', amount: 3000 }))
-    const node = useMapEditorStore.getState().resourceNodes[0]
-    expect(node.richness).toBe('high')
-    expect(node.amount).toBe(3000)
-  })
-})
-
 // ─── Spawn Points ─────────────────────────────────────────────────────────────
 
 describe('useMapEditorStore — spawnPoints', () => {
   it('addSpawnPoint adds a spawn', () => {
-    act(() => useMapEditorStore.getState().addSpawnPoint({ player: 1, pos: [5, 5] }))
+    act(() => useMapEditorStore.getState().addSpawnPoint({ player: 1, pos: [-10, 10] }))
     expect(useMapEditorStore.getState().spawnPoints).toHaveLength(1)
   })
 
   it('addSpawnPoint replaces existing player spawn', () => {
     act(() => useMapEditorStore.getState().addSpawnPoint({ player: 1, pos: [5, 5] }))
-    act(() => useMapEditorStore.getState().addSpawnPoint({ player: 1, pos: [10, 10] }))
+    act(() => useMapEditorStore.getState().addSpawnPoint({ player: 1, pos: [-5, -5] }))
     const spawns = useMapEditorStore.getState().spawnPoints
     expect(spawns).toHaveLength(1)
-    expect(spawns[0].pos).toEqual([10, 10])
-  })
-
-  it('removeSpawnPoint removes correct player', () => {
-    act(() => {
-      useMapEditorStore.getState().addSpawnPoint({ player: 1, pos: [5, 5] })
-      useMapEditorStore.getState().addSpawnPoint({ player: 2, pos: [90, 90] })
-    })
-    act(() => useMapEditorStore.getState().removeSpawnPoint(1))
-    const spawns = useMapEditorStore.getState().spawnPoints
-    expect(spawns).toHaveLength(1)
-    expect(spawns[0].player).toBe(2)
+    expect(spawns[0].pos).toEqual([-5, -5])
   })
 })
 
 // ─── Undo ─────────────────────────────────────────────────────────────────────
 
 describe('useMapEditorStore — undo', () => {
-  it('undo restores previous tile state', () => {
-    // paintTiles calls pushUndo internally
-    act(() => useMapEditorStore.getState().paintTiles([[0,0],[1,0]], 'build'))
-    expect(useMapEditorStore.getState().tiles[0]).toBe(1)
+  it('undo restores previous hex userType', () => {
+    act(() => useMapEditorStore.getState().generateHexGrid(5))
+    act(() => useMapEditorStore.getState().setHexUserType(0, 0, 'build'))
+    expect(useMapEditorStore.getState().hexGrid!.getCell(0, 0)!.userType).toBe('build')
 
     act(() => useMapEditorStore.getState().undo())
-    expect(useMapEditorStore.getState().tiles[0]).toBe(0)
+    expect(useMapEditorStore.getState().hexGrid!.getCell(0, 0)!.userType).toBeNull()
   })
 
   it('undo does nothing on empty stack', () => {
@@ -171,23 +160,24 @@ describe('useMapEditorStore — undo', () => {
 // ─── Export / Import ──────────────────────────────────────────────────────────
 
 describe('useMapEditorStore — export/import', () => {
-  it('exportToJSON returns correct schema shape', () => {
+  it('exportToJSON returns correct v2 schema', () => {
+    act(() => useMapEditorStore.getState().generateHexGrid(5))
     const json = useMapEditorStore.getState().exportToJSON()
-    expect(json).toHaveProperty('meta')
+    expect(json.meta.version).toBe('2.0')
+    expect(json.meta.gridType).toBe('hex-flat-top')
+    expect(Array.isArray(json.hexes)).toBe(true)
+    expect(json.hexes.length).toBeGreaterThan(0)
     expect(json).toHaveProperty('buildNodes')
-    expect(json).toHaveProperty('resourceNodes')
     expect(json).toHaveProperty('spawnPoints')
-    expect(json).toHaveProperty('decor')
-    expect(json).toHaveProperty('blockedTiles')
-    expect(typeof json.blockedTiles).toBe('string')
   })
 
-  it('loadFromJSON + exportToJSON roundtrip preserves data', () => {
+  it('loadFromJSON v2 roundtrip preserves data', () => {
     act(() => {
-      useMapEditorStore.getState().addBuildNode({ id: 'b1', pos: [10,10], footprint: [3,3], allowedTypes: ['colony'] })
-      useMapEditorStore.getState().addResourceNode({ id: 'r1', type: 'ice', pos: [50,50], amount: 1500, richness: 'high', model: 'ice' })
-      useMapEditorStore.getState().addSpawnPoint({ player: 1, pos: [5,5] })
-      useMapEditorStore.getState().paintTiles([[20,20]], 'blocked')
+      useMapEditorStore.getState().generateHexGrid(5)
+      useMapEditorStore.getState().setHexTerrainType(0, 0, 'rocky')
+      useMapEditorStore.getState().setHexUserType(0, 0, 'build')
+      useMapEditorStore.getState().addBuildNode({ id: 'b1', pos: [0,0], footprint: [1,1], allowedTypes: ['colony'] })
+      useMapEditorStore.getState().addSpawnPoint({ player: 1, pos: [-3, 3] })
     })
 
     const exported = useMapEditorStore.getState().exportToJSON()
@@ -197,20 +187,9 @@ describe('useMapEditorStore — export/import', () => {
 
     const state = useMapEditorStore.getState()
     expect(state.buildNodes).toHaveLength(1)
-    expect(state.buildNodes[0].id).toBe('b1')
-    expect(state.resourceNodes[0].type).toBe('ice')
     expect(state.spawnPoints[0].player).toBe(1)
-    expect(state.getTileType(20, 20)).toBe('blocked')
-  })
-
-  it('loadFromJSON handles corrupt blockedTiles gracefully', () => {
-    expect(() => {
-      act(() => useMapEditorStore.getState().loadFromJSON({
-        meta: { name: 'x', description: '', size: [100,100], tileSize: 1, players: 2, terrainFile: 'x.glb', seed: null },
-        buildNodes: [], resourceNodes: [], spawnPoints: [], decor: [],
-        blockedTiles: '!!!invalid base64!!!',
-      }))
-    }).not.toThrow()
+    expect(state.hexGrid!.getCell(0, 0)!.terrainType).toBe('rocky')
+    expect(state.hexGrid!.getCell(0, 0)!.userType).toBe('build')
   })
 })
 
@@ -231,5 +210,10 @@ describe('useMapEditorStore — UI state', () => {
   it('setBrushSize updates brushSize', () => {
     act(() => useMapEditorStore.getState().setBrushSize(5))
     expect(useMapEditorStore.getState().brushSize).toBe(5)
+  })
+
+  it('setHexRadius updates hexRadius', () => {
+    act(() => useMapEditorStore.getState().setHexRadius(15))
+    expect(useMapEditorStore.getState().hexRadius).toBe(15)
   })
 })

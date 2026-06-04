@@ -202,7 +202,7 @@ const GeneratorToolbar = () => {
         <div className="w-px h-4 bg-zinc-700 mx-1" />
 
         <span className="text-xs text-zinc-500 font-mono">
-          {meta.name} · 100×100
+          {meta.name}
         </span>
       </div>
     </>

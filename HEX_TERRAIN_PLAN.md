@@ -1,179 +1,283 @@
 # HEX_TERRAIN_PLAN.md
-# Plan przejścia generatora na siatkę heksagonalną
-# Wygenerowano: 2026-06-04
+# Plan generatora mapy heksagonalnej — zrewidowany
+# Zaktualizowano: 2026-06-04
 
 ---
 
 ## CEL
 
-Zastąpić obecny generator mapy (flat plane + siatka kwadratowa) nowym systemem
-opartym na heksagonalnej siatce proceduralnej — podobnym do zdjęcia poglądowego
-(Civilization/RTS hex terrain), ale w marsjańskiej kolorystyce.
+Generator mapy RTS oparty na heksagonalnej siatce proceduralnej w marsjańskiej kolorystyce.
 
-Teren budowany jest z instancji heksagonalnych kafelków z różnymi wysokościami
-(Simplex Noise), kolorami wierzchołków (Vertex Colors bez tekstur) i typami terenu.
-
----
-
-## ANALIZA OBECNEGO STANU
-
-### Co jest teraz w generatorze:
-- Płaski PlaneGeometry 100×100 jako teren
-- Kwadratowa siatka tile (Uint8Array 100×100)
-- Malowanie tile'i kolorem overlay (TileOverlay.tsx)
-- Raycast hover do płaszczyzny y=0
-- Eksport JSON z pozycjami w tile coords [x, z]
-
-### Co trzeba zmienić:
-- Teren → hex grid z Simplex Noise wysokościami i vertex colors
-- Siatka → hex koordinaty (axial q,r)
-- TileOverlay → hexagon instanced quads zamiast kwadratów
-- Eksport JSON → hex coords + terrain type per hex
-- Kamera → zachować RTS angle, dostosować zoom
-
-### Co zostaje bez zmian:
-- Panel narzędzi (lewý panel)
-- Inspector (prawy panel)
-- Toolbar (Export/Import/Undo)
-- Zustand store (mapEditorStore) — rozszerzyć, nie zastępować
-- Keyboard shortcuts
-- Typy mapEditorTypes.ts
+**Kluczowe decyzje projektowe (zrewidowane):**
+- Teren jest **płaski** — wszystkie hexy mają `height = 0` (bez Simplex Noise wysokości)
+- `terrainType` każdego hexa ustawiany **ręcznie przez użytkownika** (kliknięcie → wybranie typu)
+- Hexy renderowane jako **THREE.InstancedMesh** (jeden draw call)
+- Rozmiar mapy (radius) i seed ustawiane z UI
+- **Brak falloff** — użytkownik sam kształtuje mapę klikając/malując
 
 ---
 
-## MATEMATYKA HEX GRIDU (Red Blob Games)
+## AKTUALNY STAN IMPLEMENTACJI
 
-### Orientacja: FLAT-TOP (flat top hexagons)
-Wybór flat-top zamiast pointy-top bo:
-- Lepiej wygląda z kamery RTS (szerszy widok poziomy)
-- Łatwiejsze dopasowanie do terrainu w stylu Civ
+### Gotowe (nie ruszamy):
+- `HexMath.ts` — kompletna matematyka (hexToWorld, worldToHex, neighbors, ring, brush, corners)
+- `HexGrid.ts` — generator gridu z noise (do dostosowania: wyłączyć noise heights, zachować strukturę)
+- `HexGeometry.ts` — buildery geometrii (zachować `buildHexEdgesGeometry`, `buildHexHighlightGeometry`; usunąć `buildHexTerrainGeometry` → zastąpić InstancedMesh)
+- `HexTerrain.tsx` — **do przepisania na InstancedMesh**
+- `HexGridLines.tsx` — gotowe, bez zmian
+- `useMapEditorStore.ts` — częściowe wsparcie hex, do dokończenia
+- Testy `HexMath.test.ts`, `HexGrid.test.ts`, `HexGeometry.test.ts` — zachować i rozszerzyć
+- `Minimap.tsx` — renderuje hexy na canvas 2D, do zachowania
+- Layout trójpanelowy `GeneratorPage.tsx`, lewy/prawy panel, toolbar
 
-### Rozmiar mapy: 40×40 heksów (axial coordinates)
-- q: od -20 do +19 (oś pozioma)
-- r: od -20 do +19 (oś pionowa)
-- Łącznie: ~1200–1400 heksów (widocznych, po obcięciu do hex-kształtu)
-- Rozmiar pojedynczego heksa: size = 1.2 units
-
-### Konwersja hex → pixel (flat-top):
-```
-x = size * (3/2 * q)
-z = size * (sqrt(3)/2 * q + sqrt(3) * r)
-```
-
-### Konwersja pixel → hex (flat-top):
-```
-q = (2/3 * x) / size
-r = (-1/3 * x + sqrt(3)/3 * z) / size
-// następnie hex_round(q, r)
-```
-
-### Storage: offset coordinates (even-q)
-Dla prostego zapisu do JSON/tablicy używamy even-q offset:
-```
-col = q
-row = r + (q - (q&1)) / 2
-```
+### Do przepisania / stworzenia:
+- `HexTerrain.tsx` → **InstancedMesh** zamiast merged BufferGeometry
+- `TileOverlay.tsx` → **usunąć**, zastąpić logiką w InstancedMesh (jeden mesh = teren + overlay)
+- `useHexRaycast.ts` → **brak**, trzeba stworzyć
+- `HexHoverHighlight.tsx` → **brak**, trzeba stworzyć
+- Store: usunąć dual-mode (stary `tiles: Uint8Array`), tylko `hexGrid: HexGrid`
+- Export: zaktualizować do formatu v2 (hex coords)
+- UI: dodać kontrolki radius + seed w lewym panelu
+- `HexDecorMarkers.tsx` → modele GLB na hexach (opcjonalne, etap końcowy)
 
 ---
 
-## TYPY TERENU (marsjańskie)
+## MATEMATYKA HEX GRIDU (bez zmian)
 
-Każdy heks ma typ terenu zależny od wysokości z Noise:
+### Orientacja: FLAT-TOP
+```
+x = HEX_SIZE * (3/2 * q)
+z = HEX_SIZE * (sqrt(3)/2 * q + sqrt(3) * r)
+```
 
-| Typ | Wysokość (noise) | Kolor vertex | Opis |
-|---|---|---|---|
-| `deep_crater` | < 0.15 | #3d1f0a (ciemny brąz) | Kratry, doliny |
-| `lowland` | 0.15–0.35 | #8b3a1a (rdzawy brąz) | Niziny |
-| `plains` | 0.35–0.55 | #c1440e (marsjański pomarańcz) | Główny teren |
-| `highland` | 0.55–0.72 | #d4622a (jasny pomarańcz) | Wyżyny |
-| `rocky` | 0.72–0.88 | #6b4c32 (ciemny szary-brąz) | Skaliste |
-| `peak` | > 0.88 | #9e8060 (piaskowy) | Szczyty |
-
-Typy specjalne (nakładane ręcznie przez użytkownika):
-- `build` — zielony overlay (#00ff88)
-- `resource` — żółty overlay (#ffcc00)
-- `blocked` — czerwony overlay (#ff3300)
-- `spawn` — niebieski overlay (#0088ff)
+### Rozmiar mapy: konfigurowalny radius (domyślnie 20)
+- UI pozwala ustawić radius od 5 do 40
+- Zmiana radius → regeneracja gridu
 
 ---
 
-## MODELE DOSTĘPNE W PROJEKCIE
+## MODEL DANYCH — PŁASKI TEREN
 
-Z katalogu `/public/models/mars/` — do użycia jako dekoracje na heksach:
-
-### Skały (decor na rocky/peak hex):
-- `rock.glb`, `rock_largeA.glb`, `rock_largeB.glb`
-- `rocks_smallA.glb`, `rocks_smallB.glb`
-- `rock_crystals.glb`, `rock_crystalsLargeA.glb`, `rock_crystalsLargeB.glb`
-- `crater.glb`, `craterLarge.glb`
-- `meteor.glb`, `meteor_half.glb`
-
-### Budynki/struktury (na build hexes):
-- `hangar_smallA.glb`, `hangar_roundA.glb`
-- `platform_center.glb`, `platform_small.glb`
-- `structure.glb`, `structure_closed.glb`
-- `chimney.glb`
-- `machine_generator.glb`
-
-### Pojazdy (dekor):
-- `rover.glb`
-- `craft_miner.glb`
-
-→ **Nie trzeba nic modelować w Blenderze** — mamy kompletny asset pack Mars.
-
----
-
-## ARCHITEKTURA — NOWE PLIKI
-
-```
-src/presentation/generator/
-  hex/
-    HexMath.ts              ← czysta matematyka (axial↔pixel, neighbors, round)
-    HexGrid.ts              ← klasa generująca grid + noise heights + types
-    HexGeometry.ts          ← THREE.BufferGeometry dla pojedynczego heksa
-  components/viewport/
-    HexTerrain.tsx          ← główny mesh terenu (merged BufferGeometry)
-    HexOverlay.tsx          ← instanced hex quads dla paint overlay
-    HexGridLines.tsx        ← wireframe siatki (toggle G)
-    HexHoverHighlight.tsx   ← highlight hovered hexa
-  hooks/
-    useHexRaycast.ts        ← raycast pixel→hex conversion
-
-  GeneratorPage.tsx         ← bez zmian w strukturze
-  components/
-    GeneratorLeftPanel.tsx  ← bez zmian
-    GeneratorRightPanel.tsx ← bez zmian (hex coords w inspectorze)
-    GeneratorToolbar.tsx    ← bez zmian
+### HexCell (zaktualizowany):
+```ts
+interface HexCell {
+  q: number
+  r: number
+  height: 0                    // zawsze 0 — teren płaski
+  terrainType: HexTerrainType  // ustawiany ręcznie przez użytkownika
+  userType: TileType | null    // nakładka (build/resource/blocked/spawn)
+  decor: string | null
+}
 ```
 
-### Zmiany w istniejących plikach:
+### HexTerrainType (zachowany schemat kolorów):
+```ts
+type HexTerrainType =
+  | 'deep_crater'   // #3d1f0a — ciemny brąz
+  | 'lowland'       // #8b3a1a — rdzawy brąz
+  | 'plains'        // #c1440e — marsjański pomarańcz (domyślny)
+  | 'highland'      // #d4622a — jasny pomarańcz
+  | 'rocky'         // #6b4c32 — ciemny szary-brąz
+  | 'peak'          // #9e8060 — piaskowy
 ```
-src/application/store/useMapEditorStore.ts
-  - tiles: Uint8Array(100*100) → hexes: Map<string, HexCell>
-  - MAP_SIZE: 100×100 → HEX_RADIUS: 20 (promień siatki)
-  - setTile/paintTiles → setHex/paintHexes
-  - exportToJSON → hex format
 
-src/domain/mapEditorTypes.ts
-  - TileType (zostaje)
-  - dodać: HexCell, HexCoord, HexTerrainType
-  - BuildNode.pos: [number,number] tile → HexCoord {q,r}
-  - ResourceNode.pos → HexCoord {q,r}
-  - SpawnPoint.pos → HexCoord {q,r}
+**Domyślny terrainType dla nowej mapy: `'plains'`** (wszystkie hexy zaczynają jako plains).
 
-src/presentation/generator/utils/validateMap.ts
-  - bez zmian logiki, tylko update typów
-
-src/presentation/generator/components/viewport/TileOverlay.tsx
-  → zastąpić przez HexOverlay.tsx (instanced hex quads)
-
-src/presentation/generator/components/viewport/GridOverlay.tsx
-  → zastąpić przez HexGridLines.tsx
+### TileType (bez zmian — nakładka użytkownika):
+```ts
+type TileType = 'empty' | 'build' | 'resource' | 'blocked' | 'spawn'
+// Nakładka wyświetlana jako półprzezroczyste zabarwienie heksa
 ```
 
 ---
 
-## FORMAT JSON EKSPORTU (nowy)
+## ARCHITEKTURA RENDEROWANIA — INSTANCEDMESH
+
+### Jeden InstancedMesh dla całego terenu:
+
+```tsx
+// HexTerrain.tsx — nowa architektura
+const HexTerrain = () => {
+  const cells = hexGrid.getAllCells()
+  const geometry = useMemo(() => createFlatHexGeometry(HEX_SIZE), [])
+  const mesh = useRef<THREE.InstancedMesh>()
+
+  // Aktualizacja instancji: pozycja + kolor
+  useEffect(() => {
+    cells.forEach((cell, i) => {
+      const [x, z] = hexToWorld(cell.q, cell.r)
+      dummy.position.set(x, 0, z)    // height = 0
+      dummy.updateMatrix()
+      mesh.current.setMatrixAt(i, dummy.matrix)
+
+      // Kolor = terrainColor lub overlayColor (jeśli userType != null)
+      const color = getUserTypeColor(cell) ?? getTerrainColor(cell)
+      mesh.current.setColorAt(i, color)
+    })
+    mesh.current.instanceMatrix.needsUpdate = true
+    mesh.current.instanceColor.needsUpdate = true
+  }, [cells, hoveredHex])
+
+  return (
+    <instancedMesh ref={mesh} args={[geometry, material, cells.length]}>
+      <meshStandardMaterial roughness={0.85} metalness={0.1} vertexColors />
+    </instancedMesh>
+  )
+}
+```
+
+### Geometry dla pojedynczego heksa:
+```ts
+// createFlatHexGeometry(size) — flat-top, Y=0, triangle fan
+// 6 trójkątów od środka, bez ścian bocznych
+// Zwraca THREE.BufferGeometry bez vertex colors (kolory przez instanceColor)
+```
+
+### Kolory:
+- Bazowy kolor = `TERRAIN_COLORS[cell.terrainType]`
+- Jeśli `cell.userType != null` → kolor nakładki (build=#00ff88, resource=#ffcc00, blocked=#ff3300, spawn=#0088ff) z opacity blendowaną w shaderze LUB przez jaśniejszy solid color
+- Hover highlight → `HexHoverHighlight.tsx` (osobny mesh na wierzchu)
+
+---
+
+## INTERAKCJA UŻYTKOWNIKA
+
+### Tryby narzędzi:
+
+#### Tryb `select` (nowy, domyślny):
+- Kliknięcie hexa → zaznaczenie, w prawym panelu pojawia się formularz heksa
+- Formularz pozwala wybrać `terrainType` (radio/select) → natychmiastowy rebuild koloru instancji
+- Nie maluje `userType`
+
+#### Tryby `build` / `resource` / `blocked` / `spawn` / `erase`:
+- Kliknięcie/przeciągnięcie → malowanie `userType` na heksach (brush size)
+- Identyczne jak dotychczas, ale na hex coords
+
+### HexHoverHighlight:
+- Osobny cienki mesh (flat hex + outline) wyświetlany nad hovered hexem
+- Kolor zależy od aktywnego trybu (biały=select, zielony=build, itd.)
+- Przy trybie brush 3×3 lub 5×5: podświetla cały obszar brush
+
+### useHexRaycast:
+```ts
+const useHexRaycast = (meshRef: RefObject<THREE.InstancedMesh>) => {
+  // Raycast do InstancedMesh → instanceId → coords z hexGrid
+  // LUB raycast do płaszczyzny y=0 → worldToHex()
+  return { hoveredHex: { q, r } | null, hoveredInstanceId: number | null }
+}
+```
+
+---
+
+## UI — KONTROLKI GENERATORA
+
+### Lewy panel (rozszerzony):
+
+```
+┌─────────────────────────┐
+│  NARZĘDZIA              │
+│  ○ Select (S)           │
+│  ● Build (B)            │
+│  ○ Resource (R)         │
+│  ○ Blocked (X)          │
+│  ○ Spawn (Sp)           │
+│  ○ Erase (E)            │
+│  ─────────────────────  │
+│  Brush: ●1  ○3  ○5      │
+│  ─────────────────────  │
+│  MAPA                   │
+│  Radius: [──●──] 20     │
+│  Seed:   [12345  ] [↺]  │
+│  [Generuj mapę]         │
+│  ─────────────────────  │
+│  TerrainType (Select):  │
+│  ○ deep_crater          │
+│  ● plains               │
+│  ○ highland             │
+│  ...                    │
+└─────────────────────────┘
+```
+
+**Uwaga:** TerrainType picker w lewym panelu działa jak "pędzel terrainType" — maluje `terrainType` na klikanych hexach (brush size). Oddzielny od userType.
+
+### Prawy panel — Inspector wybranego hexa:
+```
+┌─────────────────────────┐
+│  Hex (q=3, r=-2)        │
+│  terrainType: [plains▼] │
+│  userType:    [build  ] │
+│  height:      0.00      │
+│  decor:       [none   ] │
+└─────────────────────────┘
+```
+
+---
+
+## STORE — useMapEditorStore (zrewidowany)
+
+### Usunąć:
+```ts
+// USUNĄĆ:
+tiles: Uint8Array(10000)       // stary system kwadratowy
+setTile(x, z, type)
+paintTiles(coords, type)
+MAP_SIZE: 100
+```
+
+### Zachować / dodać:
+```ts
+// NOWE:
+hexGrid: HexGrid | null
+hexRadius: number              // 5–40, domyślnie 20
+hexSeed: number                // domyślnie losowy
+
+// Generacja
+generateHexGrid(radius?: number, seed?: number): void
+
+// Malowanie userType
+setHexUserType(q: number, r: number, type: TileType | null): void
+paintHexes(coords: [number, number][], type: TileType | null): void
+getBrushHexes(q: number, r: number, brushSize: 1|3|5): [number, number][]
+
+// Ustawianie terrainType (nowe!)
+setHexTerrainType(q: number, r: number, type: HexTerrainType): void
+paintHexTerrainType(coords: [number, number][], type: HexTerrainType): void
+
+// Selekcja
+selectedHex: { q: number, r: number } | null
+selectHex(q: number, r: number): void
+clearSelection(): void
+
+// Ustawienia mapy
+setHexRadius(radius: number): void
+setHexSeed(seed: number): void
+
+// Export/import
+exportToJSON(): MapExportJSON   // format v2
+loadFromJSON(data: unknown): void  // obsługuje v1 i v2
+
+// Reszta bez zmian
+buildNodes, resourceNodes, spawnPoints, decor
+activeTool, brushSize, showGrid, undoStack
+```
+
+### HexGrid.generate() bez noise heights:
+```ts
+// HexGrid.ts — nowe zachowanie generate():
+generate(): void {
+  // Dla każdego hexa w radius:
+  // height = 0 (zawsze)
+  // terrainType = 'plains' (domyślnie, potem user zmienia)
+  // userType = null
+  // decor = null
+  // BRAK Simplex Noise do wysokości
+  // Seed przechowywany do ewentualnego auto-scatter decoru
+}
+```
+
+---
+
+## FORMAT JSON EKSPORTU v2 (bez zmian struktury)
 
 ```json
 {
@@ -184,381 +288,186 @@ src/presentation/generator/components/viewport/GridOverlay.tsx
     "hexSize": 1.2,
     "hexRadius": 20,
     "players": 2,
-    "terrainFile": null,
     "seed": 42
   },
   "hexes": [
-    {
-      "q": 0, "r": 0,
-      "terrainType": "plains",
-      "height": 0.48,
-      "userType": "build",
-      "decor": "rock_largeA"
-    },
-    {
-      "q": 1, "r": -1,
-      "terrainType": "lowland",
-      "height": 0.22,
-      "userType": null,
-      "decor": null
-    }
+    { "q": 0, "r": 0, "terrainType": "plains", "userType": null, "decor": null },
+    { "q": 1, "r": -1, "terrainType": "highland", "userType": "build", "decor": null }
   ],
-  "buildNodes": [
-    {
-      "id": "b1",
-      "hex": {"q": 3, "r": -2},
-      "footprint": 1,
-      "allowedTypes": ["colony"]
-    }
-  ],
-  "resourceNodes": [
-    {
-      "id": "r1",
-      "type": "minerals",
-      "hex": {"q": -5, "r": 4},
-      "amount": 1500,
-      "richness": "high"
-    }
-  ],
-  "spawnPoints": [
-    { "player": 1, "hex": {"q": -15, "r": 10} },
-    { "player": 2, "hex": {"q": 15, "r": -10} }
-  ],
+  "buildNodes": [...],
+  "resourceNodes": [...],
+  "spawnPoints": [...],
   "decor": []
 }
 ```
 
----
-
-## ETAPY IMPLEMENTACJI
+**Zmiana vs. v1:** brak `blockedTiles` base64 bitmask, brak `height` per hex (zawsze 0), brak `terrainFile`.
 
 ---
 
-### ETAP H1 — HexMath.ts (czysta matematyka)
-**Czas: ~1h**
-
-Plik: `src/presentation/generator/hex/HexMath.ts`
-
-```ts
-// Flat-top hexagon
-export const HEX_SIZE = 1.2
-
-// Axial → world position
-export function hexToPixel(q: number, r: number): [number, number] {
-  const x = HEX_SIZE * (3/2 * q)
-  const z = HEX_SIZE * (Math.sqrt(3)/2 * q + Math.sqrt(3) * r)
-  return [x, z]
-}
-
-// World position → axial hex (float, before rounding)
-export function pixelToHex(x: number, z: number): [number, number] {
-  const q = (2/3 * x) / HEX_SIZE
-  const r = (-1/3 * x + Math.sqrt(3)/3 * z) / HEX_SIZE
-  return [q, r]
-}
-
-// Cube rounding
-export function hexRound(q: number, r: number): [number, number]
-
-// 6 neighbors
-export function hexNeighbors(q: number, r: number): [number, number][]
-
-// Distance between two hexes
-export function hexDistance(q1: number, r1: number, q2: number, r2: number): number
-
-// All hexes in radius
-export function hexesInRadius(radius: number): [number, number][]
-
-// String key for Map<string, ...>
-export function hexKey(q: number, r: number): string // `${q},${r}`
-```
-
-Testy: `HexMath.test.ts` — sprawdzić konwersje, neighbors, distance, rounding
+## ETAPY IMPLEMENTACJI (zrewidowane)
 
 ---
 
-### ETAP H2 — HexGrid.ts (generator + noise)
-**Czas: ~2h**
+### ETAP H1 — HexGrid.ts: wyłączyć noise heights ✅ (do weryfikacji)
+**Czas: ~30min**
 
-Plik: `src/presentation/generator/hex/HexGrid.ts`
-
-```ts
-import SimplexNoise from 'simplex-noise'
-
-export interface HexCell {
-  q: number
-  r: number
-  height: number        // 0..1 z noise
-  terrainType: HexTerrainType
-  userType: TileType | null  // null = brak nadpisania przez użytkownika
-  decor: string | null  // nazwa modelu GLB lub null
-}
-
-export class HexGrid {
-  private cells: Map<string, HexCell>
-  private radius: number
-  private seed: number
-
-  constructor(radius: number, seed: number)
-
-  generate(): void   // Simplex Noise → heights → terrainType
-  getCell(q: number, r: number): HexCell | undefined
-  setUserType(q: number, r: number, type: TileType | null): void
-  getAllCells(): HexCell[]
-  toJSON(): object
-  fromJSON(data: object): void
-}
-
-// Height → terrain type mapping:
-function heightToTerrainType(h: number): HexTerrainType {
-  if (h < 0.15) return 'deep_crater'
-  if (h < 0.35) return 'lowland'
-  if (h < 0.55) return 'plains'
-  if (h < 0.72) return 'highland'
-  if (h < 0.88) return 'rocky'
-  return 'peak'
-}
-```
+Zmiana w `HexGrid.ts`:
+- `generate()` → każdy hex dostaje `height = 0`, `terrainType = 'plains'`
+- Usunąć Simplex Noise heights (zachować seed dla przyszłego auto-scatter decoru)
+- Sprawdzić że `TERRAIN_COLORS` i `TERRAIN_HEIGHT` (jeśli istnieje) nie nadpisują userem
 
 ---
 
-### ETAP H3 — HexGeometry.ts (geometria pojedynczego heksa)
-**Czas: ~1.5h**
-
-Plik: `src/presentation/generator/hex/HexGeometry.ts`
-
-```ts
-// Tworzy BufferGeometry dla flat-top hexagonu
-// 6 trójkątów (fan od środka), vertex colors
-export function createHexGeometry(size: number): THREE.BufferGeometry
-
-// Tworzy merged BufferGeometry dla całego gridu
-// Każdy hex ma własną wysokość (Y) i kolor wierzchołków
-export function buildHexTerrainGeometry(
-  cells: HexCell[],
-  hexSize: number
-): THREE.BufferGeometry
-```
-
-Kluczowe szczegóły:
-- Wierzchołki heksa: środek + 6 rogów
-- Górna ściana (cap): 6 trójkątów (triangle fan)
-- Boczne ściany: opcjonalne (solid hex columns jak w Civ)
-- Vertex colors: kolor zależny od terrainType
-- Płynne przejścia: interpolacja kolorów między hex a sąsiadami (opcjonalnie v2)
-
----
-
-### ETAP H4 — HexTerrain.tsx (render terenu)
+### ETAP H2 — HexTerrain.tsx: przepisać na InstancedMesh
 **Czas: ~2h**
 
 Plik: `src/presentation/generator/components/viewport/HexTerrain.tsx`
 
 ```tsx
-const HexTerrain = () => {
-  const geometry = useMemo(() => buildHexTerrainGeometry(cells, HEX_SIZE), [cells])
-
-  return (
-    <mesh geometry={geometry} receiveShadow castShadow>
-      <meshStandardMaterial
-        vertexColors    // ← kluczowe! kolory z BufferGeometry
-        roughness={0.85}
-        metalness={0.1}
-      />
-    </mesh>
-  )
-}
+// Jeden InstancedMesh zamiast merged BufferGeometry
+// geometry = flat hex (triangle fan, Y=0)
+// Kolor per instancja (terrainType lub userType overlay)
+// Aktualizacja: tylko needsUpdate na instanceMatrix i instanceColor
+// Hover: podświetlenie przez osobny HexHoverHighlight.tsx, nie tu
 ```
 
-Brak tekstur — vertex colors. Szybkie, czyste, jak na screenie referencyjnym.
+Usunąć:
+- `buildHexTerrainGeometry()` z `HexGeometry.ts` (lub oznaczyć jako deprecated)
+- `TileOverlay.tsx` — logikę przejąć w HexTerrain
 
 ---
 
-### ETAP H5 — useHexRaycast.ts + HexHoverHighlight.tsx
-**Czas: ~2h**
-
-Plik: `src/presentation/generator/hooks/useHexRaycast.ts`
-
-```ts
-// Raycast do mesha terenu → punkt 3D → konwersja na hex coord
-// Używa pixelToHex + hexRound
-const useHexRaycast = (terrainRef: RefObject<THREE.Mesh>) => {
-  // zwraca: hoveredHex: {q, r} | null
-}
-```
-
-Plik: `src/presentation/generator/components/viewport/HexHoverHighlight.tsx`
-
-```tsx
-// Renderuje jeden podświetlony heks (flat geometry nad terenem)
-// Kolor zależy od aktywnego narzędzia
-const HexHoverHighlight = ({ q, r }: { q: number; r: number })
-```
-
----
-
-### ETAP H6 — HexOverlay.tsx (paint overlay)
-**Czas: ~2h**
-
-Zastępuje `TileOverlay.tsx`.
-
-```tsx
-// InstancedMesh z hex geometrią (flat, bez wysokości)
-// Renderuje tylko hexesy z userType != null
-// Kolory: build=#00ff88, resource=#ffcc00, blocked=#ff3300, spawn=#0088ff
-// Pozycje z hexToPixel() + height z HexCell
-
-const HexOverlay = () => {
-  // Buduje instanced mesh z aktywnych hexów ze store
-}
-```
-
----
-
-### ETAP H7 — HexGridLines.tsx
-**Czas: ~1h**
-
-```tsx
-// Wireframe siatki hex (LineSegments)
-// Renderuje krawędzie wszystkich heksów
-// Toggle przez klawisz G / przycisk Grid
-
-const HexGridLines = ({ cells }: { cells: HexCell[] }) => {
-  const geometry = useMemo(() => buildHexEdgesGeometry(cells), [cells])
-  return <lineSegments geometry={geometry} material={...} />
-}
-```
-
----
-
-### ETAP H8 — useMapEditorStore.ts — migracja
-**Czas: ~2h**
-
-Zmiany:
-```ts
-// Stary:
-tiles: Uint8Array(10000)
-setTile(x, z, type)
-paintTiles(coords, type)
-
-// Nowy:
-hexGrid: HexGrid          // instancja klasy
-setHexUserType(q, r, type)
-paintHexes(coords: [number,number][], type)
-getBrushHexes(q, r, radius): [number,number][]  // koło brush
-autoScatter(opts)         // używa hexGrid
-exportToJSON()            // nowy format v2
-loadFromJSON(data)        // obsługa v1 i v2
-```
-
-Brush size zmienia znaczenie:
-- 1×1 → 1 hex
-- 3×3 → hex + 6 sąsiadów (ring 1)
-- 5×5 → hex + 6 + 12 sąsiadów (ring 2)
-
----
-
-### ETAP H9 — Dekoracje na hexach (modele GLB)
-**Czas: ~2h**
-
-Auto-scatter dekoracji na hexach o typie `rocky` / `peak`:
-- `rock_largeA.glb`, `rock_crystals.glb`, `crater.glb` → peak/rocky
-- `rocks_smallA.glb`, `meteor_half.glb` → lowland/plains
-- Pozycja: `hexToPixel(q, r)` + heightY z HexCell
-- Rotacja: losowa z seed
-
-Nowy komponent: `HexDecorMarkers.tsx`
-Zastępuje stary `DecorMarkers.tsx` który generował proceduralne icosahedra.
-
----
-
-### ETAP H10 — Minimap + testy + walidacja
+### ETAP H3 — useHexRaycast.ts + HexHoverHighlight.tsx
 **Czas: ~1.5h**
 
-Minimap:
-- Zamiast tile grid → renderuj hexesy jako małe filled polygons na canvas 2D
-- `ctx.beginPath()` → 6 punktów heksagonu → `ctx.fill()`
-- Kolor z terrainType
+```ts
+// useHexRaycast.ts
+// Raycast do płaszczyzny y=0 → worldToHex() → hoveredHex {q, r}
+// Lub: raycast do InstancedMesh → getInstanceId → hexGrid lookup
+// Zwraca: { hoveredHex, setPointerHandlers }
+```
 
-Testy:
-- `HexMath.test.ts` — konwersje, rounding, neighbors
-- `HexGrid.test.ts` — generowanie, noise heights, setUserType
-- `useMapEditorStore.test.ts` — update dla hex coords
+```tsx
+// HexHoverHighlight.tsx
+// Flat hex mesh (outline / solid z opacity) wyświetlany nad hovered hexem
+// Aktualizuje pozycję każdy frame na podstawie hoveredHex
+// Przy brushSize 3: ring(1) hexes, przy brushSize 5: ring(2) hexes
+```
+
+---
+
+### ETAP H4 — Store cleanup: usunąć dual-mode
+**Czas: ~1.5h**
+
+W `useMapEditorStore.ts`:
+- Usunąć `tiles: Uint8Array`, `setTile`, `paintTiles`, `MAP_SIZE`
+- Dodać `selectedHex`, `selectHex`, `clearSelection`
+- Dodać `setHexTerrainType`, `paintHexTerrainType`
+- Dodać `hexRadius`, `setHexRadius`
+- Export `exportToJSON()` → format v2
+- `loadFromJSON()` → obsługa v1 (legacy tiles) i v2 (hex coords)
+
+---
+
+### ETAP H5 — UI: radius, seed, terrainType picker w lewym panelu
+**Czas: ~1h**
+
+W `GeneratorLeftPanel.tsx`:
+- Slider/input dla `hexRadius` (5–40)
+- Input + losowy przycisk dla `hexSeed`
+- Przycisk `[Generuj mapę]` → `generateHexGrid(radius, seed)`
+- Radio group `terrainType` (malowanie terrainType przez klikanie)
+
+Nowy tryb narzędzia: `'terrain'` — maluje terrainType (nie userType).
+
+---
+
+### ETAP H6 — Inspector hexa w prawym panelu
+**Czas: ~1h**
+
+W `GeneratorRightPanel.tsx`:
+- Zakładka Inspector: pokazuje dane zaznaczonego hexa
+- Formularz: `terrainType` (select), `userType` (select), `decor` (select lub null)
+- Zmiana wartości → natychmiastowy update koloru instancji
+
+---
+
+### ETAP H7 — Export v2 + walidacja
+**Czas: ~1h**
+
+- `exportToJSON()` → nowy format v2 z hexami
+- `loadFromJSON()` → detect v1/v2 po `meta.version`
+- Walidacja Zod (jeśli jest w projekcie)
+- Test roundtrip: generate → paint → export → load → compare
+
+---
+
+### ETAP H8 — HexDecorMarkers.tsx (opcjonalne)
+**Czas: ~2h**
+
+Modele GLB z `/public/models/mars/`:
+- `rocky`/`peak` hexy → losowe skały i kratery (używając seed)
+- Pozycja: `hexToWorld(q, r)` + Y=0
+- Komponenty InstancedMesh lub useGLTF per model
+
+---
+
+### ETAP H9 — Testy + minimap + polish
+**Czas: ~1.5h**
+
+- Zaktualizować testy po usunięciu noise heights
+- Minimap — weryfikacja że rysuje hex terrain types (nie stare tiles)
+- Keyboard shortcuts: dodać klawisz dla trybu `terrain`
+- Status bar: liczba hexów per terrainType + per userType
 
 ---
 
 ## KOLEJNOŚĆ WYKONANIA
 
 ```
-[ ] H1 — HexMath.ts + testy         (matematyka)
-[ ] H2 — HexGrid.ts                 (generator + noise)
-[ ] H3 — HexGeometry.ts             (geometria 3D)
-[ ] H4 — HexTerrain.tsx             (render w r3f)
-[ ] H5 — useHexRaycast + Highlight  (interakcja)
-[ ] H6 — HexOverlay.tsx             (paint overlay)
-[ ] H7 — HexGridLines.tsx           (wireframe)
-[ ] H8 — useMapEditorStore migracja (store)
-[ ] H9 — HexDecorMarkers.tsx        (modele GLB)
-[ ] H10 — Minimap + testy           (finalizacja)
+[✅] H1 — HexGrid: wyłączyć noise heights, domyślnie 'plains'
+[ ] H2 — HexTerrain: przepisać na InstancedMesh (KLUCZOWE)
+[ ] H3 — useHexRaycast + HexHoverHighlight (interakcja)
+[ ] H4 — Store cleanup: usunąć dual-mode tiles, dodać selectedHex, terrainType ops
+[ ] H5 — UI: radius, seed, terrainType picker
+[ ] H6 — Inspector zaznaczonego hexa
+[ ] H7 — Export v2 + walidacja
+[ ] H8 — HexDecorMarkers (opcjonalne, po reszcie)
+[ ] H9 — Testy + minimap + polish
 ```
 
 Po każdym etapie: `npm run build` — brak błędów TypeScript.
 
 ---
 
-## PORÓWNANIE: PRZED vs PO
+## PORÓWNANIE: STARY PLAN vs. NOWY PLAN
 
-| Aspekt | Teraz | Po zmianie |
+| Aspekt | Stary plan | Nowy plan |
 |---|---|---|
-| Teren | PLaneGeometry + tekstura PNG | Hex BufferGeometry + vertex colors |
-| Siatka | 100×100 tiles kwadratowe | ~1200 hexów (radius 20) |
-| Koordynaty | [x, z] tile | {q, r} axial |
-| Brush | N×N kwadrat | Koło hex (ring radius) |
-| Wysokość | Brak (płasko) | Simplex Noise 0..3 units |
-| Dekoracje | Proceduralne icosahedra | Prawdziwe GLB (rock, crater) |
-| Eksport | v1 JSON (tile coords) | v2 JSON (hex coords + terrain) |
-| Minimap | Canvas 2D tile grid | Canvas 2D hex polygons |
-| Tekstury | mars_color.png | Brak — vertex colors |
-| Performance | InstancedMesh quads | Merged BufferGeometry (1 draw call) |
+| Wysokość hexów | Simplex Noise 0..1 | Zawsze 0 (płaski teren) |
+| terrainType source | Generowany z noise | Ustawiany ręcznie przez user |
+| Rendering | merged BufferGeometry | **InstancedMesh** (1 draw call) |
+| Falloff krawędzi | Był planowany | **Usunięty** — user rysuje sam |
+| Rozmiar mapy | Stały radius=20 | **Konfigurowalny** (5–40) z UI |
+| Seed | W generatorze | **Widoczny w UI**, edytowalny |
+| Narzędzie terrain | Brak | **Nowy tryb 'terrain'** — maluje terrainType |
+| Selekcja hexa | Brak | **Tryb 'select'** + Inspector |
+| TileOverlay.tsx | InstancedMesh quads | **Usunięty** — logika w HexTerrain |
+| Boczne ściany | Opcjonalne | **Nie** — płaski hex, bez kolumn |
 
 ---
 
 ## ZALEŻNOŚCI NPM
 
 ```
-simplex-noise    — już w projekcie (sprawdzić) lub dodać (zapytać usera)
+simplex-noise    — jest w projekcie (seed-based PRNG, zachować do decoru)
+three            — jest (InstancedMesh, BufferGeometry)
 ```
 
-Sprawdzić: `cat package.json | grep simplex`
+Nie potrzeba nowych paczek.
 
 ---
 
-## NOTATKI TECHNICZNE
-
-### Dlaczego vertex colors zamiast tekstur?
-- 1 draw call dla całego terenu (merged geometry)
-- Brak UV mapping
-- Łatwa zmiana kolorów runtime (regenerate mesh)
-- Wygląd jak na screenie referencyjnym (Civ-style)
-- Wydajność: GPU odczytuje kolor z bufora, nie z tekstury
-
-### Dlaczego flat-top zamiast pointy-top?
-- Kamera RTS patrzy z góry pod kątem 45-60°
-- Flat-top wygląda szerzej poziomo → naturalne dla RTS
-- Civ 5/6 używa flat-top
-
-### Dlaczego radius 20 (nie 50)?
-- Mapa 40×40 hexów (~1200 hexów) jest wystarczająca dla gry RTS
-- Przy rozmiarze hex 1.2 units: całkowita szerokość ≈ 72 units
-- Odpowiada obecnemu TERRAIN_BOUNDS.halfX = 50 (gra)
-- Więcej hexów → więcej wierzchołków → wolniejszy merged geometry
-
-### Boczne ściany hexów (columns)?
-- Opcjonalne w v1 — można dodać w v2
-- Wyglądają lepiej przy zbliżeniu kamery
-- Civ używa kolumn o stałej wysokości z gradientem bocznym
-
----
-
-*Plan zapisany: 2026-06-04*
-*Wróć i napisz "zaczynamy H1" — idę przez etapy bez pytań*
+*Zaktualizowano: 2026-06-04*
+*Napisz "zaczynamy H2" — idę przez etapy bez pytań*

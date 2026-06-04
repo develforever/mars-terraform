@@ -113,24 +113,14 @@ describe('buildHexTerrainGeometry', () => {
     expect(positions[2]).toBeCloseTo(cz, 4)
   })
 
-  it('does not add side faces between equal-height neighbors', () => {
+  it('flat terrain: two hex cells produce 14 vertices (7 per hex)', () => {
     const cells: HexCell[] = [
-      { q: 0, r: 0, height: 0.5, worldY: 2.4, terrainType: 'plains', userType: null, decor: null },
-      { q: 1, r: 0, height: 0.5, worldY: 2.4, terrainType: 'plains', userType: null, decor: null },
+      { q: 0, r: 0, height: 0, worldY: 0, terrainType: 'plains', userType: null, decor: null },
+      { q: 1, r: 0, height: 0, worldY: 0, terrainType: 'plains', userType: null, decor: null },
     ]
     const geo = buildHexTerrainGeometry(cells)
     const vertexCount = geo.attributes.position.array.length / 3
-    expect(vertexCount).toBeLessThan(2 * 31)
-  })
-
-  it('adds side faces when a neighbor is lower', () => {
-    const cells: HexCell[] = [
-      { q: 0, r: 0, height: 0.8, worldY: 5.2, terrainType: 'rocky', userType: null, decor: null },
-      { q: 1, r: 0, height: 0.4, worldY: 2.4, terrainType: 'plains', userType: null, decor: null },
-    ]
-    const geo = buildHexTerrainGeometry(cells)
-    const vertexCount = geo.attributes.position.array.length / 3
-    expect(vertexCount).toBeGreaterThan(2 * 7)
+    expect(vertexCount).toBe(14) // 7 per hex, no side faces
   })
 })
 

@@ -11,7 +11,7 @@ export type ResourceType = 'minerals' | 'ice' | 'organics' | 'energy'
 
 export type TileType = 'empty' | 'build' | 'resource' | 'blocked' | 'spawn'
 
-export type ToolMode = 'build' | 'resource' | 'blocked' | 'spawn' | 'erase' | 'select'
+export type ToolMode = 'build' | 'resource' | 'blocked' | 'spawn' | 'erase' | 'select' | 'terrain'
 
 export type BrushSize = 1 | 3 | 5
 
@@ -22,16 +22,12 @@ export type Richness = 'low' | 'med' | 'high'
 export interface MapMeta {
   name: string
   description: string
-  size: [number, number]
-  tileSize: number
   players: number
-  terrainFile: string
-  seed: number | null
 }
 
 export interface BuildNode {
   id: string
-  pos: [number, number]
+  pos: [number, number]   // hex coords [q, r]
   footprint: [number, number]
   allowedTypes: BuildingType[]
 }
@@ -39,7 +35,7 @@ export interface BuildNode {
 export interface ResourceNode {
   id: string
   type: ResourceType
-  pos: [number, number]
+  pos: [number, number]   // hex coords [q, r]
   amount: number
   richness: Richness
   model: string
@@ -47,31 +43,50 @@ export interface ResourceNode {
 
 export interface SpawnPoint {
   player: number
-  pos: [number, number]
+  pos: [number, number]   // hex coords [q, r]
 }
 
 export interface DecorItem {
   model: string
-  pos: [number, number]
+  pos: [number, number]   // hex coords [q, r]
   rot: number
   scale: number
 }
 
-// ─── Export schema ────────────────────────────────────────────────────────────
+// ─── Hex export cell ──────────────────────────────────────────────────────────
+
+export interface HexExportCell {
+  q: number
+  r: number
+  terrainType: string
+  userType: string | null
+  decor: string | null
+}
+
+// ─── Export schema v2 ─────────────────────────────────────────────────────────
 
 export interface MapExportJSON {
-  meta: MapMeta
+  meta: {
+    name: string
+    description: string
+    version: '2.0'
+    gridType: 'hex-flat-top'
+    hexSize: number
+    hexRadius: number
+    players: number
+    seed: number
+  }
+  hexes: HexExportCell[]
   buildNodes: BuildNode[]
   resourceNodes: ResourceNode[]
   spawnPoints: SpawnPoint[]
   decor: DecorItem[]
-  blockedTiles: string
 }
 
 // ─── Store snapshot for undo ──────────────────────────────────────────────────
 
 export interface MapSnapshot {
-  tiles: Uint8Array
+  hexCells: [string, Record<string, unknown>][]
   buildNodes: BuildNode[]
   resourceNodes: ResourceNode[]
   spawnPoints: SpawnPoint[]

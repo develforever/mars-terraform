@@ -1,37 +1,78 @@
 /**
  * HexTerrain.tsx
- * Renders the full hex terrain as a single merged BufferGeometry with vertex colors.
- * No textures — 1 draw call for the entire map.
+ * Renders hex terrain as a single InstancedMesh (one draw call).
+ * Pure rendering — interaction is handled by HexInteraction.
  */
 
-import { useMemo, useRef, useContext, useEffect } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import * as THREE from 'three'
 import { useMapEditorStore } from '../../../../application/store/useMapEditorStore'
-import { buildHexTerrainGeometry } from '../../hex/HexGeometry'
-import { TerrainHeightContext } from '../../hooks/useTerrainHeight'
+import { TERRAIN_COLORS } from '../../hex/HexGrid'
+import { createFlatHexGeometry } from '../../hex/HexGeometry'
+import { hexToWorld, HEX_SIZE } from '../../hex/HexMath'
+
+// ─── User type overlay colors ─────────────────────────────────────────────────
+
+const USER_COLORS: Record<string, [number, number, number]> = {
+  build:    [0.0,  0.85, 0.45],
+  resource: [0.9,  0.72, 0.0],
+  blocked:  [0.85, 0.18, 0.0],
+  spawn:    [0.0,  0.45, 0.85],
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const HexTerrain = () => {
   const hexGrid = useMapEditorStore(s => s.hexGrid)
-  const meshRef = useRef<THREE.Mesh>(null)
-  const { setTerrainMesh } = useContext(TerrainHeightContext)
+  const meshRef = useRef<THREE.InstancedMesh>(null)
 
-  const geometry = useMemo(() => {
-    if (!hexGrid) return null
-    return buildHexTerrainGeometry(hexGrid.getAllCells())
-  }, [hexGrid])
+  const cells = useMemo(() => hexGrid?.getAllCells() ?? [], [hexGrid])
+  const count  = cells.length
 
-  // Register mesh in context so markers can raycast against it
+  const geometry = useMemo(() => createFlatHexGeometry(HEX_SIZE), [])
+  const material = useMemo(() => new THREE.MeshStandardMaterial({
+    roughness: 0.85, metalness: 0.05, color: 0xffffff,
+  }), [])
+
+  // Update instance matrices + colors whenever cells change
   useEffect(() => {
-    if (meshRef.current) setTerrainMesh(meshRef.current)
-    return () => setTerrainMesh(null)
-  }, [setTerrainMesh, geometry])
+    const mesh = meshRef.current
+    if (!mesh || count === 0) return
 
-  if (!geometry) return null
+    const dummy = new THREE.Object3D()
+    const color = new THREE.Color()
+
+    cells.forEach((cell, i) => {
+      const [x, z] = hexToWorld(cell.q, cell.r)
+      dummy.position.set(x, cell.worldY, z)
+      dummy.updateMatrix()
+      mesh.setMatrixAt(i, dummy.matrix)
+
+      if (cell.userType && cell.userType !== 'empty') {
+        const [r, g, b] = USER_COLORS[cell.userType] ?? [1, 1, 1]
+        color.setRGB(r, g, b)
+      } else {
+        const [r, g, b] = TERRAIN_COLORS[cell.terrainType]
+        color.setRGB(r, g, b)
+      }
+      mesh.setColorAt(i, color)
+    })
+
+    mesh.instanceMatrix.needsUpdate = true
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  }, [cells, count])
+
+  if (count === 0) return null
 
   return (
-    <mesh ref={meshRef} geometry={geometry} castShadow receiveShadow>
-      <meshStandardMaterial vertexColors />
-    </mesh>
+    <instancedMesh
+      key={count}
+      ref={meshRef}
+      args={[geometry, material, count]}
+      receiveShadow
+      castShadow
+      frustumCulled={false}
+    />
   )
 }
 

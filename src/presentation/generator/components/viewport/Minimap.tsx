@@ -4,6 +4,7 @@ import { hexToWorld, hexCorners, HEX_SIZE } from '../../hex/HexMath'
 import { TERRAIN_COLORS } from '../../hex/HexGrid'
 
 const CANVAS_SIZE = 180
+const PADDING = 8  // px padding inside canvas so edge hexes aren't clipped
 const PLAYER_COLORS = ['#4488ff', '#ff4444', '#44ff88', '#ffaa00']
 
 const USER_COLORS: Record<string, string> = {
@@ -14,11 +15,11 @@ const USER_COLORS: Record<string, string> = {
 }
 
 const Minimap = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const hexGrid = useMapEditorStore(s => s.hexGrid)
-  const buildNodes = useMapEditorStore(s => s.buildNodes)
+  const canvasRef    = useRef<HTMLCanvasElement>(null)
+  const hexGrid      = useMapEditorStore(s => s.hexGrid)
+  const buildNodes   = useMapEditorStore(s => s.buildNodes)
   const resourceNodes = useMapEditorStore(s => s.resourceNodes)
-  const spawnPoints = useMapEditorStore(s => s.spawnPoints)
+  const spawnPoints  = useMapEditorStore(s => s.spawnPoints)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -26,11 +27,17 @@ const Minimap = () => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Find world bounds for scaling
+    // World extent: flat-top hex grid radius in world units
+    // Flat-top: X extent = radius * 1.5 * HEX_SIZE, Z extent = radius * sqrt(3) * HEX_SIZE
     const MAP_RADIUS = hexGrid.radius
-    const HEX_HORIZ = HEX_SIZE * 1.5
-    const worldExtent = MAP_RADIUS * HEX_HORIZ * 1.15
-    const scale = (CANVAS_SIZE / 2) / worldExtent
+    const worldExtentX = MAP_RADIUS * HEX_SIZE * 1.5 + HEX_SIZE
+    const worldExtentZ = MAP_RADIUS * HEX_SIZE * Math.sqrt(3) + HEX_SIZE
+
+    // Scale to fit canvas minus padding
+    const drawSize = CANVAS_SIZE - PADDING * 2
+    const scale = drawSize / (2 * Math.max(worldExtentX, worldExtentZ))
+
+    // Center of draw area
     const cx = CANVAS_SIZE / 2
     const cy = CANVAS_SIZE / 2
 
@@ -43,22 +50,18 @@ const Minimap = () => {
       const px = cx + wx * scale
       const py = cy + wz * scale
 
-      // Base terrain color
+      // Color: user type overlay or terrain
       const [r, g, b] = TERRAIN_COLORS[cell.terrainType]
       let fillColor = `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`
-
-      // User type overlay
       if (cell.userType && cell.userType !== 'empty') {
         fillColor = USER_COLORS[cell.userType] ?? fillColor
       }
 
-      // Draw tiny hex
+      // Hex polygon scaled to minimap
       const corners = hexCorners(0, 0, HEX_SIZE * scale * 0.95)
       ctx.beginPath()
       ctx.moveTo(px + corners[0][0], py + corners[0][1])
-      for (let i = 1; i < 6; i++) {
-        ctx.lineTo(px + corners[i][0], py + corners[i][1])
-      }
+      for (let i = 1; i < 6; i++) ctx.lineTo(px + corners[i][0], py + corners[i][1])
       ctx.closePath()
       ctx.fillStyle = fillColor
       ctx.globalAlpha = cell.userType && cell.userType !== 'empty' ? 0.9 : 0.85
@@ -66,23 +69,21 @@ const Minimap = () => {
     }
     ctx.globalAlpha = 1
 
-    // Spawn points
+    // Spawn points — use hexToWorld for correct position
     for (const spawn of spawnPoints) {
-      const node = resourceNodes.find(n => n.pos[0] === spawn.pos[0] && n.pos[1] === spawn.pos[1])
-      void node
+      const [wx, wz] = hexToWorld(spawn.pos[0], spawn.pos[1])
+      const px = cx + wx * scale
+      const py = cy + wz * scale
       const color = PLAYER_COLORS[(spawn.player - 1) % 4]
-      // Spawn positions are now hex coords stored in pos
-      const px2 = cx + spawn.pos[0] * scale
-      const py2 = cy + spawn.pos[1] * scale
       ctx.beginPath()
-      ctx.arc(px2, py2, 4, 0, Math.PI * 2)
+      ctx.arc(px, py, 4, 0, Math.PI * 2)
       ctx.fillStyle = color
       ctx.fill()
       ctx.fillStyle = '#fff'
       ctx.font = 'bold 6px monospace'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(String(spawn.player), px2, py2)
+      ctx.fillText(String(spawn.player), px, py)
     }
 
     // Border

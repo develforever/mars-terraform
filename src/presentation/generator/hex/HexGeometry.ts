@@ -6,13 +6,68 @@
  */
 
 import * as THREE from 'three'
-import { hexToWorld, hexCorners, hexKey, hexNeighbors, HEX_SIZE } from './HexMath'
+import { hexToWorld, hexCorners, HEX_SIZE } from './HexMath'
 import { TERRAIN_COLORS, type HexCell } from './HexGrid'
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+// ─── Single hex geometry (for InstancedMesh) ──────────────────────────────────
 
-const EDGE_DEPTH = 0.8
-const HEIGHT_EPSILON = 0.001
+/**
+ * Creates a flat-top hex geometry centered at origin, suitable for InstancedMesh.
+ * No vertex colors — colors set per-instance via instanceColor.
+ */
+export function createFlatHexGeometry(size: number = HEX_SIZE): THREE.BufferGeometry {
+  const corners = hexCorners(0, 0, size)
+  const positions: number[] = [0, 0, 0] // center
+  const indices: number[] = []
+
+  for (const [x, z] of corners) positions.push(x, 0, z)
+
+  for (let i = 0; i < 6; i++) {
+    indices.push(0, 1 + ((i + 1) % 6), 1 + i)
+  }
+
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geo.setIndex(indices)
+  geo.computeVertexNormals()
+  return geo
+}
+
+// ─── Brush highlight geometry ──────────────────────────────────────────────────
+
+/**
+ * Merges flat hex polygons for the hover/brush highlight.
+ * Used by HexInteraction to show which hexes will be affected.
+ */
+/**
+ * Each entry: [q, r, y] where y is the world Y to place the highlight at.
+ */
+export function buildBrushHighlightGeometry(
+  hexCoords: [number, number, number][],
+  scale = 0.94,
+): THREE.BufferGeometry {
+  const positions: number[] = []
+  const indices: number[] = []
+  let baseIndex = 0
+
+  for (const [q, r, y] of hexCoords) {
+    const [cx, cz] = hexToWorld(q, r)
+    const corners = hexCorners(cx, cz, HEX_SIZE * scale)
+
+    positions.push(cx, y, cz)
+    for (const [x, z] of corners) positions.push(x, y, z)
+
+    for (let i = 0; i < 6; i++) {
+      indices.push(baseIndex, baseIndex + 1 + ((i + 1) % 6), baseIndex + 1 + i)
+    }
+    baseIndex += 7
+  }
+
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geo.setIndex(indices)
+  return geo
+}
 
 // ─── Single hex top face (triangle fan from center) ───────────────────────────
 
@@ -56,54 +111,17 @@ function addHexTop(
   return 7
 }
 
-// ─── Single hex side face ─────────────────────────────────────────────────────
-
-function addHexSide(
-  positions: number[],
-  colors: number[],
-  indices: number[],
-  baseIndex: number,
-  x0: number,
-  z0: number,
-  x1: number,
-  z1: number,
-  topY: number,
-  bottomY: number,
-  color: [number, number, number],
-): number {
-  const [r, g, b] = color
-
-  const sr = r * 0.55
-  const sg = g * 0.55
-  const sb = b * 0.55
-
-  const tl = baseIndex
-  positions.push(x0, topY, z0); colors.push(sr, sg, sb)
-  const tr = baseIndex + 1
-  positions.push(x1, topY, z1); colors.push(sr, sg, sb)
-  const br = baseIndex + 2
-  positions.push(x1, bottomY, z1); colors.push(sr, sg, sb)
-  const bl = baseIndex + 3
-  positions.push(x0, bottomY, z0); colors.push(sr, sg, sb)
-
-  indices.push(tl, tr, br)
-  indices.push(tl, br, bl)
-
-  return 4
-}
-
-// ─── Build full terrain geometry ──────────────────────────────────────────────
+// ─── Build full terrain geometry (legacy — used by tests) ─────────────────────
 
 /**
- * Builds a single merged BufferGeometry for all hex cells.
- * Each cell contributes one top face and only visible lower side faces.
- * Rendered in 1 draw call.
+ * Builds a merged BufferGeometry with vertex colors for all hex cells.
+ * Kept for backward compatibility with tests.
+ * Production rendering uses HexTerrain InstancedMesh instead.
  */
 export function buildHexTerrainGeometry(cells: HexCell[]): THREE.BufferGeometry {
   const positions: number[] = []
   const colors: number[] = []
   const indices: number[] = []
-  const cellMap = new Map(cells.map(cell => [hexKey(cell.q, cell.r), cell]))
 
   let baseIndex = 0
 
@@ -111,21 +129,7 @@ export function buildHexTerrainGeometry(cells: HexCell[]): THREE.BufferGeometry 
     const [cx, cz] = hexToWorld(cell.q, cell.r)
     const worldY = cell.worldY
     const color = TERRAIN_COLORS[cell.terrainType]
-
     baseIndex += addHexTop(positions, colors, indices, baseIndex, cx, cz, worldY, color)
-
-    const corners = hexCorners(cx, cz, HEX_SIZE)
-    const neighbors = hexNeighbors(cell.q, cell.r)
-
-    for (let i = 0; i < 6; i++) {
-      const neighbor = cellMap.get(hexKey(neighbors[i][0], neighbors[i][1]))
-      const bottomY = neighbor ? neighbor.worldY : Math.max(0, worldY - EDGE_DEPTH)
-      if (bottomY >= worldY - HEIGHT_EPSILON) continue
-
-      //const [x0, z0] = corners[i]
-      //const [x1, z1] = corners[(i + 1) % 6]
-      //baseIndex += addHexSide(positions, colors, indices, baseIndex, x0, z0, x1, z1, worldY, bottomY, color)
-    }
   }
 
   const geometry = new THREE.BufferGeometry()
