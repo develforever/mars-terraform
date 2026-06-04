@@ -88,7 +88,7 @@ const GeneratorViewport = () => {
 
           {showGrid && <HexGridLines />}
 
-          {/* <OrbitControls
+          <OrbitControls
             minPolarAngle={Math.PI / 6}
             maxPolarAngle={Math.PI / 2.35}
             minDistance={25}
@@ -98,15 +98,15 @@ const GeneratorViewport = () => {
             enableDamping
             dampingFactor={0.08}
             enabled={orbitEnabled}
-          /> */}
+          />
 
-          <OrbitControls
+          {/* <OrbitControls
             target={[0, 2, 0]}
             enablePan={false}
             enableDamping
             dampingFactor={0.08}
             enabled={orbitEnabled}
-          />
+          /> */}
 
           <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
             <GizmoViewport
