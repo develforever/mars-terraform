@@ -11,6 +11,7 @@ import SpawnPointMarkers from './viewport/SpawnPointMarkers'
 import DecorMarkers from './viewport/DecorMarkers'
 import Minimap from './viewport/Minimap'
 import { TerrainHeightContext, useTerrainHeightProvider } from '../hooks/useTerrainHeight'
+import { CineonToneMapping } from 'three'
 
 // ─── Loading overlay ──────────────────────────────────────────────────────────
 
@@ -73,8 +74,8 @@ const GeneratorViewport = () => {
     <div className="relative w-full h-full bg-zinc-950" style={{ cursor: orbitEnabled ? 'default' : 'crosshair' }}>
       <Canvas
         camera={{ position: [0, 70, 65], fov: 45, near: 0.1, far: 1000 }}
-        shadows
-        gl={{ antialias: true, toneMapping: 0 }}
+        shadows={false}
+        gl={{ antialias: true, toneMapping: CineonToneMapping, toneMappingExposure: 1.97 }}
         onCreated={({ gl }) => { gl.toneMappingExposure = 1.0 }}
       >
         <TerrainHeightContext.Provider value={terrainHeightCtx}>
@@ -92,11 +93,19 @@ const GeneratorViewport = () => {
 
           {showGrid && <HexGridLines />}
 
-          <OrbitControls
+          {/* <OrbitControls
             minPolarAngle={Math.PI / 6}
             maxPolarAngle={Math.PI / 2.35}
             minDistance={25}
             maxDistance={140}
+            target={[0, 2, 0]}
+            enablePan={false}
+            enableDamping
+            dampingFactor={0.08}
+            enabled={orbitEnabled}
+          /> */}
+
+          <OrbitControls
             target={[0, 2, 0]}
             enablePan={false}
             enableDamping

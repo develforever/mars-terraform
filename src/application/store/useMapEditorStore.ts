@@ -17,7 +17,7 @@ import { HexGrid } from '../../presentation/generator/hex/HexGrid'
 
 const MAP_SIZE = 100
 const MAX_UNDO = 20
-const HEX_RADIUS = 20
+const HEX_RADIUS = 2
 const DEFAULT_SEED = 42
 
 // ─── Scatter options ──────────────────────────────────────────────────────────

@@ -107,7 +107,7 @@ export class HexGrid {
 
       // Multi-octave noise
       let h = 0
-      let amplitude = 1
+      let amplitude = 0.1
       let frequency = this.noiseScale
       let maxH = 0
 
@@ -141,7 +141,7 @@ export class HexGrid {
       this.cells.set(hexKey(q, r), {
         q, r,
         height: h,
-        worldY,
+        worldY: worldY,
         terrainType,
         userType: null,
         decor,

@@ -30,7 +30,7 @@ const HexTerrain = () => {
 
   return (
     <mesh ref={meshRef} geometry={geometry} castShadow receiveShadow>
-      <meshBasicMaterial vertexColors />
+      <meshStandardMaterial vertexColors />
     </mesh>
   )
 }

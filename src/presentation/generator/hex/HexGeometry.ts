@@ -48,7 +48,8 @@ function addHexTop(
     const a = baseIndex           // center
     const b2 = baseIndex + 1 + i  // corner i
     const c = baseIndex + 1 + ((i + 1) % 6) // corner i+1
-    indices.push(a, b2, c)
+    // up normal
+    indices.push(a, c, b2)
   }
 
   // 7 vertices added (center + 6 corners)
@@ -121,9 +122,9 @@ export function buildHexTerrainGeometry(cells: HexCell[]): THREE.BufferGeometry 
       const bottomY = neighbor ? neighbor.worldY : Math.max(0, worldY - EDGE_DEPTH)
       if (bottomY >= worldY - HEIGHT_EPSILON) continue
 
-      const [x0, z0] = corners[i]
-      const [x1, z1] = corners[(i + 1) % 6]
-      baseIndex += addHexSide(positions, colors, indices, baseIndex, x0, z0, x1, z1, worldY, bottomY, color)
+      //const [x0, z0] = corners[i]
+      //const [x1, z1] = corners[(i + 1) % 6]
+      //baseIndex += addHexSide(positions, colors, indices, baseIndex, x0, z0, x1, z1, worldY, bottomY, color)
     }
   }
 
