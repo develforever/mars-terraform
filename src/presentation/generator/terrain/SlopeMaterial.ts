@@ -1,14 +1,12 @@
 /**
  * SlopeMaterial.ts
  *
- * MeshStandardMaterial z shader slope-blending + efektem szronu.
- * Używa vertex colors + world-space normals (brak tekstur).
- *
- * slope = dot(worldNormal, up)
- *   ≈ 1.0  → płasko  → kolor biome (vertex colors)
- *   ≈ 0.0  → pionowo → cliffColor (ciemny bazalt)
- *
- * frost (szron): worldY > frostStart → jasny odcień na szczytach
+ * MeshStandardMaterial z:
+ *   - DataArrayTexture sampling (do 3 warstw blendowanych per vertex)
+ *   - Planar UV z world XZ position (tileable)
+ *   - Candy boost (saturacja + luminancja)
+ *   - Frost effect na szczytach (worldY > frostRange)
+ *   - Slope darkening na urwiskach (zostaje dla klifów)
  */
 
 import * as THREE from 'three'
@@ -16,87 +14,122 @@ import * as THREE from 'three'
 // ─── Opcje ────────────────────────────────────────────────────────────────────
 
 export interface SlopeMaterialOptions {
-  /** smoothstep [stromy, łagodny] → [0,1]; domyślnie [0.30, 0.65] */
-  cliffBlend?: [number, number]
-  /** Kolor urwisk (ciemny bazalt marsjański) */
-  cliffColor?: THREE.Color
-  /** Zakres worldY dla szronu [start_Y, full_Y]; domyślnie [2.8, 4.0] */
+  /** DataArrayTexture z warstwami tekstur per terrainType */
+  textureArray?: THREE.DataArrayTexture
+  /** Rozmiar mapy w world units (do skalowania UV); domyślnie 36 */
+  mapScale?: number
+  /** Ile repeats na mapę; domyślnie 10.0 */
+  tileScale?: number
+  /** Frost range [startY, fullY]; domyślnie [2.8, 4.0] */
   frostRange?: [number, number]
-  /** Kolor szronu/lodu */
-  frostColor?: THREE.Color
-  /** Siła szronu 0..1; domyślnie 0.55 */
+  /** Siła szronu 0..1; domyślnie 0.50 */
   frostStrength?: number
+  /** Candy saturation multiplier; domyślnie 1.25 */
+  candySaturation?: number
+  /** Candy brightness multiplier; domyślnie 1.05 */
+  candyBrightness?: number
 }
 
 // ─── createSlopeMaterial ──────────────────────────────────────────────────────
 
 export function createSlopeMaterial(opts: SlopeMaterialOptions = {}): THREE.MeshStandardMaterial {
-  const cliffBlend    = opts.cliffBlend    ?? [0.30, 0.65]
-  const cliffColor    = opts.cliffColor    ?? new THREE.Color(0x1a0c05)
-  const frostRange    = opts.frostRange    ?? [2.8, 4.0]
-  const frostColor    = opts.frostColor    ?? new THREE.Color(0xcec4b0)
-  const frostStrength = opts.frostStrength ?? 0.55
+  const textureArray    = opts.textureArray   ?? null
+  const mapScale        = opts.mapScale       ?? 36.0
+  const tileScale       = opts.tileScale      ?? 10.0
+  const frostRange      = opts.frostRange     ?? [2.8, 4.0]
+  const frostStrength   = opts.frostStrength  ?? 0.50
+  const candySaturation = opts.candySaturation ?? 1.30
+  const candyBrightness = opts.candyBrightness ?? 1.00
 
   const mat = new THREE.MeshStandardMaterial({
-    vertexColors: true,
-    roughness: 0.88,
-    metalness: 0.04,
+    vertexColors: true,   // fallback gdy brak textureArray
+    roughness: 0.75,
+    metalness: 0.0,
   })
 
   mat.onBeforeCompile = (shader) => {
-    // ── Vertex shader ──────────────────────────────────────────────────────
-    // Dodaj varyings + oblicz worldNormal i worldY
+
+    // ── Uniforms ────────────────────────────────────────────────────────────
+
+    if (textureArray) {
+      shader.uniforms.uTerrainArray = { value: textureArray }
+    }
+    shader.uniforms.uMapScale  = { value: mapScale }
+    shader.uniforms.uTileScale = { value: tileScale }
+
+    // ── Vertex shader ────────────────────────────────────────────────────────
 
     shader.vertexShader = shader.vertexShader
-      // Deklaracje varyings (przed void main)
-      .replace(
-        'void main() {',
-        /* glsl */`
-varying vec3 vWorldNormal;
+      .replace('void main() {', /* glsl */`
+varying vec3  vWorldNormal;
 varying float vWorldY;
+varying vec2  vWorldXZ;
+varying vec3  vTerrainIdx;
+varying vec3  vTerrainWgt;
 
-void main() {`,
-      )
-      // Oblicz wartości po #include <project_vertex>
-      .replace(
-        '#include <project_vertex>',
-        /* glsl */`
+attribute vec3 terrainIdx;
+attribute vec3 terrainWgt;
+
+void main() {`)
+      .replace('#include <project_vertex>', /* glsl */`
 #include <project_vertex>
-vWorldNormal = normalize(mat3(modelMatrix) * objectNormal);
-vWorldY = (modelMatrix * vec4(position, 1.0)).y;`,
-      )
+vec4 worldPos   = modelMatrix * vec4(position, 1.0);
+vWorldNormal    = normalize(mat3(modelMatrix) * objectNormal);
+vWorldY         = worldPos.y;
+vWorldXZ        = worldPos.xz;
+vTerrainIdx     = terrainIdx;
+vTerrainWgt     = terrainWgt;`)
 
-    // ── Fragment shader ────────────────────────────────────────────────────
-    // Deklaracje varyings (przed void main)
+    // ── Fragment shader ──────────────────────────────────────────────────────
+
+    const hasTextures = textureArray !== null
+
     shader.fragmentShader = shader.fragmentShader
-      .replace(
-        'void main() {',
-        /* glsl */`
-varying vec3 vWorldNormal;
-varying float vWorldY;
+      .replace('void main() {', /* glsl */`
+${hasTextures ? 'uniform sampler2DArray uTerrainArray;' : ''}
+uniform float uMapScale;
+uniform float uTileScale;
 
-void main() {`,
-      )
-      // Slope + frost blending po obliczeniu diffuseColor
-      .replace(
-        '#include <color_fragment>',
-        /* glsl */`
+varying vec3  vWorldNormal;
+varying float vWorldY;
+varying vec2  vWorldXZ;
+varying vec3  vTerrainIdx;
+varying vec3  vTerrainWgt;
+
+void main() {`)
+      .replace('#include <color_fragment>', /* glsl */`
 #include <color_fragment>
 
 {
-  // slope: 1.0 = płasko, 0.0 = pionowo (urwisko)
-  float slope = clamp(dot(normalize(vWorldNormal), vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
-  float slopeBlend = smoothstep(${cliffBlend[0].toFixed(3)}, ${cliffBlend[1].toFixed(3)}, slope);
+  // ── Planar UV (tile) ───────────────────────────────────────────────────
+  vec2 worldUv  = vWorldXZ / uMapScale;          // 0..1 na całą mapę
+  vec2 tiledUv  = fract(worldUv * uTileScale);   // tile ×N
 
-  vec3 cliffCol = vec3(${cliffColor.r.toFixed(4)}, ${cliffColor.g.toFixed(4)}, ${cliffColor.b.toFixed(4)});
-  diffuseColor.rgb = mix(cliffCol, diffuseColor.rgb, slopeBlend);
+  // ── Texture blend ──────────────────────────────────────────────────────
+  ${hasTextures ? /* glsl */`
+  vec3 col0 = texture(uTerrainArray, vec3(tiledUv, vTerrainIdx.x)).rgb;
+  vec3 col1 = texture(uTerrainArray, vec3(tiledUv, vTerrainIdx.y)).rgb;
+  vec3 col2 = texture(uTerrainArray, vec3(tiledUv, vTerrainIdx.z)).rgb;
+  vec3 texColor = col0 * vTerrainWgt.x
+                + col1 * vTerrainWgt.y
+                + col2 * vTerrainWgt.z;
+  ` : /* glsl */`
+  vec3 texColor = diffuseColor.rgb;   // fallback: vertex colors
+  `}
 
-  // frost: jasny odcień na wysokich partiach (tylko płaskie powierzchnie)
+  // ── Candy boost ────────────────────────────────────────────────────────
+  float luma   = dot(texColor, vec3(0.299, 0.587, 0.114));
+  vec3 candy   = mix(vec3(luma), texColor, ${candySaturation.toFixed(3)});
+  candy       *= ${candyBrightness.toFixed(3)};
+  candy        = clamp(candy, 0.0, 1.0);
+
+  // ── Frost na szczytach ─────────────────────────────────────────────────
   float frostBlend = smoothstep(${frostRange[0].toFixed(3)}, ${frostRange[1].toFixed(3)}, vWorldY);
-  vec3 frostCol = vec3(${frostColor.r.toFixed(4)}, ${frostColor.g.toFixed(4)}, ${frostColor.b.toFixed(4)});
-  diffuseColor.rgb = mix(diffuseColor.rgb, frostCol, frostBlend * ${frostStrength.toFixed(3)} * slopeBlend);
-}`,
-      )
+  vec3  frostCol   = vec3(0.91, 0.86, 0.76);   // kremowy szron
+  candy = mix(candy, frostCol, frostBlend * ${frostStrength.toFixed(3)});
+
+  diffuseColor.rgb = candy;
+}`)
   }
 
   return mat

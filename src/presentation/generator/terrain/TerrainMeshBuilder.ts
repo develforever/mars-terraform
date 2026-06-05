@@ -1,31 +1,25 @@
 /**
  * TerrainMeshBuilder.ts
  *
- * Buduje unified BufferGeometry z "Dual Topology":
+ * Buduje unified BufferGeometry z "Dual Topology" + atrybuty blend tekstur.
  *
- *   RAMPA  (diff ≤ RAMP_THRESHOLD):
- *     Narożniki sąsiadujących hexów są WSPÓŁDZIELONE (averaged Y).
- *     → Łagodne przejście, naturalne zbocze.
+ *   RAMPA  (diff ≤ RAMP_THRESHOLD): narożniki shared, averaged Y + blend weights
+ *   KLIF   (diff > RAMP_THRESHOLD): per-hex vertices, płaskie plateau
  *
- *   KLIF   (diff > RAMP_THRESHOLD):
- *     Każdy hex dostaje WŁASNY wierzchołek narożnika na swojej wysokości.
- *     → Płaskie plateau z ostrą krawędzią. CliffBuilder wypełnia pionową lukę.
- *
- * Kryterium: zakres worldY wśród wszystkich hexów dzielących dany narożnik.
- * Jeśli range ≤ RAMP_THRESHOLD → ramp (shared); w przeciwnym razie → cliff (per-hex).
+ * Atrybuty wierzchołka:
+ *   position   (3) — XYZ
+ *   color      (3) — vertex color fallback
+ *   terrainIdx (3) — indeksy do DataArrayTexture (do 3 warstw)
+ *   terrainWgt (3) — wagi blendowania (suma = 1.0)
  */
 
 import * as THREE from 'three'
 import { hexToWorld, hexCorners, hexKey, HEX_SIZE } from '../hex/HexMath'
 import { TERRAIN_COLORS, type HexCell } from '../hex/HexGrid'
+import { TERRAIN_TEX_INDEX } from './TerrainTextureLoader'
 
 // ─── Progi ────────────────────────────────────────────────────────────────────
 
-/**
- * Maksymalna różnica worldY między sąsiednimi hexami dozwolona dla rampy.
- * Powyżej → klif (per-hex vertices, płaskie plateau).
- * 1.4 ≈ przejście o 1.5–2 poziomy (np. plains↔rocky).
- */
 export const RAMP_THRESHOLD = 1.4
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -34,16 +28,45 @@ function ck(x: number, z: number): string {
   return `${Math.round(x * 1000)},${Math.round(z * 1000)}`
 }
 
+// Oblicz do 3 unikalnych indeksów + wagi z listy typów terrainowych
+function computeBlend(
+  terrainTypes: string[],
+): { indices: [number, number, number]; weights: [number, number, number] } {
+  const counts: Record<number, number> = {}
+  for (const t of terrainTypes) {
+    const idx = TERRAIN_TEX_INDEX[t] ?? 2
+    counts[idx] = (counts[idx] ?? 0) + 1
+  }
+  const total = terrainTypes.length
+  const sorted = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+
+  const indices: [number, number, number] = [0, 0, 0]
+  const weights: [number, number, number] = [0, 0, 0]
+  let wSum = 0
+  for (let i = 0; i < sorted.length; i++) {
+    indices[i] = Number(sorted[i][0])
+    weights[i] = sorted[i][1] / total
+    wSum += weights[i]
+  }
+  // Normalize
+  if (wSum > 0) for (let i = 0; i < 3; i++) weights[i] /= wSum
+  else weights[0] = 1.0
+
+  return { indices, weights }
+}
+
 // ─── buildSmoothTerrainGeometry ───────────────────────────────────────────────
 
 export function buildSmoothTerrainGeometry(cells: HexCell[]): THREE.BufferGeometry {
 
-  // ── Przejście 1: zbierz dane narożników (heightY + kolor per hex) ─────────
+  // ── Pass 1: zbierz dane narożników ──────────────────────────────────────
 
   interface CornerData {
     x: number
     z: number
-    hexes: Array<{ worldY: number; r: number; g: number; b: number }>
+    hexes: Array<{ worldY: number; r: number; g: number; b: number; terrainType: string }>
   }
 
   const cornerData = new Map<string, CornerData>()
@@ -56,14 +79,14 @@ export function buildSmoothTerrainGeometry(cells: HexCell[]): THREE.BufferGeomet
       const key = ck(x, z)
       const entry = cornerData.get(key)
       if (entry) {
-        entry.hexes.push({ worldY: cell.worldY, r, g, b })
+        entry.hexes.push({ worldY: cell.worldY, r, g, b, terrainType: cell.terrainType })
       } else {
-        cornerData.set(key, { x, z, hexes: [{ worldY: cell.worldY, r, g, b }] })
+        cornerData.set(key, { x, z, hexes: [{ worldY: cell.worldY, r, g, b, terrainType: cell.terrainType }] })
       }
     }
   }
 
-  // ── Przejście 2: klasyfikuj narożniki (ramp vs cliff) ─────────────────────
+  // ── Pass 2: klasyfikuj narożniki (ramp vs cliff) ─────────────────────────
 
   const cliffCorners = new Set<string>()
 
@@ -73,88 +96,104 @@ export function buildSmoothTerrainGeometry(cells: HexCell[]): THREE.BufferGeomet
     if (range > RAMP_THRESHOLD) cliffCorners.add(key)
   }
 
-  // ── Przejście 3: wierzchołki dla narożników RAMP (shared) ────────────────
+  // ── Pass 3: wierzchołki RAMP (shared, blended) ────────────────────────────
 
   const posArr: number[] = []
   const colArr: number[] = []
-  const idxArr: number[] = []
+  const tidxArr: number[] = []   // terrainIdx (3 floats)
+  const twgtArr: number[] = []   // terrainWgt (3 floats)
+  const triArr: number[] = []    // triangle indices
 
-  const sharedVIdx = new Map<string, number>() // cornerKey → vertex index
+  const sharedVIdx = new Map<string, number>()
 
   for (const [key, data] of cornerData) {
-    if (cliffCorners.has(key)) continue // klif: wierzchołek per-hex (poniżej)
+    if (cliffCorners.has(key)) continue
 
-    const n    = data.hexes.length
+    const n = data.hexes.length
     const avgY = data.hexes.reduce((a, h) => a + h.worldY, 0) / n
     const avgR = data.hexes.reduce((a, h) => a + h.r, 0) / n
     const avgG = data.hexes.reduce((a, h) => a + h.g, 0) / n
     const avgB = data.hexes.reduce((a, h) => a + h.b, 0) / n
 
+    // Blend tekstur z sąsiadujących hexów
+    const { indices, weights } = computeBlend(data.hexes.map(h => h.terrainType))
+
     sharedVIdx.set(key, posArr.length / 3)
     posArr.push(data.x, avgY, data.z)
     colArr.push(avgR, avgG, avgB)
+    tidxArr.push(...indices)
+    twgtArr.push(...weights)
   }
 
-  // ── Przejście 4: per-hex — centrum + trójkąty ────────────────────────────
+  // ── Pass 4: per-hex — centrum + triangles ────────────────────────────────
 
-  // Dla narożników klifu: jeden wierzchołek per hex (cached per hex+corner)
-  const cliffVIdx = new Map<string, number>() // "hexKey_cornerKey" → vertex index
+  const cliffVIdx = new Map<string, number>()
 
   for (const cell of cells) {
     const [cx, cz] = hexToWorld(cell.q, cell.r)
-    const corners  = hexCorners(cx, cz, HEX_SIZE)
+    const corners   = hexCorners(cx, cz, HEX_SIZE)
     const [r, g, b] = TERRAIN_COLORS[cell.terrainType]
-    const hk = hexKey(cell.q, cell.r)
+    const hk        = hexKey(cell.q, cell.r)
+    const texIdx    = TERRAIN_TEX_INDEX[cell.terrainType] ?? 2
 
-    // Centrum hexa — zawsze na pełnej wysokości
+    // Centrum: jedna tekstura, waga = 1.0
     const centerIdx = posArr.length / 3
     posArr.push(cx, cell.worldY, cz)
     colArr.push(r, g, b)
+    tidxArr.push(texIdx, 0, 0)
+    twgtArr.push(1.0, 0.0, 0.0)
 
-    // 6 trójkątów (fan)
     for (let i = 0; i < 6; i++) {
       const [x0, z0] = corners[i]
       const [x1, z1] = corners[(i + 1) % 6]
       const k0 = ck(x0, z0)
       const k1 = ck(x1, z1)
 
-      const vi0 = resolveCornerVertex(k0, x0, z0, cell.worldY, r, g, b, hk, sharedVIdx, cliffVIdx, posArr, colArr)
-      const vi1 = resolveCornerVertex(k1, x1, z1, cell.worldY, r, g, b, hk, sharedVIdx, cliffVIdx, posArr, colArr)
+      const vi0 = resolveCornerVertex(
+        k0, x0, z0, cell.worldY, r, g, b, texIdx, hk,
+        sharedVIdx, cliffVIdx, posArr, colArr, tidxArr, twgtArr,
+      )
+      const vi1 = resolveCornerVertex(
+        k1, x1, z1, cell.worldY, r, g, b, texIdx, hk,
+        sharedVIdx, cliffVIdx, posArr, colArr, tidxArr, twgtArr,
+      )
 
-      // CCW winding → normal UP (+Y)
-      idxArr.push(centerIdx, vi1, vi0)
+      triArr.push(centerIdx, vi1, vi0)
     }
   }
 
   // ── Złóż geometrię ────────────────────────────────────────────────────────
 
   const geo = new THREE.BufferGeometry()
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(posArr, 3))
-  geo.setAttribute('color',    new THREE.Float32BufferAttribute(colArr, 3))
-  geo.setIndex(idxArr)
+  geo.setAttribute('position',    new THREE.Float32BufferAttribute(posArr,  3))
+  geo.setAttribute('color',       new THREE.Float32BufferAttribute(colArr,  3))
+  geo.setAttribute('terrainIdx',  new THREE.Float32BufferAttribute(tidxArr, 3))
+  geo.setAttribute('terrainWgt',  new THREE.Float32BufferAttribute(twgtArr, 3))
+  geo.setIndex(triArr)
   geo.computeVertexNormals()
 
   return geo
 }
 
-// ─── Helper: lookup or create corner vertex ───────────────────────────────────
+// ─── Helper ───────────────────────────────────────────────────────────────────
 
 function resolveCornerVertex(
   cornerKey: string,
   x: number, z: number,
   worldY: number,
   r: number, g: number, b: number,
+  texIdx: number,
   hexCacheKey: string,
   sharedVIdx: Map<string, number>,
-  cliffVIdx: Map<string, number>,
-  posArr: number[],
-  colArr: number[],
+  cliffVIdx:  Map<string, number>,
+  posArr:  number[],
+  colArr:  number[],
+  tidxArr: number[],
+  twgtArr: number[],
 ): number {
-  // Ramp corner → shared vertex
   const shared = sharedVIdx.get(cornerKey)
   if (shared !== undefined) return shared
 
-  // Cliff corner → per-hex vertex (jeden na hex, reużywany wewnątrz tego hexa)
   const cliffKey = hexCacheKey + '_' + cornerKey
   const existing = cliffVIdx.get(cliffKey)
   if (existing !== undefined) return existing
@@ -162,11 +201,13 @@ function resolveCornerVertex(
   const idx = posArr.length / 3
   posArr.push(x, worldY, z)
   colArr.push(r, g, b)
+  tidxArr.push(texIdx, 0, 0)
+  twgtArr.push(1.0, 0.0, 0.0)
   cliffVIdx.set(cliffKey, idx)
   return idx
 }
 
-// ─── Stats helper ─────────────────────────────────────────────────────────────
+// ─── Stats ────────────────────────────────────────────────────────────────────
 
 export interface TerrainMeshStats {
   vertexCount:   number
@@ -178,31 +219,26 @@ export interface TerrainMeshStats {
 
 export function getTerrainMeshStats(cells: HexCell[]): TerrainMeshStats {
   const cornerData = new Map<string, number[]>()
-
   for (const cell of cells) {
     const [cx, cz] = hexToWorld(cell.q, cell.r)
     for (const [x, z] of hexCorners(cx, cz, HEX_SIZE)) {
       const key = ck(x, z)
-      const existing = cornerData.get(key)
-      if (existing) existing.push(cell.worldY)
+      const ex = cornerData.get(key)
+      if (ex) ex.push(cell.worldY)
       else cornerData.set(key, [cell.worldY])
     }
   }
 
-  let sharedCorners = 0
-  let cliffCorners  = 0
+  let sharedCorners = 0, cliffCorners = 0
   for (const ys of cornerData.values()) {
     const range = Math.max(...ys) - Math.min(...ys)
     if (range <= RAMP_THRESHOLD) sharedCorners++
     else cliffCorners++
   }
 
-  const vertexCount   = sharedCorners + cells.length * (1 + cliffCorners / cells.length)
-  const triangleCount = cells.length * 6
-
   return {
-    vertexCount: Math.round(vertexCount),
-    triangleCount,
+    vertexCount:   Math.round(sharedCorners + cells.length * 1.5),
+    triangleCount: cells.length * 6,
     sharedCorners,
     cliffCorners,
     hexCount: cells.length,

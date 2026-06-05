@@ -73,8 +73,8 @@ const GeneratorViewport = () => {
       <Canvas
         camera={{ position: [0, 70, 65], fov: 45, near: 0.1, far: 1000 }}
         shadows={false}
-        gl={{ antialias: true, toneMapping: CineonToneMapping, toneMappingExposure: 1.97 }}
-        onCreated={({ gl }) => { gl.toneMappingExposure = 1.0 }}
+        gl={{ antialias: true, toneMapping: CineonToneMapping, toneMappingExposure: 1.2 }}
+        onCreated={({ gl }) => { gl.toneMappingExposure = 1.2 }}
       >
         <SceneLighting />
 

@@ -12,6 +12,7 @@ import { useMapEditorStore } from '../../../../application/store/useMapEditorSto
 import { buildSmoothTerrainGeometry } from '../../terrain/TerrainMeshBuilder'
 import { buildCliffGeometry } from '../../terrain/CliffBuilder'
 import { createSlopeMaterial } from '../../terrain/SlopeMaterial'
+import { createProceduralTerrainTextures } from '../../terrain/TerrainTextureLoader'
 import * as THREE from 'three'
 
 // MeshBasicMaterial na klifach — niezależny od oświetlenia,
@@ -36,7 +37,8 @@ const SmoothTerrain = () => {
     [cells]
   )
 
-  const terrainMat = useMemo(() => createSlopeMaterial(), [])
+  const textureArray = useMemo(() => createProceduralTerrainTextures(), [])
+  const terrainMat = useMemo(() => createSlopeMaterial({ textureArray, mapScale: 36, tileScale: 10 }), [textureArray])
 
   const cliffMat = cliffMaterial
 
