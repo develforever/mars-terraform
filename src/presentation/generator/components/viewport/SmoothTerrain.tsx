@@ -14,11 +14,10 @@ import { buildCliffGeometry } from '../../terrain/CliffBuilder'
 import { createSlopeMaterial } from '../../terrain/SlopeMaterial'
 import * as THREE from 'three'
 
-// DoubleSide na klifach — widoczne niezależnie od kąta kamery
-const cliffMaterial = new THREE.MeshStandardMaterial({
+// MeshBasicMaterial na klifach — niezależny od oświetlenia,
+// zawsze pokazuje vertex colors bez względu na kąt kamery / pozycję światła
+const cliffMaterial = new THREE.MeshBasicMaterial({
   vertexColors: true,
-  roughness: 0.95,
-  metalness: 0.02,
   side: THREE.DoubleSide,
 })
 

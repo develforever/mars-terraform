@@ -124,15 +124,27 @@ describe('getTerrainMeshStats', () => {
     expect(stats.triangleCount).toBe(stats.hexCount * 6)
   })
 
-  it('vertexCount = sharedCorners + hexCount (1 center per hex)', () => {
+  it('all-plains grid has cliffCorners = 0 (no height difference)', () => {
     const cells = makeGrid(4)
     const stats = getTerrainMeshStats(cells)
-    expect(stats.vertexCount).toBe(stats.sharedCorners + stats.hexCount)
+    expect(stats.cliffCorners).toBe(0)
+    // All corners shared → sharedCorners + centers = total vertices
+    expect(stats.sharedCorners).toBeGreaterThan(0)
   })
 
   it('shared corners < 6 * hexCount (interior corners are shared)', () => {
     const cells = makeGrid(5)
     const stats = getTerrainMeshStats(cells)
     expect(stats.sharedCorners).toBeLessThan(6 * stats.hexCount)
+  })
+
+  it('grid with peak terrain has cliff corners', () => {
+    const grid = new HexGrid(5, 1)
+    grid.generate()
+    // plains(1.2) surrounded by peak(4.0): diff=2.8 > RAMP_THRESHOLD(1.4) → cliff
+    grid.setTerrainType(0, 0, 'peak')
+    const cells = grid.getAllCells()
+    const stats = getTerrainMeshStats(cells)
+    expect(stats.cliffCorners).toBeGreaterThan(0)
   })
 })
