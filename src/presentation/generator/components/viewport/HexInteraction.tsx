@@ -13,7 +13,7 @@ import { useMapEditorStore } from '../../../../application/store/useMapEditorSto
 import { buildBrushHighlightGeometry } from '../../hex/HexGeometry'
 import { worldToHex, hexBrush } from '../../hex/HexMath'
 import { TERRAIN_HEIGHT } from '../../hex/HexGrid'
-import type { TileType, BuildNode, ResourceNode, SpawnPoint } from '../../../../domain/mapEditorTypes'
+import type { TileType, BuildNode, ResourceNode, SpawnPoint, DecorItem } from '../../../../domain/mapEditorTypes'
 
 // ─── Tool → highlight color ───────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ const TOOL_COLORS: Record<string, number> = {
   spawn:    0x0088ff,
   erase:    0xff6622,
   terrain:  0xffa040,
+  decor:    0x9a7b5a,
 }
 
 // Reusable objects — allocated once outside the component
@@ -46,9 +47,12 @@ const HexInteraction = () => {
   const addBuildNode     = useMapEditorStore(s => s.addBuildNode)
   const addResourceNode  = useMapEditorStore(s => s.addResourceNode)
   const addSpawnPoint    = useMapEditorStore(s => s.addSpawnPoint)
+  const addDecor         = useMapEditorStore(s => s.addDecor)
+  const removeDecorAt    = useMapEditorStore(s => s.removeDecorAt)
   const buildNodes       = useMapEditorStore(s => s.buildNodes)
   const resourceNodes    = useMapEditorStore(s => s.resourceNodes)
   const spawnPoints      = useMapEditorStore(s => s.spawnPoints)
+  const decor            = useMapEditorStore(s => s.decor)
 
   const isPainting = useRef(false)
 
@@ -97,6 +101,7 @@ const HexInteraction = () => {
     if (activeTool === 'erase') {
       paintHexes(coords, null)
       paintHexTerrainType(coords, 'plains')
+      for (const [cq, cr] of coords) removeDecorAt(cq, cr)
       return
     }
     const tileMap: Record<string, TileType> = {
@@ -104,7 +109,7 @@ const HexInteraction = () => {
     }
     const tileType = tileMap[activeTool]
     if (tileType) paintHexes(coords, tileType)
-  }, [activeTool, brushSize, hexGrid, paintHexes, paintHexTerrainType, activeTerrainType])
+  }, [activeTool, brushSize, hexGrid, paintHexes, paintHexTerrainType, activeTerrainType, removeDecorAt])
 
   const createNodeAt = useCallback((q: number, r: number) => {
     if (activeTool === 'build') {
@@ -122,8 +127,19 @@ const HexInteraction = () => {
       if (spawnPoints.some(s => s.player === nextPlayer)) return
       addSpawnPoint({ player: nextPlayer, pos: [q, r] } as SpawnPoint)
       paintHexes([[q, r]], 'spawn')
+    } else if (activeTool === 'decor') {
+      if (decor.some(d => d.pos[0] === q && d.pos[1] === r)) return
+      const seed = Math.sin(q * 12.9898 + r * 78.233) * 43758.5453
+      const frac = seed - Math.floor(seed)
+      const item: DecorItem = {
+        model: 'rock_01',
+        pos: [q, r],
+        rot: frac * Math.PI * 2,
+        scale: 0.6 + frac * 0.8,
+      }
+      addDecor(item)
     }
-  }, [activeTool, buildNodes, resourceNodes, spawnPoints, addBuildNode, addResourceNode, addSpawnPoint, paintHexes])
+  }, [activeTool, buildNodes, resourceNodes, spawnPoints, decor, addBuildNode, addResourceNode, addSpawnPoint, addDecor, paintHexes])
 
   // ── Pointer handlers ──────────────────────────────────────────────────────
 
@@ -148,7 +164,7 @@ const HexInteraction = () => {
     const [q, r] = hex
 
     if (activeTool === 'select') { selectHex(q, r); return }
-    if (activeTool === 'build' || activeTool === 'resource' || activeTool === 'spawn') {
+    if (activeTool === 'build' || activeTool === 'resource' || activeTool === 'spawn' || activeTool === 'decor') {
       createNodeAt(q, r); return
     }
     paintAt(q, r)

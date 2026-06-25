@@ -46,13 +46,13 @@ const HexInspector = ({ q, r }: { q: number; r: number }) => {
   return (
     <div className="flex flex-col gap-3">
       <div className="text-xs font-mono text-zinc-400 border-b border-zinc-700 pb-2">
-        Hex <span className="text-orange-400">({q}, {r})</span>
+        Hex <span className="text-[#ec7063]">({q}, {r})</span>
       </div>
 
       <label className="flex flex-col gap-1">
         <span className="text-xs text-zinc-400">Terrain type</span>
         <select
-          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-orange-500"
+          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-[#e74c3c]"
           value={cell.terrainType}
           onChange={e => setHexTerrainType(q, r, e.target.value as HexTerrainType)}
         >
@@ -65,7 +65,7 @@ const HexInspector = ({ q, r }: { q: number; r: number }) => {
       <label className="flex flex-col gap-1">
         <span className="text-xs text-zinc-400">User type (overlay)</span>
         <select
-          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-orange-500"
+          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-[#e74c3c]"
           value={cell.userType ?? 'empty'}
           onChange={e => {
             const v = e.target.value
@@ -126,7 +126,7 @@ const BuildNodeInspector = ({ nodeId }: { nodeId: string }) => {
               type="checkbox"
               checked={node.allowedTypes.includes(bt.value)}
               onChange={() => toggleType(bt.value)}
-              className="accent-orange-500"
+              className="accent-[#e74c3c]"
             />
             <span className="text-xs text-zinc-300 group-hover:text-white transition-colors">
               {bt.label}
@@ -167,7 +167,7 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
       <label className="flex flex-col gap-1">
         <span className="text-xs text-zinc-400">Resource type</span>
         <select
-          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-orange-500"
+          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-[#e74c3c]"
           value={node.type}
           onChange={e => updateResourceNode(nodeId, { type: e.target.value as ResourceType })}
         >
@@ -180,7 +180,7 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
         <input
           type="range" min={100} max={5000} step={100} value={node.amount}
           onChange={e => updateResourceNode(nodeId, { amount: Number(e.target.value) })}
-          className="accent-orange-500"
+          className="accent-[#e74c3c]"
         />
       </label>
 
@@ -193,7 +193,7 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
               onClick={() => updateResourceNode(nodeId, { richness: r })}
               className={`flex-1 py-1 rounded text-xs font-mono capitalize transition-colors
                 ${node.richness === r
-                  ? 'bg-orange-600 text-white'
+                  ? 'bg-[#e74c3c] text-white'
                   : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'}`}
             >
               {r}
@@ -279,7 +279,7 @@ const GeneratorRightPanel = () => {
         <div className="text-zinc-500 text-xs text-center mt-8 px-2">
           <p>Select a hex or node on the map</p>
           <p className="mt-1 text-zinc-600">
-            Use <span className="text-orange-400">↖ Select</span> tool then click
+            Use <span className="text-[#ec7063]">↖ Select</span> tool then click
           </p>
           <div className="mt-4 border-t border-zinc-800 pt-4 text-left">
             <p className="text-zinc-400 mb-2">Nodes placed:</p>
@@ -305,12 +305,12 @@ const GeneratorRightPanel = () => {
             onClick={() => setActiveTab(tab)}
             className={`flex-1 py-2 text-xs uppercase tracking-wider font-medium transition-colors
               ${effectiveTab === tab
-                ? 'bg-zinc-800 text-orange-400 border-b-2 border-orange-500'
+                ? 'bg-zinc-800 text-[#ec7063] border-b-2 border-[#e74c3c]'
                 : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             {tab}
             {tab === 'inspector' && hasInspector && (
-              <span className="ml-1 w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
+              <span className="ml-1 w-1.5 h-1.5 rounded-full bg-[#e74c3c] inline-block" />
             )}
           </button>
         ))}
@@ -324,7 +324,7 @@ const GeneratorRightPanel = () => {
             <label className="flex flex-col gap-1">
               <span className="text-xs text-zinc-400">Map name</span>
               <input
-                className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-orange-500"
+                className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-[#e74c3c]"
                 value={meta.name}
                 onChange={e => updateMeta({ name: e.target.value })}
               />
@@ -333,7 +333,7 @@ const GeneratorRightPanel = () => {
             <label className="flex flex-col gap-1">
               <span className="text-xs text-zinc-400">Description</span>
               <textarea
-                className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-orange-500 resize-none"
+                className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-[#e74c3c] resize-none"
                 rows={3}
                 value={meta.description}
                 onChange={e => updateMeta({ description: e.target.value })}
@@ -349,7 +349,7 @@ const GeneratorRightPanel = () => {
                     onClick={() => updateMeta({ players: p })}
                     className={`flex-1 py-1 rounded text-xs font-mono transition-colors
                       ${meta.players === p
-                        ? 'bg-orange-600 text-white'
+                        ? 'bg-[#e74c3c] text-white'
                         : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'}`}
                   >
                     {p}

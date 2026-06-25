@@ -19,7 +19,7 @@ const GeneratorPage = () => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
       const toolMap: Record<string, ToolMode> = {
-        v: 'select', t: 'terrain', b: 'build', r: 'resource', x: 'blocked', s: 'spawn', e: 'erase',
+        v: 'select', t: 'terrain', b: 'build', r: 'resource', x: 'blocked', s: 'spawn', e: 'erase', d: 'decor',
       }
       const brushMap: Record<string, BrushSize> = { '1': 1, '2': 3, '3': 5 }
 

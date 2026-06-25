@@ -133,29 +133,28 @@ function drawCraters(
 // ─── 6 warstw proceduralnych ──────────────────────────────────────────────────
 
 const LAYER_PAINTERS: Painter[] = [
-  // 0: deep_crater — głęboki rdzawy krater, mocny kontrast
+  // 0: deep_crater — cień krateru, głęboka rdza
   (ctx, size) => {
-    drawNoise(ctx, size, [70, 20, 8], 30, 6, 1)
-    drawCraters(ctx, size, [60, 15, 5], [145, 55, 18])
+    drawNoise(ctx, size, [46, 23, 16], 20, 6, 1)
+    drawCraters(ctx, size, [40, 20, 14], [95, 55, 38])
   },
-  // 1: lowland — ciemny rdzawo-brązowy piasek
-  (ctx, size) => drawNoise(ctx, size, [190, 90, 30], 40, 5, 2),
+  // 1: lowland — ciemny rdzawy piasek
+  (ctx, size) => drawNoise(ctx, size, [90, 47, 32], 24, 5, 2),
 
-  // 2: plains — Candy Mars #E86010, głęboki pomarańcz, intensywne fale piasku (GŁÓWNY)
-  (ctx, size) => drawDunes(ctx, size, [232, 96, 16], [255, 128, 32], 10),
+  // 2: plains — rdzawa terakota, łagodne fale wydm (GŁÓWNY)
+  (ctx, size) => drawDunes(ctx, size, [125, 69, 48], [150, 90, 66], 10),
 
-  // 3: highland — nasycony ciemny pomarańcz, skalna faktura
-  (ctx, size) => drawDunes(ctx, size, [200, 85, 20], [230, 110, 35], 7),
+  // 3: highland — jaśniejsza rdza, drobna skała
+  (ctx, size) => drawDunes(ctx, size, [148, 88, 60], [172, 108, 78], 7),
 
-  // 4: rocky — głęboki brąz z wyraźnymi pęknięciami
+  // 4: rocky — szarawy brąz z delikatnymi pęknięciami
   (ctx, size) => {
-    drawNoise(ctx, size, [150, 70, 20], 45, 8, 5)
-    // Pęknięcia jako ciemne linie (simplified)
+    drawNoise(ctx, size, [107, 91, 77], 30, 8, 5)
     const d = ctx.getImageData(0, 0, size, size)
     for (let i = 0; i < d.data.length; i += 4) {
       const x = (i / 4) % size
       const y = Math.floor(i / 4 / size)
-      const crack = Math.abs(Math.sin(x * 0.15 + y * 0.08)) < 0.08 ? 0.45 : 1.0
+      const crack = Math.abs(Math.sin(x * 0.15 + y * 0.08)) < 0.08 ? 0.6 : 1.0
       d.data[i]     = Math.round(d.data[i] * crack)
       d.data[i + 1] = Math.round(d.data[i + 1] * crack)
       d.data[i + 2] = Math.round(d.data[i + 2] * crack)
@@ -163,8 +162,8 @@ const LAYER_PAINTERS: Painter[] = [
     ctx.putImageData(d, 0, 0)
   },
 
-  // 5: peak — kremowy jasny z wyraźną fakturą
-  (ctx, size) => drawDunes(ctx, size, [235, 215, 175], [252, 240, 210], 5),
+  // 5: peak — blady pylisty piasek
+  (ctx, size) => drawDunes(ctx, size, [168, 130, 106], [190, 156, 132], 5),
 ]
 
 // ─── createProceduralTerrainTextures ─────────────────────────────────────────

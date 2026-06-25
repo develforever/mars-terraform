@@ -24,12 +24,12 @@ export type HexTerrainType =
 // ─── Vertex color per terrain type (Martian palette) ─────────────────────────
 
 export const TERRAIN_COLORS: Record<HexTerrainType, [number, number, number]> = {
-  deep_crater: [0.239, 0.122, 0.039],  // #3d1f0a
-  lowland:     [0.545, 0.227, 0.102],  // #8b3a1a
-  plains:      [0.757, 0.267, 0.055],  // #c1440e
-  highland:    [0.831, 0.384, 0.165],  // #d4622a
-  rocky:       [0.420, 0.298, 0.196],  // #6b4c32
-  peak:        [0.620, 0.502, 0.376],  // #9e8060
+  deep_crater: [0.180, 0.090, 0.063],  // #2e1710 — cień krateru
+  lowland:     [0.353, 0.184, 0.125],  // #5a2f20 — ciemna rdza
+  plains:      [0.490, 0.271, 0.188],  // #7d4530 — rdzawa terakota (baza Marsa)
+  highland:    [0.580, 0.345, 0.235],  // #94583c — jaśniejsza rdza
+  rocky:       [0.420, 0.290, 0.227],  // #6b4a3a — szarobrązowa skała
+  peak:        [0.659, 0.510, 0.416],  // #a8826a — pylisty jasny rdzawy
 }
 
 // ─── World height per terrain type ───────────────────────────────────────────

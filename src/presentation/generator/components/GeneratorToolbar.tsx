@@ -41,7 +41,7 @@ const ValidationModal = ({
         {result.valid && (
           <button
             onClick={onConfirm}
-            className="px-3 py-1.5 rounded bg-orange-700 hover:bg-orange-600 text-white text-xs font-medium transition-colors"
+            className="px-3 py-1.5 rounded bg-[#c0392b] hover:bg-[#e74c3c] text-white text-xs font-medium transition-colors"
           >
             Export Anyway
           </button>
@@ -141,7 +141,7 @@ const GeneratorToolbar = () => {
       )}
 
       <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-950 border-b border-zinc-700 text-sm select-none">
-        <span className="text-orange-500 font-bold tracking-wider text-xs uppercase mr-2">
+        <span className="text-[#e74c3c] font-bold tracking-wider text-xs uppercase mr-2">
           🪐 Map Generator
         </span>
 
@@ -160,7 +160,7 @@ const GeneratorToolbar = () => {
         <button
           onClick={handleExport}
           className={`px-2 py-1 rounded text-white transition-colors text-xs font-medium relative
-            ${errorCount > 0 ? 'bg-red-800 hover:bg-red-700' : 'bg-orange-700 hover:bg-orange-600'}`}
+            ${errorCount > 0 ? 'bg-red-800 hover:bg-red-700' : 'bg-[#c0392b] hover:bg-[#e74c3c]'}`}
         >
           💾 Export JSON
           {errorCount > 0 && (
@@ -181,14 +181,14 @@ const GeneratorToolbar = () => {
 
         <button onClick={toggleGrid}
           className={`px-2 py-1 rounded text-xs transition-colors ${
-            showGrid ? 'bg-zinc-700 text-orange-400' : 'hover:bg-zinc-800 text-zinc-500'}`}>
+            showGrid ? 'bg-zinc-700 text-[#ec7063]' : 'hover:bg-zinc-800 text-zinc-500'}`}>
           ⊞ Grid
         </button>
 
         <button onClick={togglePreview}
           className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
             isPreviewMode
-              ? 'bg-orange-700 text-white'
+              ? 'bg-[#c0392b] text-white'
               : 'hover:bg-zinc-800 text-zinc-400'}`}
           title="Podgląd płynnego terenu gry">
           ◈ Preview

@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
 import { useMapEditorStore } from '../../../../application/store/useMapEditorStore'
-import { useTerrainHeight } from '../../hooks/useTerrainHeight'
+import { hexToWorld } from '../../hex/HexMath'
+import { useHexHeight } from '../../hooks/useHexHeight'
 
 // Simple procedural rock mesh using scaled icosahedron
 const RockMesh = ({ scale, rot }: { scale: number; rot: number }) => {
@@ -41,15 +42,14 @@ const RockMesh = ({ scale, rot }: { scale: number; rot: number }) => {
 
 const DecorMarkers = () => {
   const decor = useMapEditorStore(s => s.decor)
-  const getHeight = useTerrainHeight()
+  const getHeight = useHexHeight()
 
   return (
     <>
       {decor.map((item, i) => {
-        const [tx, tz] = item.pos
-        const wx = tx - 100 / 2 + 0.5
-        const wz = tz - 100 / 2 + 0.5
-        const wy = getHeight(wx, wz)
+        const [q, r] = item.pos
+        const [wx, wz] = hexToWorld(q, r)
+        const wy = getHeight(q, r)
         return (
           <group key={i} position={[wx, wy, wz]}>
             <RockMesh scale={item.scale} rot={item.rot} />

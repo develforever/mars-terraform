@@ -1,134 +1,117 @@
 /**
  * SlopeMaterial.ts
  *
- * MeshStandardMaterial z:
- *   - DataArrayTexture sampling (do 3 warstw blendowanych per vertex)
- *   - Planar UV z world XZ position (tileable)
- *   - Candy boost (saturacja + luminancja)
- *   - Frost effect na szczytach (worldY > frostRange)
- *   - Slope darkening na urwiskach (zostaje dla klifów)
+ * Produkcyjny materiel terenu (Preview generatora = przyszly renderer rozgrywki).
+ *
+ * Podejscie (hybryda — spojne z trybem plaskim edycji):
+ *   BAZA   = kolor biomu z palety (vertex color = TERRAIN_COLORS, blendowany
+ *            per-vertex). Te same deep-rust kolory co tryb plaski -> brak
+ *            rozjazdu miedzy widokami, brak widocznego kafelkowania.
+ *   DETAL  = tekstura Marsa (2k_mars.jpg) probkowana TRIPLANAR, uzyta tylko
+ *            jako modulacja jasnosci (+-20%) — daje fakture/relief bez
+ *            powtarzajacych sie kraterow.
+ *   SLOPE  = strome powierzchnie (klify/rampy) -> ciemniejsza, odsycona skala.
+ *   HEIGHT = dna przyciemnione, szczyty + szron.
+ *
+ * Triplanar = zero rozciagania na pionowych sciankach klifow.
  */
 
 import * as THREE from 'three'
 
-// ─── Opcje ────────────────────────────────────────────────────────────────────
-
 export interface SlopeMaterialOptions {
-  /** DataArrayTexture z warstwami tekstur per terrainType */
-  textureArray?: THREE.DataArrayTexture
-  /** Rozmiar mapy w world units (do skalowania UV); domyślnie 36 */
-  mapScale?: number
-  /** Ile repeats na mapę; domyślnie 10.0 */
-  tileScale?: number
-  /** Frost range [startY, fullY]; domyślnie [2.8, 4.0] */
+  baseTexture?: THREE.Texture
+  triScale?: number
+  detailStrength?: number
   frostRange?: [number, number]
-  /** Siła szronu 0..1; domyślnie 0.50 */
   frostStrength?: number
-  /** Candy saturation multiplier; domyślnie 1.25 */
-  candySaturation?: number
-  /** Candy brightness multiplier; domyślnie 1.05 */
-  candyBrightness?: number
+  heightRange?: [number, number]
 }
 
-// ─── createSlopeMaterial ──────────────────────────────────────────────────────
-
 export function createSlopeMaterial(opts: SlopeMaterialOptions = {}): THREE.MeshStandardMaterial {
-  const textureArray    = opts.textureArray   ?? null
-  const mapScale        = opts.mapScale       ?? 36.0
-  const tileScale       = opts.tileScale      ?? 10.0
-  const frostRange      = opts.frostRange     ?? [2.8, 4.0]
-  const frostStrength   = opts.frostStrength  ?? 0.50
-  const candySaturation = opts.candySaturation ?? 1.30
-  const candyBrightness = opts.candyBrightness ?? 1.00
+  const baseTexture    = opts.baseTexture    ?? null
+  const triScale       = opts.triScale       ?? 0.15
+  const detailStrength = opts.detailStrength ?? 0.28
+  const frostRange     = opts.frostRange     ?? [2.8, 4.0]
+  const frostStrength  = opts.frostStrength  ?? 0.42
+  const heightRange    = opts.heightRange    ?? [0.0, 4.0]
 
   const mat = new THREE.MeshStandardMaterial({
-    vertexColors: true,   // fallback gdy brak textureArray
-    roughness: 0.75,
+    vertexColors: true,
+    roughness: 0.96,
     metalness: 0.0,
+    side: THREE.DoubleSide,
   })
 
+  const hasBase = baseTexture !== null
+
   mat.onBeforeCompile = (shader) => {
-
-    // ── Uniforms ────────────────────────────────────────────────────────────
-
-    if (textureArray) {
-      shader.uniforms.uTerrainArray = { value: textureArray }
-    }
-    shader.uniforms.uMapScale  = { value: mapScale }
-    shader.uniforms.uTileScale = { value: tileScale }
-
-    // ── Vertex shader ────────────────────────────────────────────────────────
+    if (baseTexture) shader.uniforms.uBaseMap = { value: baseTexture }
+    shader.uniforms.uTriScale       = { value: triScale }
+    shader.uniforms.uDetailStrength = { value: detailStrength }
+    shader.uniforms.uHeightRange    = { value: new THREE.Vector2(heightRange[0], heightRange[1]) }
 
     shader.vertexShader = shader.vertexShader
-      .replace('void main() {', /* glsl */`
+      .replace('void main() {', `
+varying vec3  vWorldPos;
 varying vec3  vWorldNormal;
 varying float vWorldY;
-varying vec2  vWorldXZ;
-varying vec3  vTerrainIdx;
-varying vec3  vTerrainWgt;
-
-attribute vec3 terrainIdx;
-attribute vec3 terrainWgt;
 
 void main() {`)
-      .replace('#include <project_vertex>', /* glsl */`
+      .replace('#include <project_vertex>', `
 #include <project_vertex>
-vec4 worldPos   = modelMatrix * vec4(position, 1.0);
-vWorldNormal    = normalize(mat3(modelMatrix) * objectNormal);
-vWorldY         = worldPos.y;
-vWorldXZ        = worldPos.xz;
-vTerrainIdx     = terrainIdx;
-vTerrainWgt     = terrainWgt;`)
-
-    // ── Fragment shader ──────────────────────────────────────────────────────
-
-    const hasTextures = textureArray !== null
+vec4 _wp     = modelMatrix * vec4(position, 1.0);
+vWorldPos    = _wp.xyz;
+vWorldNormal = normalize(mat3(modelMatrix) * objectNormal);
+vWorldY      = _wp.y;`)
 
     shader.fragmentShader = shader.fragmentShader
-      .replace('void main() {', /* glsl */`
-${hasTextures ? 'uniform sampler2DArray uTerrainArray;' : ''}
-uniform float uMapScale;
-uniform float uTileScale;
+      .replace('void main() {', `
+${hasBase ? 'uniform sampler2D uBaseMap;' : ''}
+uniform float uTriScale;
+uniform float uDetailStrength;
+uniform vec2  uHeightRange;
 
+varying vec3  vWorldPos;
 varying vec3  vWorldNormal;
 varying float vWorldY;
-varying vec2  vWorldXZ;
-varying vec3  vTerrainIdx;
-varying vec3  vTerrainWgt;
 
 void main() {`)
-      .replace('#include <color_fragment>', /* glsl */`
+      .replace('#include <color_fragment>', `
 #include <color_fragment>
-
 {
-  // ── Planar UV (tile) ───────────────────────────────────────────────────
-  vec2 worldUv  = vWorldXZ / uMapScale;          // 0..1 na całą mapę
-  vec2 tiledUv  = fract(worldUv * uTileScale);   // tile ×N
+  vec3 wN = normalize(vWorldNormal);
 
-  // ── Texture blend ──────────────────────────────────────────────────────
-  ${hasTextures ? /* glsl */`
-  vec3 col0 = texture(uTerrainArray, vec3(tiledUv, vTerrainIdx.x)).rgb;
-  vec3 col1 = texture(uTerrainArray, vec3(tiledUv, vTerrainIdx.y)).rgb;
-  vec3 col2 = texture(uTerrainArray, vec3(tiledUv, vTerrainIdx.z)).rgb;
-  vec3 texColor = col0 * vTerrainWgt.x
-                + col1 * vTerrainWgt.y
-                + col2 * vTerrainWgt.z;
-  ` : /* glsl */`
-  vec3 texColor = diffuseColor.rgb;   // fallback: vertex colors
-  `}
+  // Baza = kolor biomu (vertex color, deep-rust paleta)
+  vec3 base = diffuseColor.rgb;
 
-  // ── Candy boost ────────────────────────────────────────────────────────
-  float luma   = dot(texColor, vec3(0.299, 0.587, 0.114));
-  vec3 candy   = mix(vec3(luma), texColor, ${candySaturation.toFixed(3)});
-  candy       *= ${candyBrightness.toFixed(3)};
-  candy        = clamp(candy, 0.0, 1.0);
+  ${hasBase ? `
+  // Detal z tekstury Marsa (triplanar) — tylko modulacja jasnosci
+  vec3 bw = abs(wN);
+  bw = max(bw - 0.2, 0.0);
+  bw /= dot(bw, vec3(1.0)) + 0.0001;
+  float dxv = dot(texture2D(uBaseMap, vWorldPos.zy * uTriScale).rgb, vec3(0.3333));
+  float dyv = dot(texture2D(uBaseMap, vWorldPos.xz * uTriScale).rgb, vec3(0.3333));
+  float dzv = dot(texture2D(uBaseMap, vWorldPos.xy * uTriScale).rgb, vec3(0.3333));
+  float detail = dxv * bw.x + dyv * bw.y + dzv * bw.z;
+  base *= mix(1.0 - uDetailStrength, 1.0 + uDetailStrength, detail);
+  ` : ``}
 
-  // ── Frost na szczytach ─────────────────────────────────────────────────
+  // Slope-aware skala
+  float slope = 1.0 - clamp(wN.y, 0.0, 1.0);
+  float rockF = smoothstep(0.30, 0.72, slope);
+  vec3  rock  = base * vec3(0.62, 0.58, 0.55);
+  base = mix(base, rock, rockF);
+
+  // Wysokosc — przyciemnij dna
+  float h = clamp((vWorldY - uHeightRange.x) / max(uHeightRange.y - uHeightRange.x, 0.001), 0.0, 1.0);
+  base *= mix(0.80, 1.0, smoothstep(0.0, 0.4, h));
+
+  // Szron na szczytach
   float frostBlend = smoothstep(${frostRange[0].toFixed(3)}, ${frostRange[1].toFixed(3)}, vWorldY);
-  vec3  frostCol   = vec3(0.91, 0.86, 0.76);   // kremowy szron
-  candy = mix(candy, frostCol, frostBlend * ${frostStrength.toFixed(3)});
+  vec3  frostCol   = vec3(0.74, 0.72, 0.68);
+  base = mix(base, frostCol, frostBlend * ${frostStrength.toFixed(3)});
 
-  diffuseColor.rgb = candy;
+  diffuseColor.rgb = clamp(base, 0.0, 1.0);
 }`)
   }
 

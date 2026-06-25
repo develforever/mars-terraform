@@ -2,6 +2,7 @@ import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useMapEditorStore } from '../../../../application/store/useMapEditorStore'
 import { hexToWorld, HEX_SIZE } from '../../hex/HexMath'
+import { useHexHeight } from '../../hooks/useHexHeight'
 
 const FOOTPRINT_COLORS: Record<string, string> = {
   colony:           '#00ff88',
@@ -17,18 +18,20 @@ const BuildNodeMarkers = () => {
   const setSelectedNodeId = useMapEditorStore(s => s.setSelectedNodeId)
   const removeBuildNode = useMapEditorStore(s => s.removeBuildNode)
   const activeTool     = useMapEditorStore(s => s.activeTool)
+  const getHeight      = useHexHeight()
 
   return (
     <>
       {buildNodes.map(node => {
         const [q, r] = node.pos
         const [wx, wz] = hexToWorld(q, r)
+        const wy = getHeight(q, r)
         const size = HEX_SIZE * 1.8  // visual footprint size
         const isSelected = selectedNodeId === node.id
         const color = FOOTPRINT_COLORS[node.allowedTypes[0]] ?? '#00ff88'
 
         return (
-          <group key={node.id} position={[wx, 0, wz]}>
+          <group key={node.id} position={[wx, wy, wz]}>
             <mesh
               rotation={[-Math.PI / 2, 0, 0]}
               position={[0, 0.12, 0]}

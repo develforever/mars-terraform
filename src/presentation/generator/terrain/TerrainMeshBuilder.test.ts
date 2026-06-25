@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
-import { buildSmoothTerrainGeometry, getTerrainMeshStats } from './TerrainMeshBuilder'
+import { buildSmoothTerrainGeometry, CHAMFER_DROP } from './TerrainMeshBuilder'
+import { buildCliffGeometry } from './CliffBuilder'
 import { HexGrid, TERRAIN_HEIGHT, type HexCell } from '../hex/HexGrid'
 
 vi.mock('three', () => {
   class Float32BufferAttribute {
-    array: number[]
-    itemSize: number
+    array: number[]; itemSize: number
     constructor(arr: number[], size: number) { this.array = arr; this.itemSize = size }
   }
   class BufferGeometry {
@@ -18,133 +18,126 @@ vi.mock('three', () => {
   return { BufferGeometry, Float32BufferAttribute }
 })
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function makeGrid(radius: number): HexCell[] {
   const grid = new HexGrid(radius, 1)
   grid.generate()
   return grid.getAllCells()
 }
 
-// ─── buildSmoothTerrainGeometry ───────────────────────────────────────────────
+const near = (a: number, b: number) => Math.abs(a - b) < 1e-4
 
-describe('buildSmoothTerrainGeometry — structure', () => {
-  it('returns a BufferGeometry with position, color, index', () => {
-    const cells = makeGrid(2)
-    const geo = buildSmoothTerrainGeometry(cells)
+// ─── Topy (z fazowaniem) ────────────────────────────────────────────────────────
+
+describe('buildSmoothTerrainGeometry — struktura', () => {
+  it('zwraca geometrie z position, color, terrainIdx, terrainWgt, index', () => {
+    const geo = buildSmoothTerrainGeometry(makeGrid(2))
     expect(geo.attributes.position).toBeDefined()
     expect(geo.attributes.color).toBeDefined()
+    expect(geo.attributes.terrainIdx).toBeDefined()
+    expect(geo.attributes.terrainWgt).toBeDefined()
     expect(geo.index).not.toBeNull()
   })
 
-  it('has 6 triangles per hex (18 indices per hex)', () => {
+  it('18 trojkatow na heks (6 top + 12 bevel)', () => {
     const cells = makeGrid(2)
     const geo = buildSmoothTerrainGeometry(cells)
-    expect(geo.index!.array.length).toBe(cells.length * 6 * 3) // 3 indices per triangle
+    expect(geo.index!.array.length).toBe(cells.length * 18 * 3)
   })
 
-  it('all index values are within vertex array bounds', () => {
+  it('13 wierzcholkow na heks (centrum + 6 inner + 6 outer)', () => {
     const cells = makeGrid(3)
     const geo = buildSmoothTerrainGeometry(cells)
-    const vertexCount = geo.attributes.position.array.length / 3
-    for (const idx of geo.index!.array) {
-      expect(idx).toBeGreaterThanOrEqual(0)
-      expect(idx).toBeLessThan(vertexCount)
+    expect(geo.attributes.position.array.length / 3).toBe(13 * cells.length)
+  })
+
+  it('wszystkie indeksy w zakresie', () => {
+    const geo = buildSmoothTerrainGeometry(makeGrid(3))
+    const vc = geo.attributes.position.array.length / 3
+    for (const i of geo.index!.array) {
+      expect(i).toBeGreaterThanOrEqual(0)
+      expect(i).toBeLessThan(vc)
     }
   })
 
-  it('position and color have same vertex count', () => {
-    const cells = makeGrid(3)
-    const geo = buildSmoothTerrainGeometry(cells)
+  it('position i color maja te sama liczbe wierzcholkow', () => {
+    const geo = buildSmoothTerrainGeometry(makeGrid(3))
     expect(geo.attributes.position.array.length).toBe(geo.attributes.color.array.length)
   })
 })
 
-describe('buildSmoothTerrainGeometry — shared vertices', () => {
-  it('has fewer vertices than 7×cellCount (shared corners reduce count)', () => {
-    const cells = makeGrid(5)
-    const geo = buildSmoothTerrainGeometry(cells)
-    const vertexCount = geo.attributes.position.array.length / 3
-    // InstancedMesh approach would be 7 * cells.length, shared should be less
-    expect(vertexCount).toBeLessThan(7 * cells.length)
+describe('buildSmoothTerrainGeometry — fazowane topy', () => {
+  it('all-plains: Y tylko na worldY lub worldY - CHAMFER_DROP', () => {
+    const geo = buildSmoothTerrainGeometry(makeGrid(3))
+    const p = geo.attributes.position.array
+    const top = TERRAIN_HEIGHT['plains']
+    const bev = top - CHAMFER_DROP
+    for (let i = 1; i < p.length; i += 3) {
+      expect(near(p[i], top) || near(p[i], bev)).toBe(true)
+    }
   })
 
-  it('has more vertices than cells.length (at least 1 center per hex)', () => {
-    const cells = makeGrid(3)
-    const geo = buildSmoothTerrainGeometry(cells)
-    const vertexCount = geo.attributes.position.array.length / 3
-    expect(vertexCount).toBeGreaterThan(cells.length)
-  })
-})
-
-describe('buildSmoothTerrainGeometry — height interpolation', () => {
-  it('shared corner between plains and highland has Y between their worldY values', () => {
-    // Manually create two adjacent cells with different heights
+  it('pojedynczy heks: centrum+inner na worldY, outer na worldY - drop', () => {
     const grid = new HexGrid(5, 1)
     grid.generate()
-    grid.setTerrainType(0, 0, 'plains')   // worldY = 1.2
-    grid.setTerrainType(1, 0, 'highland') // worldY = 2.0
-    const cells = grid.getAllCells()
-
-    const geo = buildSmoothTerrainGeometry(cells)
-    const positions = geo.attributes.position.array
-
-    // Find Y values of all vertices
-    const yValues: number[] = []
-    for (let i = 1; i < positions.length; i += 3) yValues.push(positions[i])
-
-    const plainsY    = TERRAIN_HEIGHT['plains']    // 1.2
-    const highlandY  = TERRAIN_HEIGHT['highland']  // 2.0
-
-    // Some vertex should have Y between the two heights (shared corner interpolated)
-    const hasInterpolated = yValues.some(y =>
-      y > plainsY + 0.01 && y < highlandY - 0.01
-    )
-    expect(hasInterpolated).toBe(true)
+    grid.setTerrainType(0, 0, 'highland')
+    const geo = buildSmoothTerrainGeometry(grid.getAllCells())
+    const p = geo.attributes.position.array
+    const y0 = p[1] // centrum pierwszego heksa
+    for (let v = 0; v < 7; v++)  expect(near(p[v * 3 + 1], y0)).toBe(true)            // centrum + inner
+    for (let v = 7; v < 13; v++) expect(near(p[v * 3 + 1], y0 - CHAMFER_DROP)).toBe(true) // outer
   })
 
-  it('all-plains grid has all vertices near plains worldY', () => {
-    const cells = makeGrid(3) // all plains by default
-    const geo = buildSmoothTerrainGeometry(cells)
-    const positions = geo.attributes.position.array
-    const plainsY = TERRAIN_HEIGHT['plains']
-
-    for (let i = 1; i < positions.length; i += 3) {
-      expect(positions[i]).toBeCloseTo(plainsY, 5)
+  it('peak wsrod plains: tylko dyskretne poziomy (bez interpolacji)', () => {
+    const grid = new HexGrid(5, 1)
+    grid.generate()
+    grid.setTerrainType(0, 0, 'peak')
+    const geo = buildSmoothTerrainGeometry(grid.getAllCells())
+    const p = geo.attributes.position.array
+    const lv = [TERRAIN_HEIGHT['plains'], TERRAIN_HEIGHT['plains'] - CHAMFER_DROP,
+                TERRAIN_HEIGHT['peak'],   TERRAIN_HEIGHT['peak'] - CHAMFER_DROP]
+    for (let i = 1; i < p.length; i += 3) {
+      expect(lv.some(v => near(p[i], v))).toBe(true)
     }
   })
 })
 
-// ─── getTerrainMeshStats ───────────────────────────────────────────────────────
+// ─── Scianki / skirt ─────────────────────────────────────────────────────────
 
-describe('getTerrainMeshStats', () => {
-  it('triangleCount = hexCount * 6', () => {
-    const cells = makeGrid(4)
-    const stats = getTerrainMeshStats(cells)
-    expect(stats.triangleCount).toBe(stats.hexCount * 6)
+describe('buildCliffGeometry — szczelne scianki', () => {
+  it('all-plains: skirt na brzegu schodzi do BASE_Y', () => {
+    const geo = buildCliffGeometry(makeGrid(2))
+    expect(geo).not.toBeNull()
+    const p = geo!.attributes.position.array
+    let hasBase = false
+    for (let i = 1; i < p.length; i += 3) if (p[i] < -2.4) hasBase = true
+    expect(hasBase).toBe(true)
   })
 
-  it('all-plains grid has cliffCorners = 0 (no height difference)', () => {
-    const cells = makeGrid(4)
-    const stats = getTerrainMeshStats(cells)
-    expect(stats.cliffCorners).toBe(0)
-    // All corners shared → sharedCorners + centers = total vertices
-    expect(stats.sharedCorners).toBeGreaterThan(0)
-  })
-
-  it('shared corners < 6 * hexCount (interior corners are shared)', () => {
-    const cells = makeGrid(5)
-    const stats = getTerrainMeshStats(cells)
-    expect(stats.sharedCorners).toBeLessThan(6 * stats.hexCount)
-  })
-
-  it('grid with peak terrain has cliff corners', () => {
+  it('peak wsrod plains: gora scianki na peak-drop, dol na plains-drop', () => {
     const grid = new HexGrid(5, 1)
     grid.generate()
-    // plains(1.2) surrounded by peak(4.0): diff=2.8 > RAMP_THRESHOLD(1.4) → cliff
     grid.setTerrainType(0, 0, 'peak')
-    const cells = grid.getAllCells()
-    const stats = getTerrainMeshStats(cells)
-    expect(stats.cliffCorners).toBeGreaterThan(0)
+    const geo = buildCliffGeometry(grid.getAllCells())!
+    const p = geo.attributes.position.array
+    let topOk = false, botOk = false
+    for (let i = 1; i < p.length; i += 3) {
+      if (near(p[i], TERRAIN_HEIGHT['peak']   - CHAMFER_DROP)) topOk = true
+      if (near(p[i], TERRAIN_HEIGHT['plains'] - CHAMFER_DROP)) botOk = true
+    }
+    expect(topOk).toBe(true)
+    expect(botOk).toBe(true)
+  })
+
+  it('indeksy scian w zakresie, position==color', () => {
+    const grid = new HexGrid(4, 1)
+    grid.generate()
+    grid.setTerrainType(0, 0, 'peak')
+    const geo = buildCliffGeometry(grid.getAllCells())!
+    const vc = geo.attributes.position.array.length / 3
+    for (const i of geo.index!.array) {
+      expect(i).toBeGreaterThanOrEqual(0)
+      expect(i).toBeLessThan(vc)
+    }
+    expect(geo.attributes.position.array.length).toBe(geo.attributes.color.array.length)
   })
 })

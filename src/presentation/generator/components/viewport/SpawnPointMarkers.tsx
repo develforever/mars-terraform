@@ -2,6 +2,7 @@ import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useMapEditorStore } from '../../../../application/store/useMapEditorStore'
 import { hexToWorld } from '../../hex/HexMath'
+import { useHexHeight } from '../../hooks/useHexHeight'
 
 const PLAYER_COLORS = ['#4488ff', '#ff4444', '#44ff88', '#ffaa00']
 const PLAYER_LABELS = ['P1', 'P2', 'P3', 'P4']
@@ -12,17 +13,19 @@ const SpawnPointMarkers = () => {
   const setSelectedNodeId = useMapEditorStore(s => s.setSelectedNodeId)
   const removeSpawnPoint = useMapEditorStore(s => s.removeSpawnPoint)
   const activeTool     = useMapEditorStore(s => s.activeTool)
+  const getHeight      = useHexHeight()
 
   return (
     <>
       {spawnPoints.map(spawn => {
         const [q, r] = spawn.pos
         const [wx, wz] = hexToWorld(q, r)
+        const wy = getHeight(q, r)
         const color = PLAYER_COLORS[(spawn.player - 1) % 4]
         const isSelected = selectedNodeId === `spawn-${spawn.player}`
 
         return (
-          <group key={spawn.player} position={[wx, 0, wz]}>
+          <group key={spawn.player} position={[wx, wy, wz]}>
             <mesh position={[0, 1.5, 0]}>
               <cylinderGeometry args={[0.05, 0.05, 3, 6]} />
               <meshStandardMaterial color="#888888" metalness={0.8} roughness={0.3} />

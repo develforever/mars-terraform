@@ -9,7 +9,9 @@ import HexInteraction from './viewport/HexInteraction'
 import BuildNodeMarkers from './viewport/BuildNodeMarkers'
 import ResourceNodeMarkers from './viewport/ResourceNodeMarkers'
 import SpawnPointMarkers from './viewport/SpawnPointMarkers'
+import DecorMarkers from './viewport/DecorMarkers'
 import Minimap from './viewport/Minimap'
+import GeneratorPostFX from './viewport/GeneratorPostFX'
 import { CineonToneMapping } from 'three'
 
 // ─── Loading overlay ──────────────────────────────────────────────────────────
@@ -18,10 +20,10 @@ const Loader = () => {
   const { progress } = useProgress()
   return (
     <Html center>
-      <div className="flex flex-col items-center gap-2 text-orange-400">
+      <div className="flex flex-col items-center gap-2 text-[#ec7063]">
         <div className="w-32 h-1 bg-zinc-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-orange-500 transition-all duration-200"
+            className="h-full bg-[#e74c3c] transition-all duration-200"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -35,11 +37,12 @@ const Loader = () => {
 
 const SceneLighting = () => (
   <>
-    <ambientLight intensity={0.6} color="#ffddcc" />
+    {/* Spójne z MarsStartScene (strona główna) */}
+    <ambientLight intensity={0.30} color="#ffffff" />
     <directionalLight
-      position={[30, 60, 30]}
-      intensity={2.5}
-      color="#fff5e0"
+      position={[40, 70, 25]}
+      intensity={1.45}
+      color="#ffeedd"
       castShadow
       shadow-mapSize={[2048, 2048]}
       shadow-camera-near={1}
@@ -49,8 +52,9 @@ const SceneLighting = () => (
       shadow-camera-top={80}
       shadow-camera-bottom={-80}
     />
-    <directionalLight position={[-20, 30, -20]} intensity={0.8} color="#ff8844" />
-    <hemisphereLight args={['#ffaa66', '#3d1f0a', 0.4]} />
+    {/* Chłodny fill kosmosu — jak na stronie głównej */}
+    <directionalLight position={[-30, -10, -20]} intensity={0.4} color="#445588" />
+    <hemisphereLight args={['#7a4a36', '#1a0f0a', 0.35]} />
   </>
 )
 
@@ -73,9 +77,10 @@ const GeneratorViewport = () => {
       <Canvas
         camera={{ position: [0, 70, 65], fov: 45, near: 0.1, far: 1000 }}
         shadows={false}
-        gl={{ antialias: true, toneMapping: CineonToneMapping, toneMappingExposure: 1.2 }}
-        onCreated={({ gl }) => { gl.toneMappingExposure = 1.2 }}
+        gl={{ antialias: true, toneMapping: CineonToneMapping, toneMappingExposure: 0.92 }}
+        onCreated={({ gl }) => { gl.toneMappingExposure = 0.92 }}
       >
+        <color attach="background" args={['#050308']} />
         <SceneLighting />
 
         <Suspense fallback={<Loader />}>
@@ -86,6 +91,7 @@ const GeneratorViewport = () => {
         <BuildNodeMarkers />
         <ResourceNodeMarkers />
         <SpawnPointMarkers />
+        <DecorMarkers />
 
         {showGrid && <HexGridLines />}
 
@@ -107,6 +113,8 @@ const GeneratorViewport = () => {
             labelColor="white"
           />
         </GizmoHelper>
+
+        {isPreviewMode && <GeneratorPostFX />}
       </Canvas>
       <Minimap />
     </div>

@@ -4,6 +4,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useMapEditorStore } from '../../../../application/store/useMapEditorStore'
 import { hexToWorld } from '../../hex/HexMath'
+import { useHexHeight } from '../../hooks/useHexHeight'
 import type { ResourceType } from '../../../../domain/mapEditorTypes'
 
 const RESOURCE_COLORS: Record<ResourceType, string> = {
@@ -26,6 +27,7 @@ const ResourceMarker = ({ nodeId }: { nodeId: string }) => {
   const setSelectedNodeId = useMapEditorStore(s => s.setSelectedNodeId)
   const removeResourceNode = useMapEditorStore(s => s.removeResourceNode)
   const activeTool = useMapEditorStore(s => s.activeTool)
+  const getHeight = useHexHeight()
 
   const groupRef = useRef<THREE.Group>(null)
   const t = useRef(Math.random() * Math.PI * 2)
@@ -41,11 +43,12 @@ const ResourceMarker = ({ nodeId }: { nodeId: string }) => {
 
   const [q, r] = node.pos
   const [wx, wz] = hexToWorld(q, r)
+  const wy = getHeight(q, r)
   const color = RESOURCE_COLORS[node.type]
   const isSelected = selectedNodeId === node.id
 
   return (
-    <group position={[wx, 0, wz]}>
+    <group position={[wx, wy, wz]}>
       <group ref={groupRef} position={[0, 1.5, 0]}>
         <mesh
           onClick={e => {

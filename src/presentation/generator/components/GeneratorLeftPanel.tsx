@@ -7,11 +7,12 @@ import type { HexTerrainType } from '../hex/HexGrid'
 
 const TOOLS: { mode: ToolMode; label: string; key: string; color: string }[] = [
   { mode: 'select',   label: '↖ Select',   key: 'V', color: 'text-zinc-300' },
-  { mode: 'terrain',  label: '🗺 Terrain',  key: 'T', color: 'text-orange-400' },
+  { mode: 'terrain',  label: '🗺 Terrain',  key: 'T', color: 'text-[#ec7063]' },
   { mode: 'build',    label: '🏗 Build',    key: 'B', color: 'text-green-400' },
   { mode: 'resource', label: '💎 Resource', key: 'R', color: 'text-yellow-400' },
   { mode: 'blocked',  label: '🚫 Blocked',  key: 'X', color: 'text-red-400' },
   { mode: 'spawn',    label: '🚩 Spawn',    key: 'S', color: 'text-blue-400' },
+  { mode: 'decor',    label: '🪨 Decor',    key: 'D', color: 'text-amber-300' },
   { mode: 'erase',    label: '🗑 Erase',    key: 'E', color: 'text-zinc-400' },
 ]
 
@@ -20,12 +21,12 @@ const BRUSHES: BrushSize[] = [1, 3, 5]
 // ─── Terrain type definitions ─────────────────────────────────────────────────
 
 const TERRAIN_TYPES: { type: HexTerrainType; label: string; color: string }[] = [
-  { type: 'deep_crater', label: 'Deep Crater', color: '#3d1f0a' },
-  { type: 'lowland',     label: 'Lowland',     color: '#8b3a1a' },
-  { type: 'plains',      label: 'Plains',      color: '#c1440e' },
-  { type: 'highland',    label: 'Highland',    color: '#d4622a' },
-  { type: 'rocky',       label: 'Rocky',       color: '#6b4c32' },
-  { type: 'peak',        label: 'Peak',        color: '#9e8060' },
+  { type: 'deep_crater', label: 'Deep Crater', color: '#2e1710' },
+  { type: 'lowland',     label: 'Lowland',     color: '#5a2f20' },
+  { type: 'plains',      label: 'Plains',      color: '#7d4530' },
+  { type: 'highland',    label: 'Highland',    color: '#94583c' },
+  { type: 'rocky',       label: 'Rocky',       color: '#6b4a3a' },
+  { type: 'peak',        label: 'Peak',        color: '#a8826a' },
 ]
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -66,7 +67,7 @@ const GeneratorLeftPanel = () => {
           className={`
             flex items-center justify-between px-2 py-1.5 rounded text-sm font-medium transition-colors
             ${activeTool === t.mode
-              ? 'bg-orange-600 text-white'
+              ? 'bg-[#e74c3c] text-white'
               : 'hover:bg-zinc-700 text-zinc-300'}
           `}
         >
@@ -86,7 +87,7 @@ const GeneratorLeftPanel = () => {
               className={`
                 flex-1 py-1 rounded text-xs font-mono font-medium transition-colors
                 ${brushSize === b
-                  ? 'bg-orange-600 text-white'
+                  ? 'bg-[#e74c3c] text-white'
                   : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'}
               `}
             >
@@ -107,7 +108,7 @@ const GeneratorLeftPanel = () => {
               className={`
                 w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs font-medium transition-colors mb-0.5
                 ${activeTerrainType === tt.type
-                  ? 'bg-zinc-700 text-white ring-1 ring-orange-500'
+                  ? 'bg-zinc-700 text-white ring-1 ring-[#e74c3c]'
                   : 'hover:bg-zinc-800 text-zinc-300'}
               `}
             >
@@ -133,7 +134,7 @@ const GeneratorLeftPanel = () => {
             max={40}
             value={radiusInput}
             onChange={e => setRadiusInput(Number(e.target.value))}
-            className="accent-orange-500 w-full"
+            className="accent-[#e74c3c] w-full"
           />
           <div className="flex justify-between text-xs text-zinc-600">
             <span>5</span><span>40</span>
@@ -147,7 +148,7 @@ const GeneratorLeftPanel = () => {
               type="number"
               value={seedInput}
               onChange={e => setSeedInput(Number(e.target.value))}
-              className="bg-zinc-800 border border-zinc-700 rounded px-1 py-0.5 text-xs text-zinc-200 w-full focus:outline-none focus:border-orange-500"
+              className="bg-zinc-800 border border-zinc-700 rounded px-1 py-0.5 text-xs text-zinc-200 w-full focus:outline-none focus:border-[#e74c3c]"
             />
           </label>
           <button
@@ -161,7 +162,7 @@ const GeneratorLeftPanel = () => {
 
         <button
           onClick={handleGenerate}
-          className="w-full py-2 rounded bg-orange-700 hover:bg-orange-600 text-white text-xs font-semibold transition-colors"
+          className="w-full py-2 rounded bg-[#c0392b] hover:bg-[#e74c3c] text-white text-xs font-semibold transition-colors"
         >
           ⟳ Generate Map
         </button>

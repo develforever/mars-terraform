@@ -31,7 +31,7 @@ const HexTerrain = () => {
 
   const geometry = useMemo(() => createFlatHexGeometry(HEX_SIZE), [])
   const material = useMemo(() => new THREE.MeshStandardMaterial({
-    roughness: 0.85, metalness: 0.05, color: 0xffffff,
+    roughness: 0.96, metalness: 0.0, color: 0xffffff,
   }), [])
 
   // Update instance matrices + colors whenever cells change
@@ -53,7 +53,10 @@ const HexTerrain = () => {
         color.setRGB(r, g, b)
       } else {
         const [r, g, b] = TERRAIN_COLORS[cell.terrainType]
-        color.setRGB(r, g, b)
+        // Deterministyczna wariacja per heks — likwiduje jednolity, plastikowy wygląd
+        const h = Math.sin(cell.q * 12.9898 + cell.r * 78.233) * 43758.5453
+        const jitter = 0.90 + (h - Math.floor(h)) * 0.16   // 0.90..1.06
+        color.setRGB(r * jitter, g * jitter, b * jitter)
       }
       mesh.setColorAt(i, color)
     })

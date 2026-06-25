@@ -54,6 +54,8 @@ interface MapEditorState {
   removeResourceNode: (id: string) => void
   addSpawnPoint: (spawn: SpawnPoint) => void
   removeSpawnPoint: (player: number) => void
+  addDecor: (item: DecorItem) => void
+  removeDecorAt: (q: number, r: number) => void
 
   // UI actions
   setActiveTool: (tool: ToolMode) => void
@@ -177,6 +179,18 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
   removeSpawnPoint: (player) => {
     get().pushUndo()
     set(state => ({ spawnPoints: state.spawnPoints.filter(s => s.player !== player) }))
+  },
+
+  addDecor: (item) => {
+    get().pushUndo()
+    set(state => ({ decor: [...state.decor, item] }))
+  },
+
+  removeDecorAt: (q, r) => {
+    const exists = get().decor.some(d => d.pos[0] === q && d.pos[1] === r)
+    if (!exists) return
+    get().pushUndo()
+    set(state => ({ decor: state.decor.filter(d => !(d.pos[0] === q && d.pos[1] === r)) }))
   },
 
   // ── UI actions ─────────────────────────────────────────────────────────────
