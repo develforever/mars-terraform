@@ -3,6 +3,9 @@ import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
 import { validateMap } from '../utils/validateMap'
 import type { ValidationResult } from '../utils/validateMap'
 import { parseMapJSON } from '../schema/mapSchema'
+import { authClient } from '../../../application/service/authService'
+import { mapApiService } from '../../../application/service/mapApiService'
+import { CloudMapsModal } from './CloudMapsModal'
 
 // ─── Validation modal ─────────────────────────────────────────────────────────
 
@@ -67,6 +70,9 @@ const GeneratorToolbar = () => {
 
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
   const [pendingExportData, setPendingExportData] = useState<string | null>(null)
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false)
+  const [isSavingCloud, setIsSavingCloud] = useState<boolean>(false)
+  const [cloudSaveStatus, setCloudSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const doDownload = (json: string, name: string) => {
     const blob = new Blob([json], { type: 'application/json' })
@@ -90,6 +96,44 @@ const GeneratorToolbar = () => {
       // Show modal
       setPendingExportData(json)
       setValidationResult(result)
+    }
+  }
+
+  const handleSaveCloud = async () => {
+    if (!authClient.isAuthenticated()) {
+      alert('Musisz być zalogowany, aby zapisać mapę w chmurze.')
+      return
+    }
+
+    const data = exportToJSON()
+    const result = validateMap(data)
+    const hasErrors = result.errors.some(e => e.level === 'error')
+
+    if (hasErrors) {
+      if (!window.confirm('Mapa zawiera błędy walidacji. Czy na pewno chcesz ją zapisać w chmurze?')) {
+        return
+      }
+    }
+
+    setIsSavingCloud(true)
+    setCloudSaveStatus(null)
+
+    try {
+      const saved = await mapApiService.saveMap(data)
+      setCloudSaveStatus({
+        type: 'success',
+        message: `Mapa "${saved.name}" została zapisana w chmurze!`,
+      })
+      setTimeout(() => setCloudSaveStatus(null), 4000)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Błąd podczas zapisu mapy'
+      setCloudSaveStatus({
+        type: 'error',
+        message: errorMsg,
+      })
+      setTimeout(() => setCloudSaveStatus(null), 5000)
+    } finally {
+      setIsSavingCloud(false)
     }
   }
 
@@ -146,6 +190,21 @@ const GeneratorToolbar = () => {
         />
       )}
 
+      {cloudSaveStatus && (
+        <div className={`fixed bottom-4 right-4 z-50 px-4 py-2.5 rounded-lg shadow-xl text-xs font-medium border flex items-center gap-2 ${
+          cloudSaveStatus.type === 'success'
+            ? 'bg-emerald-950 border-emerald-700 text-emerald-200'
+            : 'bg-red-950 border-red-800 text-red-200'
+        }`}>
+          <span>{cloudSaveStatus.type === 'success' ? '✓' : '⚠'}</span>
+          <span>{cloudSaveStatus.message}</span>
+        </div>
+      )}
+
+      {isCloudModalOpen && (
+        <CloudMapsModal onClose={() => setIsCloudModalOpen(false)} />
+      )}
+
       <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-950 border-b border-zinc-700 text-sm select-none">
         <span className="text-[#e74c3c] font-bold tracking-wider text-xs uppercase mr-2">
           🪐 Map Generator
@@ -175,6 +234,25 @@ const GeneratorToolbar = () => {
           {errorCount === 0 && warnCount > 0 && (
             <span className="ml-1.5 bg-yellow-500 text-black text-xs rounded-full px-1">{warnCount}</span>
           )}
+        </button>
+
+        <div className="w-px h-4 bg-zinc-700" />
+
+        <button
+          onClick={handleSaveCloud}
+          disabled={isSavingCloud}
+          className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 hover:text-white transition-colors text-xs flex items-center gap-1 font-medium"
+          title="Zapisz mapę do chmury Mars"
+        >
+          ☁ {isSavingCloud ? 'Saving...' : 'Save Cloud'}
+        </button>
+
+        <button
+          onClick={() => setIsCloudModalOpen(true)}
+          className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white transition-colors text-xs flex items-center gap-1 font-medium"
+          title="Otwórz przeglądarkę map w chmurze"
+        >
+          ☁ Cloud
         </button>
 
         <div className="w-px h-4 bg-zinc-700" />
@@ -227,3 +305,4 @@ const GeneratorToolbar = () => {
 }
 
 export default GeneratorToolbar
+
