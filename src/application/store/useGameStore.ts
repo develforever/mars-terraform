@@ -19,6 +19,7 @@ import type { AlienState, AlienShip, AlienGroundUnit } from "../../domain/entiti
 import { authClient } from "../service/authService";
 import { HexGrid } from "../../presentation/generator/hex/HexGrid";
 import { applyProceduralTerrain } from "../../presentation/generator/terrain/ProceduralTerrain";
+import type { MapExportJSON } from "../../domain/mapEditorTypes";
 
 export interface GameState {
   // Resources and colony state
@@ -31,6 +32,7 @@ export interface GameState {
 
   // Hex Grid Terrain
   hexGrid: HexGrid;
+  currentMapData?: MapExportJSON | null;
 
   // Buildings
   placed: PlacedBuilding[];
@@ -56,7 +58,7 @@ export interface GameState {
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
   applyEconomyTick: () => void;
   resetGame: () => void;
-  startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode) => void;
+  startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode, mapData?: MapExportJSON | null) => void;
   saveGame: () => Promise<boolean>;
   loadGame: (name: string) => Promise<boolean>;
   triggerAlienWave: (wave: 0 | 1 | 2, count?: number) => void;
@@ -64,13 +66,19 @@ export interface GameState {
   setWeather: (weather: WeatherState) => void;
 }
 
-function getInitialGameState() {
-  const defaultGrid = new HexGrid(20, 42);
-  defaultGrid.generate();
-  applyProceduralTerrain(defaultGrid, 42);
+function getInitialGameState(mapData?: MapExportJSON | null) {
+  let defaultGrid: HexGrid;
+  if (mapData) {
+    defaultGrid = HexGrid.fromJSON(mapData);
+  } else {
+    defaultGrid = new HexGrid(20, 42);
+    defaultGrid.generate();
+    applyProceduralTerrain(defaultGrid, 42);
+  }
 
   return {
     hexGrid: defaultGrid,
+    currentMapData: mapData ?? null,
     resources: INITIAL_COLONY_STATE.resources,
     capacity: INITIAL_COLONY_STATE.capacity,
     sun: INITIAL_COLONY_STATE.sun,
@@ -361,9 +369,9 @@ export const useGameStore = create<GameState>()(
         set(getInitialGameState());
       },
 
-      startNewGame: (name: string, diff: DifficultyLevel, mode: GameMode) => {
+      startNewGame: (name: string, diff: DifficultyLevel, mode: GameMode, mapData?: MapExportJSON | null) => {
         set({
-          ...getInitialGameState(),
+          ...getInitialGameState(mapData),
           colonyName: name,
           difficulty: diff,
           gameMode: mode,
@@ -395,6 +403,7 @@ export const useGameStore = create<GameState>()(
                 gameMode: state.gameMode,
                 sun: state.sun,
                 alienState: state.alienState,
+                currentMapData: state.currentMapData ?? null,
               }
             })
           });
@@ -417,8 +426,14 @@ export const useGameStore = create<GameState>()(
           const data = await response.json();
           const gameState = data.state;
 
+          const loadedGrid = gameState.currentMapData
+            ? HexGrid.fromJSON(gameState.currentMapData)
+            : getInitialGameState().hexGrid;
+
           set({
             colonyName: data.name,
+            hexGrid: loadedGrid,
+            currentMapData: gameState.currentMapData ?? null,
             resources: gameState.resources,
             capacity: gameState.capacity,
             placed: gameState.placed,

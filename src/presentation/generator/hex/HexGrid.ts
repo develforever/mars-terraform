@@ -9,7 +9,7 @@ import {
   allMapHexes,
   hexKey,
 } from './HexMath'
-import type { TileType } from '../../../domain/mapEditorTypes'
+import type { TileType, MapExportJSON } from '../../../domain/mapEditorTypes'
 
 // ─── Terrain types ────────────────────────────────────────────────────────────
 
@@ -186,6 +186,19 @@ export class HexGrid {
         decor: h.decor ?? null,
       })
     }
+  }
+
+  static fromJSON(data: MapExportJSON | { meta?: { hexRadius?: number; seed?: number }; radius?: number; seed?: number; hexes?: Partial<HexCell>[] }): HexGrid {
+    const meta = 'meta' in data ? data.meta : undefined
+    const radius = meta?.hexRadius ?? (data as { radius?: number }).radius ?? 20
+    const seed = meta?.seed ?? (data as { seed?: number }).seed ?? 42
+    const grid = new HexGrid(radius, seed)
+    if (data.hexes && data.hexes.length > 0) {
+      grid.fromJSON({ hexes: data.hexes as Partial<HexCell>[] })
+    } else {
+      grid.generate()
+    }
+    return grid
   }
 
   // ── Stats ─────────────────────────────────────────────────────────────────

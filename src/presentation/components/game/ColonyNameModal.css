@@ -233,3 +233,146 @@
     from { width: 0%; }
     to { width: 100%; }
 }
+
+/* Map Selection Section */
+.colony-modal__section {
+    margin-bottom: 20px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+}
+
+.colony-modal__section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #9ca3af;
+    margin-bottom: 10px;
+}
+
+.colony-modal__map-sources {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.colony-modal__map-source-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #d1d5db;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.colony-modal__map-source-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.colony-modal__map-source-btn--active {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: rgba(231, 76, 60, 0.6);
+    color: #fca5a5;
+}
+
+.colony-modal__map-source-icon {
+    font-size: 14px;
+}
+
+.colony-modal__cloud-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.colony-modal__notice {
+    font-size: 11px;
+    color: #9ca3af;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.colony-modal__loading {
+    font-size: 11px;
+    color: #f59e0b;
+    padding: 6px;
+    text-align: center;
+}
+
+.colony-modal__select-row {
+    width: 100%;
+}
+
+.colony-modal__select {
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(231, 76, 60, 0.4);
+    border-radius: 6px;
+    color: #f3f4f6;
+    font-size: 12px;
+    outline: none;
+}
+
+.colony-modal__select option {
+    background: #0f172a;
+    color: #f3f4f6;
+}
+
+.colony-modal__map-badge {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.colony-modal__map-badge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.colony-modal__map-badge-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fca5a5;
+}
+
+.colony-modal__map-badge-players {
+    font-size: 10px;
+    color: #feb2b2;
+    background: rgba(231, 76, 60, 0.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.colony-modal__map-badge-details {
+    display: flex;
+    gap: 12px;
+    font-size: 10px;
+    color: #9ca3af;
+}
+
+.colony-modal__error {
+    font-size: 11px;
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 6px 10px;
+    border-radius: 6px;
+}
