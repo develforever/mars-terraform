@@ -339,7 +339,7 @@ export const useGameStore = create<GameState>()(
         let finalPlaced = degradedPlaced;
         let newAlienState = state.alienState;
         if (state.gameMode === "survival" || state.alienState.wave > 0) {
-          const alienResult = AlienService.tick(state.alienState, degradedPlaced, newTerraforming);
+          const alienResult = AlienService.tick(state.alienState, degradedPlaced, newTerraforming, state.hexGrid);
           finalPlaced   = alienResult.damagedBuildings;
           newAlienState = alienResult.alienState;
         }

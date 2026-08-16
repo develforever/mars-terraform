@@ -1,5 +1,8 @@
 import type { AlienShip, AlienGroundUnit, AlienState } from "../entities/Alien";
 import type { PlacedBuilding } from "../entities/Building";
+import type { HexGrid } from "../../presentation/generator/hex/HexGrid";
+import { worldToHex, hexToWorld } from "../../presentation/generator/hex/HexMath";
+import { HexPathfindingService } from "./HexPathfindingService";
 
 const SHIP_DAMAGE   = 50;
 const GROUND_DAMAGE = 15;
@@ -38,6 +41,7 @@ export class AlienService {
     state: AlienState,
     buildings: PlacedBuilding[],
     terraforming: number,
+    hexGrid?: HexGrid,
   ): { alienState: AlienState; damagedBuildings: PlacedBuilding[] } {
     // Wave can only increase organically; never downgrade a debug-forced wave
     const wave = Math.max(this.resolveWave(terraforming), state.wave) as 0 | 1 | 2;
@@ -84,21 +88,23 @@ export class AlienService {
     if (wave >= 2) {
       nextGroundSpawnIn--;
       if (nextGroundSpawnIn <= 0 && buildings.length > 0) {
-        groundUnits = [...groundUnits, this.spawnGroundUnit()];
+        groundUnits = [...groundUnits, this.spawnGroundUnit(hexGrid)];
         nextGroundSpawnIn = GROUND_SPAWN_INTERVAL;
       }
 
       // Move & attack
       groundUnits = groundUnits.map((unit) => {
         const target = this.findClosestBuilding(unit.position, damagedBuildings);
-        if (!target) return { ...unit, targetBuildingId: null };
+        if (!target) {
+          return { ...unit, targetBuildingId: null, path: undefined, currentPathIndex: undefined };
+        }
 
         const dx = target.position.x - unit.position.x;
         const dz = target.position.z - unit.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
 
         if (dist <= GROUND_ATTACK_RANGE) {
-          // Attack
+          // Attack target building
           const cooldown = unit.attackCooldown - 1;
           if (cooldown <= 0) {
             damagedBuildings = damagedBuildings.map((b) =>
@@ -111,15 +117,96 @@ export class AlienService {
           return { ...unit, targetBuildingId: target.id, attackCooldown: cooldown };
         }
 
-        // Move toward target
+        // Hex pathfinding movement if hexGrid is available
+        if (hexGrid) {
+          const unitHex = worldToHex(unit.position.x, unit.position.z);
+          const targetHex = worldToHex(target.position.x, target.position.z);
+
+          let currentPath = unit.path;
+          let currentPathIndex = unit.currentPathIndex;
+
+          const needsNewPath =
+            unit.targetBuildingId !== target.id ||
+            !currentPath ||
+            currentPath.length === 0 ||
+            currentPathIndex === undefined ||
+            currentPathIndex >= currentPath.length;
+
+          if (needsNewPath) {
+            const calculatedPath = HexPathfindingService.findPath(hexGrid, unitHex, targetHex);
+            if (calculatedPath && calculatedPath.length > 0) {
+              currentPath = calculatedPath;
+              if (
+                currentPath[0][0] === unitHex[0] &&
+                currentPath[0][1] === unitHex[1] &&
+                currentPath.length > 1
+              ) {
+                currentPathIndex = 1;
+              } else {
+                currentPathIndex = 0;
+              }
+            } else {
+              currentPath = undefined;
+              currentPathIndex = undefined;
+            }
+          }
+
+          if (currentPath && currentPathIndex !== undefined && currentPathIndex < currentPath.length) {
+            let waypointHex = currentPath[currentPathIndex];
+            let [wx, wz] = hexToWorld(waypointHex[0], waypointHex[1]);
+            let wdx = wx - unit.position.x;
+            let wdz = wz - unit.position.z;
+            let wDist = Math.sqrt(wdx * wdx + wdz * wdz);
+
+            if (wDist <= 0.1) {
+              if (currentPathIndex + 1 < currentPath.length) {
+                currentPathIndex++;
+                waypointHex = currentPath[currentPathIndex];
+                [wx, wz] = hexToWorld(waypointHex[0], waypointHex[1]);
+                wdx = wx - unit.position.x;
+                wdz = wz - unit.position.z;
+                wDist = Math.sqrt(wdx * wdx + wdz * wdz);
+              }
+            }
+
+            const speed = Math.min(GROUND_SPEED, wDist > 0 ? wDist : GROUND_SPEED);
+            const moveX = wDist > 0.001 ? unit.position.x + (wdx / wDist) * speed : unit.position.x;
+            const moveZ = wDist > 0.001 ? unit.position.z + (wdz / wDist) * speed : unit.position.z;
+
+            const [curQ, curR] = worldToHex(moveX, moveZ);
+            const curCell = hexGrid.getCell(curQ, curR);
+            const newY = curCell ? curCell.worldY : (unit.position.y ?? 0);
+
+            return {
+              ...unit,
+              targetBuildingId: target.id,
+              attackCooldown: Math.max(0, unit.attackCooldown - 1),
+              position: { x: moveX, y: newY, z: moveZ },
+              path: currentPath,
+              currentPathIndex,
+            };
+          }
+        }
+
+        // Fallback straight line movement
         const speed = Math.min(GROUND_SPEED, dist);
+        const newX = unit.position.x + (dx / dist) * speed;
+        const newZ = unit.position.z + (dz / dist) * speed;
+        let newY = unit.position.y ?? 0;
+        if (hexGrid) {
+          const [curQ, curR] = worldToHex(newX, newZ);
+          const curCell = hexGrid.getCell(curQ, curR);
+          if (curCell) newY = curCell.worldY;
+        }
+
         return {
           ...unit,
           targetBuildingId: target.id,
           attackCooldown: Math.max(0, unit.attackCooldown - 1),
           position: {
-            x: unit.position.x + (dx / dist) * speed,
-            z: unit.position.z + (dz / dist) * speed,
+            x: newX,
+            y: newY,
+            z: newZ,
           },
         };
       });
@@ -158,16 +245,24 @@ export class AlienService {
     };
   }
 
-  private static spawnGroundUnit(): AlienGroundUnit {
+  private static spawnGroundUnit(hexGrid?: HexGrid): AlienGroundUnit {
     const side = Math.floor(Math.random() * 4);
     let x = 0, z = 0;
     if (side === 0) { x = -TERRAIN_HALF_X; z = (Math.random() * 2 - 1) * TERRAIN_HALF_Z; }
     if (side === 1) { x =  TERRAIN_HALF_X; z = (Math.random() * 2 - 1) * TERRAIN_HALF_Z; }
     if (side === 2) { x = (Math.random() * 2 - 1) * TERRAIN_HALF_X; z = -TERRAIN_HALF_Z; }
     if (side === 3) { x = (Math.random() * 2 - 1) * TERRAIN_HALF_X; z =  TERRAIN_HALF_Z; }
+
+    let y = 0;
+    if (hexGrid) {
+      const [q, r] = worldToHex(x, z);
+      const cell = hexGrid.getCell(q, r);
+      if (cell) y = cell.worldY;
+    }
+
     return {
       id: `ground-${crypto.randomUUID()}`,
-      position: { x, z },
+      position: { x, y, z },
       targetBuildingId: null,
       attackCooldown: 0,
       active: true,

@@ -222,7 +222,7 @@ function GroundUnitMesh({ unit }: { unit: AlienGroundUnit }) {
             Math.abs(unit.position.z - prevPos.current.z) > 0.001;
 
         const bobY = moving ? Math.abs(Math.sin(t * 6)) * 0.2 : 0;
-        groupRef.current.position.set(unit.position.x, bobY, unit.position.z);
+        groupRef.current.position.set(unit.position.x, (unit.position.y ?? 0) + bobY, unit.position.z);
 
         // Face movement direction
         const dx = unit.position.x - prevPos.current.x;

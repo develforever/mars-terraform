@@ -9,10 +9,12 @@ export interface AlienShip {
 
 export interface AlienGroundUnit {
   id: string;
-  position: { x: number; z: number };
+  position: { x: number; y?: number; z: number };
   targetBuildingId: string | null;
   attackCooldown: number;
   active: boolean;
+  path?: [number, number][];
+  currentPathIndex?: number;
 }
 
 export interface AlienState {
