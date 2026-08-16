@@ -17,6 +17,8 @@ import { GAME_MODE_CONFIGS } from "../../domain/services/GameModeService";
 import { AlienService, INITIAL_ALIEN_STATE } from "../../domain/services/AlienService";
 import type { AlienState, AlienShip, AlienGroundUnit } from "../../domain/entities/Alien";
 import { authClient } from "../service/authService";
+import { HexGrid } from "../../presentation/generator/hex/HexGrid";
+import { applyProceduralTerrain } from "../../presentation/generator/terrain/ProceduralTerrain";
 
 export interface GameState {
   // Resources and colony state
@@ -26,6 +28,9 @@ export interface GameState {
   sun: number;
   alive: boolean;
   colonyName: string;
+
+  // Hex Grid Terrain
+  hexGrid: HexGrid;
 
   // Buildings
   placed: PlacedBuilding[];
@@ -60,7 +65,12 @@ export interface GameState {
 }
 
 function getInitialGameState() {
+  const defaultGrid = new HexGrid(20, 42);
+  defaultGrid.generate();
+  applyProceduralTerrain(defaultGrid, 42);
+
   return {
+    hexGrid: defaultGrid,
     resources: INITIAL_COLONY_STATE.resources,
     capacity: INITIAL_COLONY_STATE.capacity,
     sun: INITIAL_COLONY_STATE.sun,

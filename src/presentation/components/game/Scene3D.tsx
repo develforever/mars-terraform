@@ -1,15 +1,16 @@
 import { Canvas } from "@react-three/fiber";
-import { Loader, OrbitControls, useTexture } from "@react-three/drei";
+import { Loader, OrbitControls } from "@react-three/drei";
 import { PostProcessingComposer } from "./PostProcessingComposer";
 import { useCallback, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { usePlacement } from "../../../application/hooks/usePlacement";
 import { useUIStore } from "../../../application/store/useUIStore";
-import { MarsTerrain } from "./MarsTerrain";
+import { useGameStore } from "../../../application/store/useGameStore";
+import SmoothTerrain from "../../generator/components/viewport/SmoothTerrain";
+import { worldToHex } from "../../generator/hex/HexMath";
 import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 import { Buildings, DemolishGhost, HoverGhost } from "./Buildings";
 import { TerrainHeightContext } from "./TerrainHeightContext";
-import { heightFromDisplacement } from "../../utils/terrainDisplacement";
 import { MarsEnvironment } from "./MarsEnvironment";
 import { VisibilitySystem } from "./VisibilitySystem";
 import { TerrainDataSystem } from "./TerrainDataSystem";
@@ -51,32 +52,26 @@ export function Scene3D() {
 function World() {
     const terrainRef = useRef<THREE.Mesh>(null);
     const buildMode = useUIStore((state: { buildMode: "place" | "demolish" | null }) => state.buildMode);
-
-    const [colorMap, dispMap] = useTexture([
-        "/textures/mars_colorx1.png",
-        "/textures/mars_displacementx1.png",
-    ]);
+    const hexGrid = useGameStore((state) => state.hexGrid);
 
     const terrainSize = useMemo(() => ({ x: TERRAIN_BOUNDS.sizeX, z: TERRAIN_BOUNDS.sizeZ }), []);
 
-    // Check if displacement texture is loaded
-    const isTextureLoaded = !!(dispMap?.image && "width" in dispMap.image && typeof (dispMap.image as { width?: number }).width === "number");
-
     const getTerrainY = useCallback(
         (wx: number, wz: number) => {
-            // Only use displacement if texture is loaded
-            if (!isTextureLoaded) return 0;
-            return heightFromDisplacement(wx, wz, terrainSize, dispMap);
+            if (!hexGrid) return 0;
+            const [q, r] = worldToHex(wx, wz);
+            const cell = hexGrid.getCell(q, r);
+            return cell ? cell.worldY : 0;
         },
-        [dispMap, terrainSize, isTextureLoaded]
+        [hexGrid]
     );
 
     usePlacement({ grid: 1, getHeightAt: getTerrainY, terrainMesh: terrainRef });
 
     const target = useMemo<[number, number, number]>(() => [0, 0, 0], []);
 
-    const [visibilityMap, setVisibilityMap] = useState<THREE.CanvasTexture | null>(null);
-    const [dataMap, setDataMap] = useState<THREE.CanvasTexture | null>(null);
+    const [, setVisibilityMap] = useState<THREE.CanvasTexture | null>(null);
+    const [, setDataMap] = useState<THREE.CanvasTexture | null>(null);
     const [outlineEffect, setOutlineEffect] = useState<OutlineEffect | null>(null);
 
     return (
@@ -95,13 +90,9 @@ function World() {
                 onDataMapCreated={setDataMap}
             />
 
-            <MarsTerrain
+            <SmoothTerrain
                 ref={terrainRef}
-                terrainSize={terrainSize}
-                colorMap={colorMap}
-                displacementMap={dispMap}
-                visibilityMap={visibilityMap}
-                dataMap={dataMap}
+                hexGrid={hexGrid}
             />
             <Buildings />
             <HoverGhost />

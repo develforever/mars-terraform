@@ -439,8 +439,8 @@ export function DemolishGhost() {
 
     if (!isOccupied) return null;
 
-    const cx = Math.round(hoverCell.x);
-    const cz = Math.round(hoverCell.z);
+    const cx = hoverCell.x;
+    const cz = hoverCell.z;
     const baseY = terrainY(cx, cz) + 0.51;
 
     return (

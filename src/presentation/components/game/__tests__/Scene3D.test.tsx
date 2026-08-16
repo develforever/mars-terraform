@@ -90,20 +90,21 @@ vi.mock("../../../../application/store/useUIStore", () => ({
 }));
 
 vi.mock("../../../../application/store/useGameStore", () => ({
-    useGameStore: <T,>(fn: (state: { setSun: () => void; weather: { type: string; intensity: number; impactZones: unknown[] }; alienState: { ships: unknown[]; groundUnits: unknown[]; wave: number }; gameMode: string; placed: unknown[] }) => T) => {
+    useGameStore: <T,>(fn: (state: { setSun: () => void; weather: { type: string; intensity: number; impactZones: unknown[] }; alienState: { ships: unknown[]; groundUnits: unknown[]; wave: number }; gameMode: string; placed: unknown[]; hexGrid: { getCell: () => { worldY: number } } }) => T) => {
         const state = {
             setSun: () => {},
             weather: { type: "clear", intensity: 0, impactZones: [] },
             alienState: { ships: [], groundUnits: [], wave: 0 },
             gameMode: "exploration",
             placed: [],
+            hexGrid: { getCell: () => ({ worldY: 0 }) },
         };
         return fn ? fn(state) : (state as unknown as T);
     },
 }));
 
-vi.mock("../MarsTerrain", () => ({
-    MarsTerrain: () => <div data-testid="mars-terrain" />,
+vi.mock("../../../generator/components/viewport/SmoothTerrain", () => ({
+    default: () => <div data-testid="smooth-terrain" />,
 }));
 
 vi.mock("../Buildings", () => ({

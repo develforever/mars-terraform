@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { useUIStore } from "../store/useUIStore";
 import { useGameStore } from "../store/useGameStore";
 import { TERRAIN_BOUNDS } from "../../presentation/utils/terrainBounds";
+import { worldToHex, hexToWorld } from "../../presentation/generator/hex/HexMath";
 
 const RAY = new THREE.Raycaster();
 const MOUSE = new THREE.Vector2();
@@ -78,16 +79,14 @@ export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacemen
 
       if (!hitPoint) return;
 
-      const x = Math.round(hitPoint.x / grid) * grid;
-      const z = Math.round(hitPoint.z / grid) * grid;
+      const [q, r] = worldToHex(hitPoint.x, hitPoint.z);
+      const [x, z] = hexToWorld(q, r);
 
       if (x < -TERRAIN_BOUNDS.halfX || x > TERRAIN_BOUNDS.halfX || z < -TERRAIN_BOUNDS.halfZ || z > TERRAIN_BOUNDS.halfZ) return;
 
       if (buildMode === "place") {
         if (!selectedBuildingId) return;
         const y = getHeightAt ? getHeightAt(x, z) : 0;
-        // Don't allow building if terrain height is 0 (texture not loaded)
-        if (y === 0) return;
         placeBuilding({ x, z }, y, selectedBuildingId);
       } else if (buildMode === "demolish") {
         demolishBuilding({ x, z });
@@ -127,10 +126,14 @@ export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacemen
       return;
     }
 
-    const x = Math.round(hitPoint.x / grid) * grid;
-    const z = Math.round(hitPoint.z / grid) * grid;
+    const [q, r] = worldToHex(hitPoint.x, hitPoint.z);
+    const [x, z] = hexToWorld(q, r);
 
     if (x < -TERRAIN_BOUNDS.halfX || x > TERRAIN_BOUNDS.halfX || z < -TERRAIN_BOUNDS.halfZ || z > TERRAIN_BOUNDS.halfZ) {
+      if (latest.current !== null) {
+        setHoverCell(null);
+        latest.current = null;
+      }
       return;
     }
 
