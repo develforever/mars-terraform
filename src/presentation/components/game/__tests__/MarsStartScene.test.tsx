@@ -75,10 +75,10 @@ describe("StartScene3D", () => {
         expect(screen.getByTestId("post-processing-composer")).toBeTruthy();
     });
 
-    it("should configure Bloom with low threshold for bright effects", () => {
+    it("should configure Bloom with calibrated HDR threshold for celestial glow", () => {
         render(<StartScene3D onClick={() => {}} />);
         const bloom = screen.getByTestId("post-processing-composer");
-        expect(bloom.getAttribute("data-bloom-threshold")).toBe("0.05");
+        expect(bloom.getAttribute("data-bloom-threshold")).toBe("1");
         expect(bloom.getAttribute("data-glitch")).toBe("true");
     });
 });

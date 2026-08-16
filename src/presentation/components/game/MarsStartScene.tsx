@@ -138,39 +138,71 @@ export function StartScene3D({ onClick, warpSpeed = false }: Scene3DProps) {
 const atmosphereVertexShader = `
   varying vec3 vNormal;
   varying vec3 vPosition;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
   void main() {
     vNormal = normalize(normalMatrix * normal);
     vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPos.xyz;
+    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
 const atmosphereFragmentShader = `
   uniform float uOpacity;
+  uniform vec3 uSunPosition;
   varying vec3 vNormal;
   varying vec3 vPosition;
+  varying vec3 vWorldNormal;
+  varying vec3 vWorldPosition;
+
   void main() {
     vec3 viewDir = normalize(-vPosition);
     float dotVN = dot(viewDir, vNormal);
-    float fresnel = pow(1.0 - max(dotVN, 0.0), 3.0);
-    float edgeFade = 1.0 - smoothstep(0.7, 1.0, fresnel);
-    vec3 innerColor = vec3(1.0, 0.55, 0.25);
-    vec3 outerColor = vec3(0.75, 0.25, 0.08);
+    float fresnel = pow(1.0 - max(dotVN, 0.0), 3.2);
+    float edgeFade = 1.0 - smoothstep(0.85, 1.0, fresnel);
+
+    // Kąt oświetlenia w przestrzeni świata (World Space)
+    vec3 sunDir = normalize(uSunPosition - vWorldPosition);
+    float sunDot = dot(vWorldNormal, sunDir);
+
+    // Rozpraszanie do przodu (Mie scattering) — mocny rim light od strony słońca
+    float sunScatter = pow(clamp(sunDot * 0.5 + 0.5, 0.0, 1.0), 2.5);
+    float directRimHDR = pow(max(sunDot, 0.0), 4.0) * 3.5;
+
+    vec3 outerColor = vec3(0.85, 0.25, 0.08); // Martian red/orange
+    vec3 innerColor = vec3(1.2, 0.65, 0.35);  // Ciepły złoto-brzoskwiniowy glow
+    vec3 sunRimColor = vec3(2.5, 1.8, 1.2);   // Intensywny rozbłysk HDR na krawędzi
+
     vec3 color = mix(outerColor, innerColor, fresnel);
-    gl_FragColor = vec4(color, fresnel * 0.7 * edgeFade * uOpacity);
+    color += sunRimColor * directRimHDR;
+
+    // Na ciemnej stronie minimalna poświata (0.05), po stronie słońca pełna poświata
+    float intensity = fresnel * (0.05 + 0.95 * sunScatter) * edgeFade * uOpacity;
+
+    // Dither eliminujący banding
+    float dither = (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) / 255.0;
+
+    gl_FragColor = vec4(color * intensity + dither, intensity);
   }
 `;
 
-function MarsAtmosphere() {
+function MarsAtmosphere({ sunPositionRef }: { sunPositionRef: React.RefObject<THREE.Vector3> }) {
     const uniforms = useMemo(
         () => ({
             uOpacity: { value: 1.0 },
+            uSunPosition: { value: new THREE.Vector3(60, 0, 0) },
         }),
         []
     );
 
     useFrame(() => {
         uniforms.uOpacity.value = 0.75 + Math.sin(Date.now() * 0.0008) * 0.15;
+        if (sunPositionRef.current) {
+            uniforms.uSunPosition.value.copy(sunPositionRef.current);
+        }
     });
 
     return (
@@ -183,6 +215,7 @@ function MarsAtmosphere() {
                 transparent
                 side={THREE.BackSide}
                 depthWrite={false}
+                toneMapped={false}
             />
         </mesh>
     );
@@ -276,19 +309,20 @@ function OrbitShips() {
     );
 }
 
-function StartSun() {
+function StartSun({ sunPositionRef }: { sunPositionRef: React.RefObject<THREE.Vector3> }) {
     const groupRef = useRef<THREE.Group>(null);
     const angleRef = useRef(Math.PI + 0.2);
 
     useFrame((_, delta) => {
         angleRef.current += delta * 0.005;
         const r = 60;
+        const x = Math.cos(angleRef.current) * r;
+        const z = Math.sin(angleRef.current) * r;
         if (groupRef.current) {
-            groupRef.current.position.set(
-                Math.cos(angleRef.current) * r,
-                0,
-                Math.sin(angleRef.current) * r
-            );
+            groupRef.current.position.set(x, 0, z);
+        }
+        if (sunPositionRef.current) {
+            sunPositionRef.current.set(x, 0, z);
         }
     });
 
@@ -308,6 +342,7 @@ function StartSun() {
 
 function World({ onClick, warpSpeed }: Scene3DProps) {
     const cameraTarget = useRef(LOOK_AT.clone());
+    const sunPositionRef = useRef(new THREE.Vector3(-60, 0, 0));
 
     useFrame((state) => {
         state.camera.lookAt(cameraTarget.current);
@@ -317,13 +352,13 @@ function World({ onClick, warpSpeed }: Scene3DProps) {
         <>
             <StartEnvironment warpSpeed={warpSpeed} />
             <Mars onClick={onClick} />
-            <MarsAtmosphere />
-            <StartSun />
+            <MarsAtmosphere sunPositionRef={sunPositionRef} />
+            <StartSun sunPositionRef={sunPositionRef} />
             <OrbitShips />
             <PostProcessingComposer
-                bloomIntensity={3.0}
-                bloomThreshold={0.05}
-                bloomSmoothing={0.5}
+                bloomIntensity={2.2}
+                bloomThreshold={1.0}
+                bloomSmoothing={0.3}
                 glitch
             />
         </>
