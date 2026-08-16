@@ -141,7 +141,7 @@ export function MarsEnvironment() {
             />
 
             <group ref={sunGroupRef}>
-                <Sun position={new THREE.Vector3(0, 0, 0)} />
+                <Sun position={new THREE.Vector3(0, 0, 0)} coreRadius={20} flareSize={380} />
             </group>
         </>
     );
