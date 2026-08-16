@@ -8,7 +8,7 @@ export default function ResetPasswordModal() {
   const { t } = useTranslation();
   const { open, modalData } = useModalStore();
   const [searchParams] = useSearchParams();
-  const token = modalData?.token || (searchParams.get("token") ?? "");
+  const token = (modalData as { token?: string } | undefined)?.token || (searchParams.get("token") ?? "");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,7 +19,7 @@ export default function ResetPasswordModal() {
     if (!token) {
       setError(t("auth.reset.invalidToken"));
     }
-  }, [token]);
+  }, [token, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -134,7 +134,7 @@ export const MarsTerrain = forwardRef<Mesh, MarsTerrainProps>(
             uSize: { value: new Vector2(terrainSize.x, terrainSize.z) },
             uHoverCell: { value: new Vector2(-9999, -9999) },
             uBuildMode: { value: 0 },
-        }), []);
+        }), [dataMap, terrainSize.x, terrainSize.z, visibilityMap]);
 
         useEffect(() => {
             uniforms.uVisibilityMap.value = visibilityMap || null;

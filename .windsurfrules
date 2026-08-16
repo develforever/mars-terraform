@@ -41,6 +41,12 @@
 - Zawsze sprawdzaj czy testy przechodzą przed merges
 - Poleceniem npm run build sprawdzaj czy projekt kompiluje się poprawnie
 
+## Git & Gałęzie
+- Nigdy nie pracujemy bezpośrednio na gałęzi `main`
+- Na każde zadanie tworzymy dedykowany branch (np. `feat/...`, `fix/...`, `refactor/...`)
+- Po zakończeniu i weryfikacji zadania zmiany są commitowane na ten branch
+- Każdy zestaw zmian wymaga obowiązkowego review (Code Review) przed scaleniem
+
 ## Zakazane
 - Nie instaluj nowych zależności bez pytania
 - Nie modyfikuj plików konfiguracyjnych bez potwierdzenia

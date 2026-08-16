@@ -16,7 +16,6 @@ import { hexToWorld, HEX_SIZE } from '../../hex/HexMath'
 const USER_COLORS: Record<string, [number, number, number]> = {
   build:    [0.0,  0.85, 0.45],
   resource: [0.9,  0.72, 0.0],
-  blocked:  [0.85, 0.18, 0.0],
   spawn:    [0.0,  0.45, 0.85],
 }
 

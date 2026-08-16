@@ -9,9 +9,9 @@ export type BuildingType =
 
 export type ResourceType = 'minerals' | 'ice' | 'organics' | 'energy'
 
-export type TileType = 'empty' | 'build' | 'resource' | 'blocked' | 'spawn'
+export type TileType = 'empty' | 'build' | 'resource' | 'spawn'
 
-export type ToolMode = 'build' | 'resource' | 'blocked' | 'spawn' | 'erase' | 'select' | 'terrain' | 'decor'
+export type ToolMode = 'build' | 'resource' | 'spawn' | 'erase' | 'select' | 'terrain' | 'decor'
 
 export type BrushSize = 1 | 3 | 5
 

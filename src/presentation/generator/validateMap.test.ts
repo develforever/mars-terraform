@@ -65,3 +65,50 @@ describe('validateMap', () => {
     expect(result.valid).toBe(false)
   })
 })
+
+
+// ─── Nowe reguly ──────────────────────────────────────────────────────────────
+
+const withHexes = (extra: Partial<MapExportJSON>): MapExportJSON => ({
+  ...BASE_MAP,
+  hexes: [
+    { q: 0, r: 0, terrainType: 'plains', userType: null, decor: null },
+    { q: 5, r: 0, terrainType: 'plains', userType: null, decor: null },
+    { q: -5, r: 0, terrainType: 'plains', userType: null, decor: null },
+  ],
+  buildNodes: [],
+  resourceNodes: [],
+  spawnPoints: [{ player: 1, pos: [0, 0] }, { player: 2, pos: [5, 0] }],
+  ...extra,
+})
+
+describe('validateMap — nowe reguly', () => {
+  it('wezel poza mapa to error', () => {
+    const r = validateMap(withHexes({ spawnPoints: [{ player: 1, pos: [99, 99] }, { player: 2, pos: [5, 0] }] }))
+    expect(r.valid).toBe(false)
+    expect(r.errors.some(e => e.message.includes('outside the map'))).toBe(true)
+  })
+
+  it('spawny zbyt blisko to warning (nie error)', () => {
+    const r = validateMap(withHexes({
+      hexes: [
+        { q: 0, r: 0, terrainType: 'plains', userType: null, decor: null },
+        { q: 1, r: 0, terrainType: 'plains', userType: null, decor: null },
+      ],
+      spawnPoints: [{ player: 1, pos: [0, 0] }, { player: 2, pos: [1, 0] }],
+    }))
+    expect(r.valid).toBe(true)
+    expect(r.errors.some(e => e.level === 'warning' && e.message.includes('very close'))).toBe(true)
+  })
+
+  it('poprawna mapa z hexes nie ma errorow', () => {
+    const r = validateMap(withHexes({
+      buildNodes: [{ id: 'b1', pos: [0, 0], footprint: [1, 1], allowedTypes: ['colony'] }],
+      resourceNodes: [
+        { id: 'r1', type: 'minerals', pos: [5, 0], amount: 1000, richness: 'med', model: 'm' },
+        { id: 'r2', type: 'ice', pos: [0, 0], amount: 800, richness: 'low', model: 'm' },
+      ],
+    }))
+    expect(r.errors.filter(e => e.level === 'error')).toHaveLength(0)
+  })
+})

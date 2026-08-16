@@ -70,7 +70,7 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
 
     useEffect(() => {
         handleGenerate();
-    }, []);
+    }, [handleGenerate]);
 
     if (isLaunching) {
         return (

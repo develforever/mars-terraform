@@ -61,7 +61,7 @@ export const useMapConfigStore = create<MapConfigState>((set) => ({
             terrainFile: 'mars_terrain.glb',
           })
           resolve()
-        } catch (err) {
+        } catch {
           reject(new Error('Invalid map JSON file.'))
         }
       }

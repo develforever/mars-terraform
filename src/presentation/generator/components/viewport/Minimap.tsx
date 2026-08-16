@@ -10,7 +10,6 @@ const PLAYER_COLORS = ['#4488ff', '#ff4444', '#44ff88', '#ffaa00']
 const USER_COLORS: Record<string, string> = {
   build:    '#00ff88',
   resource: '#ffcc00',
-  blocked:  '#ff3300',
   spawn:    '#0088ff',
 }
 

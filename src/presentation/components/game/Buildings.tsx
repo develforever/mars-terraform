@@ -51,13 +51,14 @@ function Model({ path, scale = 1, ghost = false }: ModelProps) {
     useEffect(() => {
         if (ghost) {
             sceneClone.traverse((child) => {
-                if ((child as any).isMesh) {
-                    const material = (child as any).material as THREE.MeshStandardMaterial;
+                if ((child as THREE.Mesh).isMesh) {
+                    const mesh = child as THREE.Mesh;
+                    const material = mesh.material as THREE.MeshStandardMaterial;
                     const ghostMaterial = material.clone();
                     ghostMaterial.transparent = true;
                     ghostMaterial.opacity = 0.4;
                     ghostMaterial.color.set("#00ff88");
-                    (child as any).material = ghostMaterial;
+                    mesh.material = ghostMaterial;
                 }
             });
         }
@@ -117,15 +118,16 @@ function BuildingGroup({ b, isSelected, debugOverlayVisible, onClick, baseY }: B
 
     useEffect(() => {
         if (!outlineEffect) return;
+        const currentGroup = groupRef.current;
 
         rafRef.current = requestAnimationFrame(() => {
-            if (!groupRef.current) return;
+            if (!currentGroup) return;
 
             // Only outline GLTF model meshes, not foundation cylinders
-            const modelGroup = groupRef.current.children.find(
+            const modelGroup = currentGroup.children.find(
                 (c) => (c as THREE.Group).userData?.isModelGroup
             );
-            const target = modelGroup ?? groupRef.current;
+            const target = modelGroup ?? currentGroup;
 
             const meshes: THREE.Mesh[] = [];
             target.traverse((child) => {
@@ -141,11 +143,11 @@ function BuildingGroup({ b, isSelected, debugOverlayVisible, onClick, baseY }: B
 
         return () => {
             if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-            if (outlineEffect && groupRef.current) {
-                const modelGroup = groupRef.current.children.find(
+            if (outlineEffect && currentGroup) {
+                const modelGroup = currentGroup.children.find(
                     (c) => (c as THREE.Group).userData?.isModelGroup
                 );
-                const target = modelGroup ?? groupRef.current;
+                const target = modelGroup ?? currentGroup;
                 target.traverse((child) => {
                     if ((child as THREE.Mesh).isMesh) {
                         outlineEffect.selection.delete(child as THREE.Mesh);

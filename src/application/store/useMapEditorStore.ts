@@ -13,6 +13,8 @@ import type {
 } from '../../domain/mapEditorTypes'
 import { HexGrid, type HexTerrainType } from '../../presentation/generator/hex/HexGrid'
 import { HEX_SIZE } from '../../presentation/generator/hex/HexMath'
+import { applyProceduralTerrain } from '../../presentation/generator/terrain/ProceduralTerrain'
+import { generateDecor, generateResources, generateSpawns, generateBuildNodes } from '../../presentation/generator/terrain/ProceduralPlacement'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -38,11 +40,17 @@ interface MapEditorState {
   activeTool: ToolMode
   brushSize: BrushSize
   activeTerrainType: HexTerrainType
+  activeDecorModel: string
   selectedNodeId: string | null
   selectedHex: { q: number; r: number } | null
   hoveredHex: [number, number] | null
   showGrid: boolean
   isPreviewMode: boolean
+  fillMode: boolean
+  decorSeed: number
+  resourceSeed: number
+  spawnSeed: number
+  buildSeed: number
   undoStack: MapSnapshot[]
 
   // Node actions
@@ -61,6 +69,15 @@ interface MapEditorState {
   setActiveTool: (tool: ToolMode) => void
   setBrushSize: (size: BrushSize) => void
   setActiveTerrainType: (type: HexTerrainType) => void
+  setActiveDecorModel: (model: string) => void
+  setDecorSeed: (n: number) => void
+  setResourceSeed: (n: number) => void
+  generateDecorAuto: () => void
+  generateResourcesAuto: () => void
+  setSpawnSeed: (n: number) => void
+  setBuildSeed: (n: number) => void
+  generateSpawnsAuto: () => void
+  generateBuildAuto: () => void
   setSelectedNodeId: (id: string | null) => void
   selectHex: (q: number, r: number) => void
   clearSelection: () => void
@@ -68,6 +85,7 @@ interface MapEditorState {
   setShowGrid: (show: boolean) => void
   toggleGrid: () => void
   togglePreview: () => void
+  toggleFillMode: () => void
   updateMeta: (patch: Partial<MapMeta>) => void
 
   // Hex grid actions
@@ -127,11 +145,17 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
   activeTool: 'select',
   brushSize: 1,
   activeTerrainType: 'plains',
+  activeDecorModel: 'rock_01',
   selectedNodeId: null,
   selectedHex: null,
   hoveredHex: null,
   showGrid: true,
   isPreviewMode: false,
+  fillMode: false,
+  decorSeed: 1,
+  resourceSeed: 1,
+  spawnSeed: 1,
+  buildSeed: 1,
   undoStack: [],
 
   // ── Node actions ───────────────────────────────────────────────────────────
@@ -198,12 +222,42 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
   setActiveTool: (tool) => set({ activeTool: tool }),
   setBrushSize: (size) => set({ brushSize: size }),
   setActiveTerrainType: (type) => set({ activeTerrainType: type }),
+  setActiveDecorModel: (model) => set({ activeDecorModel: model }),
+  setDecorSeed: (n) => set({ decorSeed: n }),
+  setResourceSeed: (n) => set({ resourceSeed: n }),
+  generateDecorAuto: () => {
+    const grid = get().hexGrid
+    if (!grid) return
+    get().pushUndo()
+    set({ decor: generateDecor(grid, get().decorSeed) })
+  },
+  generateResourcesAuto: () => {
+    const grid = get().hexGrid
+    if (!grid) return
+    get().pushUndo()
+    set({ resourceNodes: generateResources(grid, get().resourceSeed, get().meta.players) })
+  },
+  setSpawnSeed: (n) => set({ spawnSeed: n }),
+  setBuildSeed: (n) => set({ buildSeed: n }),
+  generateSpawnsAuto: () => {
+    const grid = get().hexGrid
+    if (!grid) return
+    get().pushUndo()
+    set({ spawnPoints: generateSpawns(grid, get().spawnSeed, get().meta.players) })
+  },
+  generateBuildAuto: () => {
+    const grid = get().hexGrid
+    if (!grid) return
+    get().pushUndo()
+    set({ buildNodes: generateBuildNodes(grid, get().buildSeed, get().meta.players, get().spawnPoints) })
+  },
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
   selectHex: (q, r) => set({ selectedHex: { q, r }, selectedNodeId: null }),
   clearSelection: () => set({ selectedHex: null, selectedNodeId: null }),
   setHoveredHex: (hex) => set({ hoveredHex: hex }),
   setShowGrid: (show) => set({ showGrid: show }),
   toggleGrid: () => set(state => ({ showGrid: !state.showGrid })),
+  toggleFillMode: () => set(state => ({ fillMode: !state.fillMode })),
   togglePreview: () => set(state => ({ isPreviewMode: !state.isPreviewMode })),
   updateMeta: (patch) => set(state => ({ meta: { ...state.meta, ...patch } })),
 
@@ -214,6 +268,7 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
     const s = seed ?? get().hexSeed
     const grid = new HexGrid(r, s)
     grid.generate()
+    applyProceduralTerrain(grid, s)   // seed -> proceduralny teren (deterministyczny)
     set({ hexGrid: grid, hexRadius: r, hexSeed: s, selectedHex: null, selectedNodeId: null })
   },
 

@@ -42,7 +42,7 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
             }
         };
         fetchColonies();
-    }, []);
+    }, [t]);
 
     const handleLoad = async (name: string) => {
         setLoadingName(name);

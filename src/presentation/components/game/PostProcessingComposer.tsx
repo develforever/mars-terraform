@@ -35,16 +35,28 @@ export function PostProcessingComposer({
     const composerRef = useRef<EffectComposer | null>(null);
     const bloomRef = useRef<BloomEffect | null>(null);
 
+    const onOutlineReadyRef = useRef(onOutlineReady);
+    useEffect(() => {
+        onOutlineReadyRef.current = onOutlineReady;
+    });
+
+    const initBloomPropsRef = useRef({
+        bloomIntensity,
+        bloomThreshold,
+        bloomSmoothing,
+    });
+
     useEffect(() => {
         const composer = new EffectComposer(gl, {
             multisampling: 0,
         });
         composer.addPass(new RenderPass(scene, camera));
 
+        const initProps = initBloomPropsRef.current;
         const bloomEffect = new BloomEffect({
-            luminanceThreshold: bloomThreshold,
-            luminanceSmoothing: bloomSmoothing,
-            intensity: bloomIntensity,
+            luminanceThreshold: initProps.bloomThreshold,
+            luminanceSmoothing: initProps.bloomSmoothing,
+            intensity: initProps.bloomIntensity,
             mipmapBlur: true,
         });
         bloomRef.current = bloomEffect;
@@ -66,7 +78,7 @@ export function PostProcessingComposer({
                 xRay: false,
             });
             effects.push(outlineEffect);
-            onOutlineReady?.(outlineEffect);
+            onOutlineReadyRef.current?.(outlineEffect);
         }
 
         if (glitch) {
@@ -83,7 +95,7 @@ export function PostProcessingComposer({
 
         return () => {
             bloomRef.current = null;
-            onOutlineReady?.(null);
+            onOutlineReadyRef.current?.(null);
             composer.dispose();
             composerRef.current = null;
         };

@@ -100,7 +100,7 @@ describe('HexGrid — setUserType', () => {
   it('setting null clears userType', () => {
     const grid = new HexGrid(5, 1)
     grid.generate()
-    grid.setUserType(0, 0, 'blocked')
+    grid.setUserType(0, 0, 'build')
     grid.setUserType(0, 0, null)
     expect(grid.getCell(0, 0)!.userType).toBeNull()
   })
@@ -163,7 +163,7 @@ describe('HexGrid — snapshot / restore', () => {
     const grid = new HexGrid(5, 1)
     grid.generate()
     const snap = grid.snapshot()
-    grid.setUserType(0, 0, 'blocked')
+    grid.setUserType(0, 0, 'build')
     grid.restoreSnapshot(snap)
     expect(grid.getCell(0, 0)!.userType).toBeNull()
   })

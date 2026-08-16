@@ -24,7 +24,7 @@ export function MarsEnvironment() {
 
     const ambientRef = useRef<THREE.AmbientLight>(null);
     const moonLightRef = useRef<THREE.DirectionalLight>(null);
-    const starsRef = useRef<any>(null);
+    const starsRef = useRef<THREE.Points>(null);
     const weather = useGameStore(state => state.weather);
     const sandstormColor = useMemo(() => new THREE.Color("#8b5a2b"), []);
 

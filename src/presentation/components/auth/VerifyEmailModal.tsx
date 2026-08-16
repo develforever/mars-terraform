@@ -8,7 +8,7 @@ export default function VerifyEmailModal() {
   const { t } = useTranslation();
   const { open, modalData } = useModalStore();
   const [searchParams] = useSearchParams();
-  const token = modalData?.token || (searchParams.get("token") ?? "");
+  const token = (modalData as { token?: string } | undefined)?.token || (searchParams.get("token") ?? "");
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
@@ -29,7 +29,7 @@ export default function VerifyEmailModal() {
         setStatus("error");
         setMessage(err.message || t("auth.verify.failed"));
       });
-  }, [token]);
+  }, [token, t]);
 
   return (
     <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md">

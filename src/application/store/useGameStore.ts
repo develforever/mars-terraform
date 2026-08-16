@@ -283,7 +283,7 @@ export const useGameStore = create<GameState>()(
 
         // Tick Weather (debug override takes priority; adventure has no hazards)
         const { forcedWeather } = useDebugStore.getState();
-        let newWeather = forcedWeather
+        const newWeather = forcedWeather
           ? { ...state.weather, type: forcedWeather }
           : WeatherService.tick(state.weather, modeCfg.sandstormChanceMultiplier, modeCfg.meteorChanceMultiplier, modeCfg.hazardsEnabled);
         const productionModifier = WeatherService.getProductionModifier(newWeather);

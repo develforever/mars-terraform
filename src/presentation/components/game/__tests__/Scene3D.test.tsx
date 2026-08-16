@@ -6,7 +6,7 @@ vi.mock("@react-three/fiber", async () => {
     const actual = await vi.importActual<typeof import("@react-three/fiber")>("@react-three/fiber");
     return {
         ...actual,
-        Canvas: ({ children, ...props }: any) => (
+        Canvas: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => (
             <div data-testid="canvas" {...props}>{children}</div>
         ),
         useFrame: vi.fn((cb) => cb({ clock: { elapsedTime: 0 }, camera: { position: { x: 0, y: 0, z: 0 } }, scene: { background: null, fog: null } }, 0.016)),
@@ -21,13 +21,13 @@ vi.mock("@react-three/fiber", async () => {
 vi.mock("@react-three/drei", () => ({
     OrbitControls: () => <div data-testid="orbit-controls" />,
     useTexture: () => [{ image: { width: 512 } }, { image: { width: 512 } }],
-    Html: ({ children }: any) => <div data-testid="mock-html">{children}</div>,
+    Html: ({ children }: { children?: React.ReactNode }) => <div data-testid="mock-html">{children}</div>,
     Loader: () => <div data-testid="mock-loader" />,
     useProgress: () => ({ progress: 100, active: false }),
 }));
 
 vi.mock("../PostProcessingComposer", () => ({
-    PostProcessingComposer: (props: any) => (
+    PostProcessingComposer: (props: { bloomIntensity?: number; bloomThreshold?: number; bloomSmoothing?: number }) => (
         <div
             data-testid="post-processing-composer"
             data-bloom-intensity={props.bloomIntensity}
@@ -66,7 +66,7 @@ vi.mock("three", async () => {
         },
         MathUtils: { lerp: (a: number, b: number, t: number) => a + (b - a) * t },
         FogExp2: class {
-            color: any;
+            color: unknown;
             density: number;
             constructor() {
                 this.color = { copy: () => {}, lerp: () => {} };
@@ -83,14 +83,14 @@ vi.mock("../../../../application/hooks/usePlacement", () => {
 });
 
 vi.mock("../../../../application/store/useUIStore", () => ({
-    useUIStore: (fn: any) => {
+    useUIStore: <T,>(fn: (state: { buildMode: string | null; cancelBuild: () => void }) => T) => {
         const state = { buildMode: null as string | null, cancelBuild: () => {} };
-        return fn ? fn(state) : state;
+        return fn ? fn(state) : (state as unknown as T);
     },
 }));
 
 vi.mock("../../../../application/store/useGameStore", () => ({
-    useGameStore: (fn: any) => {
+    useGameStore: <T,>(fn: (state: { setSun: () => void; weather: { type: string; intensity: number; impactZones: unknown[] }; alienState: { ships: unknown[]; groundUnits: unknown[]; wave: number }; gameMode: string; placed: unknown[] }) => T) => {
         const state = {
             setSun: () => {},
             weather: { type: "clear", intensity: 0, impactZones: [] },
@@ -98,7 +98,7 @@ vi.mock("../../../../application/store/useGameStore", () => ({
             gameMode: "exploration",
             placed: [],
         };
-        return fn ? fn(state) : state;
+        return fn ? fn(state) : (state as unknown as T);
     },
 }));
 
@@ -113,7 +113,7 @@ vi.mock("../Buildings", () => ({
 }));
 
 vi.mock("../TerrainHeightContext", () => ({
-    TerrainHeightContext: { Provider: ({ children }: any) => <div>{children}</div> },
+    TerrainHeightContext: { Provider: ({ children }: { children?: React.ReactNode }) => <div>{children}</div> },
     useTerrainHeight: () => () => 0,
 }));
 

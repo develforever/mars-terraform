@@ -70,7 +70,7 @@ const GeneratorViewport = () => {
 
   useEffect(() => {
     if (!hexGrid) generateHexGrid()
-  }, [])
+  }, [hexGrid, generateHexGrid])
 
   return (
     <div className="relative w-full h-full bg-zinc-950" style={{ cursor: orbitEnabled ? 'default' : 'crosshair' }}>

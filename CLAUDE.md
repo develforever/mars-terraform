@@ -1,367 +1,145 @@
 # CLAUDE.md — Mars Terraform: Generator Mapy `/generate`
 
-> Ten plik zawiera pełny kontekst z sesji planowania. Wczytaj go przed rozpoczęciem pracy.
+> Aktualny stan generatora (siatka HEKSAGONALNA). Zastępuje stary plan z siatką
+> kwadratową 100x100 — ten model już nie istnieje. Wczytaj przed pracą.
 
 ---
 
 ## Kontekst projektu
 
-**Mars Terraform** — przeglądarkowa gra strategiczna 3D (RTS jak StarCraft) osadzona na Marsie.
+**Mars Terraform** — przeglądarkowa gra strategiczna 3D (RTS) na Marsie.
 
 Stack:
 - Frontend: React 19, TypeScript, Vite, react-three-fiber (r3f), @react-three/drei, Zustand, TailwindCSS 4
 - Backend: Node.js, TypeScript, Express, tsoa, Drizzle ORM, JWT
-- Testy: Vitest, React Testing Library
+- Testy: Vitest (`npm run build`, testy w `*.test.ts`)
+- Zależności istotne dla generatora: `three`, `@react-three/fiber`, `@react-three/drei`,
+  `@react-three/postprocessing`, `postprocessing`, `simplex-noise`, `zustand`, `zod`
 
-Projekt ma już działającą bazę React/r3f. Routing i `App.tsx` są w `src/app/`. UI i sceny 3D w `src/presentation/`. Zustand stores w `src/application/store/`.
-
----
-
-## Zadanie: nowa podstrona `/generate`
-
-Stwórz profesjonalne narzędzie do konfiguracji mapy RTS — edytor wizualny 3D działający pod `/generate` (bez auth).
-
-### Co robi generator:
-- Wczytuje teren marsjański z GLB i wyświetla go w viewporcie r3f
-- Pozwala malować tile'e na siatce 100×100 (tryby: build / resource / blocked / spawn / erase)
-- Konfiguruje buildNode'y, resourceNode'y i spawnPoint'y przez Inspector
-- Eksportuje konfigurację do pliku `.json` gotowego do wczytania w grze
-- Importuje wcześniej zapisany `.json` i odtwarza scenę
+Generator to podstrona `/generate` (bez auth). Tworzysz teren + dodatki, podglądasz,
+eksportujesz JSON. **Faza 2 (później): rozgrywka na wygenerowanej mapie zastąpi obecne `/mars`.**
+Renderer Preview generatora = docelowy renderer terenu w grze.
+**Później** do generatora podepniemy agenta AI — dlatego schemat eksportu (v2.0) to stabilny kontrakt.
 
 ---
 
-## Asset terenu — dane z Blendera
+## Architektura HEKSAGONALNA
 
-Plik `mars_terrain.blend` został przeanalizowany i wyeksportowany.
+- Siatka flat-top, współrzędne AXIAL `(q, r)`, generowana promieniem (`radius`, domyślnie 20).
+- `HEX_SIZE = 1.2` (środek→narożnik). Matematyka w `src/presentation/generator/hex/HexMath.ts`
+  (`hexToWorld`, `worldToHex`, `hexNeighbors`, `hexDistance`, `hexCorners`, `hexBrush`...).
+- Każdy heks ma `worldY` zależny od typu terenu (poziomy, NIE ciągła wysokość):
 
-| Parametr | Wartość |
-|---|---|
-| Obiekt mesh | `Marsterrain_LOD2` |
-| Wierzchołki | 657 |
-| Polygony | 1224 |
-| Wymiary | ~100 × 100 × 7.4 units |
-| Materiał | brak (pusty) — dodać w Three.js |
-| Kamera w scenie | `Camera_TopDown` na Z=80 |
-| Światło | `Sun_Mars` na pozycji (30, -30, 60) |
+  | terrainType  | worldY |
+  |--------------|--------|
+  | deep_crater  | 0.0    |
+  | lowland      | 0.6    |
+  | plains       | 1.2    |
+  | highland     | 2.0    |
+  | rocky        | 2.8    |
+  | peak         | 4.0    |
 
-**Wyeksportowany plik:** `C:\Users\Public\mars_terrain.glb` (196 KB)
-**Docelowa lokalizacja w projekcie:** `public/models/mars_terrain.glb`
+- Paleta `TERRAIN_COLORS` (stonowana, głęboka rdza Marsa — spójna ze stroną główną):
+  crater #2e1710, lowland #5a2f20, plains #7d4530, highland #94583c, rocky #6b4a3a, peak #a8826a.
+- Typy: `HexTerrainType` (6 wyżej), `TileType` overlay = empty|build|resource|blocked|spawn.
 
-Skopiuj plik ręcznie: `Copy-Item C:\Users\Public\mars_terrain.glb .\public\models\`
-
-### Implikacje dla generatora:
-- Siatka gry = **100×100 tiles**, 1 tile = 1 unit Blendera
-- Origin siatki: `(-50, 0, -50)` → `(50, 0, 50)`
-- Teren renderować z materiałem: `meshStandardMaterial`, kolor `#c1440e`, roughness 0.9, metalness 0.1
-- Kamera startowa: position `(0, 60, 60)`, lookAt `(0, 0, 0)`, FOV 50
+Pliki siatki: `hex/HexGrid.ts` (klasa HexGrid: cells Map, generate/get/set, snapshot, toJSON/fromJSON),
+`hex/HexMath.ts`, `hex/HexGeometry.ts` (geometria heksa do trybu edycji).
 
 ---
 
-## Nowe zależności do zainstalowania
-
-Zapytaj użytkownika przed instalacją (zgodnie z RULES.md):
-
-```
-simplex-noise   — proceduralne generowanie (opcjonalne, fallback jeśli GLB niedostępny)
-zod             — walidacja schematu JSON przy imporcie
-```
-
-Zustand jest już w projekcie.
-
----
-
-## Struktura plików do stworzenia
-
-```
-src/presentation/generator/
-  GeneratorPage.tsx                  — główna strona, layout trójpanelowy
-  components/
-    GeneratorToolbar.tsx             — toolbar górny z przyciskami
-    GeneratorLeftPanel.tsx           — panel narzędzi (tryby, brush size)
-    GeneratorRightPanel.tsx          — inspector + JSON preview + settings
-    GeneratorViewport.tsx            — Canvas r3f z całą sceną 3D
-    viewport/
-      TerrainMesh.tsx                — wczytanie i render mars_terrain.glb
-      GridOverlay.tsx                — siatka 100×100 jako LineSegments
-      TileOverlay.tsx                — instanced quads dla kolorowania tile'i
-      BuildNodeMarker.tsx            — wizualizacja buildNode (zielona płyta)
-      ResourceNodeMarker.tsx         — marker 3D złoża (kolorowy sześcian + label)
-      SpawnPointMarker.tsx           — flaga/stożek z numerem gracza
-
-src/application/store/
-  useMapEditorStore.ts               — Zustand store — stan całego edytora mapy
-
-src/domain/
-  mapEditorTypes.ts                  — interfejsy TypeScript dla mapy
-```
-
-Dodaj route w `src/app/App.tsx`:
-```tsx
-<Route path="/generate" element={<GeneratorPage />} />
-```
-
----
-
-## Zustand Store — struktura
+## Stan (Zustand) — `src/application/store/useMapEditorStore.ts`
 
 ```ts
-// src/application/store/useMapEditorStore.ts
-
-interface MapMeta {
-  name: string
-  description: string
-  size: [number, number]      // [100, 100]
-  tileSize: number            // 1
-  players: number             // 1–4
-  terrainFile: string         // 'mars_terrain.glb'
-  seed: number | null
-}
-
-interface BuildNode {
-  id: string
-  pos: [number, number]       // tile coords [x, z]
-  footprint: [number, number] // [w, h] w tiles
-  allowedTypes: BuildingType[]
-}
-
-interface ResourceNode {
-  id: string
-  type: ResourceType
-  pos: [number, number]
-  amount: number              // 100–5000
-  richness: 'low' | 'med' | 'high'
-  model: string               // np. 'mineral_pile_01'
-}
-
-interface SpawnPoint {
-  player: number              // 1–4
-  pos: [number, number]
-}
-
-type TileType = 'empty' | 'build' | 'resource' | 'blocked' | 'spawn'
-type BuildingType = 'colony' | 'oxygen_generator' | 'greenhouse' | 'solar_power' | 'extractor'
-type ResourceType = 'minerals' | 'ice' | 'organics' | 'energy'
-type ToolMode = 'build' | 'resource' | 'blocked' | 'spawn' | 'erase' | 'select'
-
-interface MapEditorState {
-  meta: MapMeta
-  tiles: Uint8Array           // 100*100 = 10000 bytes, index = z*100+x
-  buildNodes: BuildNode[]
-  resourceNodes: ResourceNode[]
-  spawnPoints: SpawnPoint[]
-  decor: DecorItem[]
-
-  // UI state
-  activeTool: ToolMode
-  brushSize: 1 | 3 | 5
-  selectedNodeId: string | null
-  showGrid: boolean
-  undoStack: MapSnapshot[]    // max 20
-
-  // Actions
-  setTile: (x: number, z: number, type: TileType) => void
-  paintTiles: (tiles: [number, number][], type: TileType) => void
-  addBuildNode: (node: BuildNode) => void
-  updateBuildNode: (id: string, patch: Partial<BuildNode>) => void
-  addResourceNode: (node: ResourceNode) => void
-  updateResourceNode: (id: string, patch: Partial<ResourceNode>) => void
-  addSpawnPoint: (spawn: SpawnPoint) => void
-  setActiveTool: (tool: ToolMode) => void
-  setBrushSize: (size: 1 | 3 | 5) => void
-  undo: () => void
-  loadFromJSON: (data: MapExportJSON) => void
-  exportToJSON: () => MapExportJSON
-  resetMap: () => void
-}
+meta: { name, description, players }          // players 1..4
+hexGrid: HexGrid | null                       // teren (terrainType + worldY per heks)
+hexRadius, hexSeed                            // seed dziś NIEUŻYWANY (patrz roadmapa)
+buildNodes:    { id, pos:[q,r], footprint:[w,h], allowedTypes:BuildingType[] }[]
+resourceNodes: { id, type, pos:[q,r], amount, richness, model }[]
+spawnPoints:   { player, pos:[q,r] }[]
+decor:         { model, pos:[q,r], rot, scale }[]
+// UI: activeTool, brushSize(1|3|5), activeTerrainType, selectedHex, selectedNodeId, showGrid, isPreviewMode, undoStack(max 20)
+// akcje: setHexTerrainType/paintHexTerrainType, setHexUserType/paintHexes, add/update/remove* (build/resource/spawn/decor),
+//        undo, generateHexGrid, exportToJSON, loadFromJSON, resetMap
 ```
 
----
-
-## Kolory tile'i (overlay)
-
-| Typ | Kolor hex | Opacity |
-|---|---|---|
-| `build` | `#00ff88` | 0.4 |
-| `resource` | `#ffcc00` | 0.4 |
-| `blocked` | `#ff3300` | 0.4 |
-| `spawn` | `#0088ff` | 0.4 |
-| hover | `#ffffff` | 0.25 |
+Typy w `src/domain/mapEditorTypes.ts`. ToolMode: select|terrain|build|resource|blocked|spawn|erase|decor.
 
 ---
 
-## Format JSON eksportu (finalny schemat)
+## Render — `src/presentation/generator/`
+
+- `GeneratorPage.tsx` — layout 3-panelowy + skróty klawiszowe (V/T/B/R/X/S/E/D, G grid, 1/2/3 brush, Ctrl+Z).
+- `components/GeneratorViewport.tsx` — Canvas r3f. Tło sceny `#050308`, światło jak `MarsStartScene`
+  (słońce #ffeedd ~1.45, chłodny fill #445588, hemi ciepła), CineonToneMapping ekspozycja 0.92.
+- **Tryb edycji**: `viewport/HexTerrain.tsx` — `InstancedMesh` (jeden draw call), płaskie heksy, vertex colors.
+- **Tryb Preview** (`isPreviewMode`): `viewport/SmoothTerrain.tsx`:
+  - `terrain/TerrainMeshBuilder.ts` — TOPY: każdy heks = płaski sześciokąt na worldY ze SFAZOWANĄ krawędzią
+    (bevel, `CHAMFER_DROP=0.16`). Watertight (per-heks, brak uśredniania).
+  - `terrain/CliffBuilder.ts` — ŚCIANKI: między różnymi sąsiadami + skirt na brzegu (BASE_Y=-2.5).
+    Podpięte do sfazowanej krawędzi → zero szczelin.
+  - `terrain/SlopeMaterial.ts` — materiał produkcyjny: baza = kolor biomu, detal = `2k_mars.jpg`
+    TRIPLANAR (modulacja jasności), SLOPE-AWARE skała na ściankach (z normalnej), wysokość, szron na szczytach.
+  - `viewport/GeneratorPostFX.tsx` — Bloom **tylko w Preview** (`@react-three/postprocessing`).
+- Markery: `viewport/{BuildNodeMarkers,ResourceNodeMarkers,SpawnPointMarkers,DecorMarkers}.tsx`,
+  wysokość z `hooks/useHexHeight.ts` (`worldY` z siatki — siadają na terenie w obu trybach).
+- `viewport/Minimap.tsx` — canvas 2D 200x200.
+- Panele: `components/GeneratorLeftPanel.tsx` (narzędzia/pędzle/typy/seed/generate),
+  `components/GeneratorRightPanel.tsx` (Settings / Inspector / JSON), `components/GeneratorToolbar.tsx`.
+- Akcent UI = czerwień strony głównej: `#e74c3c` / `#c0392b` / `#ec7063`.
+
+Referencja wizualna = strona główna `src/presentation/components/game/MarsStartScene.tsx` + `Mars.tsx`
+(prawdziwa tekstura `/textures/2k_mars.jpg`, ciemny kosmos, bloom). Teren rozgrywki `MarsTerrain.tsx`
+też używa tej tekstury triplanarnie — generator jest z tym spójny.
+
+---
+
+## Eksport / Import — schemat v2.0 (KONTRAKT)
+
+`exportToJSON()` → JSON; `loadFromJSON()` odtwarza. Round-trip jest 1:1 (testy).
+Import w toolbarze waliduje KSZTAŁT przez **zod** (`schema/mapSchema.ts`, `parseMapJSON`) — złe pliki
+odrzucane z czytelnym błędem. Reguły GRY sprawdza `utils/validateMap.ts` (granice mapy, spawny vs gracze,
+spawn na zablokowanym heksie, zbyt bliskie spawny, balans złóż).
 
 ```json
 {
-  "meta": {
-    "name": "mars_alpha",
-    "description": "",
-    "size": [100, 100],
-    "tileSize": 1,
-    "players": 2,
-    "terrainFile": "mars_terrain.glb",
-    "seed": null
-  },
-  "buildNodes": [
-    {
-      "id": "b1",
-      "pos": [12, 34],
-      "footprint": [3, 3],
-      "allowedTypes": ["colony", "oxygen_generator"]
-    }
-  ],
-  "resourceNodes": [
-    {
-      "id": "r1",
-      "type": "minerals",
-      "pos": [50, 23],
-      "amount": 1000,
-      "richness": "high",
-      "model": "mineral_pile_01"
-    }
-  ],
-  "spawnPoints": [
-    { "player": 1, "pos": [5, 5] },
-    { "player": 2, "pos": [94, 94] }
-  ],
-  "decor": [],
-  "blockedTiles": "<gzip+base64 bitmask 100x100>"
+  "meta": { "name","description","version":"2.0","gridType":"hex-flat-top","hexSize":1.2,"hexRadius":20,"players":2,"seed":42 },
+  "hexes": [ { "q":0,"r":0,"terrainType":"plains","userType":null,"decor":null } ],
+  "buildNodes":    [ { "id":"b1","pos":[12,-3],"footprint":[1,1],"allowedTypes":["colony"] } ],
+  "resourceNodes": [ { "id":"r1","type":"minerals","pos":[5,2],"amount":1000,"richness":"high","model":"mineral_pile_01" } ],
+  "spawnPoints":   [ { "player":1,"pos":[5,5] }, { "player":2,"pos":[-5,-5] } ],
+  "decor":         [ { "model":"rock_01","pos":[1,1],"rot":0.5,"scale":1.0 } ]
 }
 ```
 
-`blockedTiles` — bitmask `Uint8Array(10000)` skompresowany przez pako (gzip) i zakodowany base64.
+---
+
+## Zasady pracy (z RULES.md)
+
+- Arrow functions dla komponentów, PascalCase plików; strict TS (bez `any`).
+- Zustand stores w `src/application/store/`. TailwindCSS 4 (arbitrary values OK, np. `bg-[#e74c3c]`).
+- Każdy nowy feature = test (Vitest). Po zmianach: `npm run build` / `tsc --noEmit -p tsconfig.app.json`.
+- Nie instaluj paczek npm bez potwierdzenia użytkownika.
+- HMR nie odświeża zmemoizowanych materiałów 3D — przy zmianach shaderów/materiałów testuj po twardym reloadzie (F5).
+- **Git & Gałęzie**: Nigdy nie pracujemy na `main`. Zawsze tworzymy dedykowany branch (`feat/...`, `fix/...`, `refactor/...`). Na koniec zadania commitujemy na ten branch. Wymagany jest review zmian przed merge.
 
 ---
 
-## Layout GeneratorPage
+## Status / roadmapa generatora
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  TOOLBAR: [🗺 New] [📂 Load] [💾 Export] [Grid: ON]  Stats  │
-├──────────────┬─────────────────────────────┬────────────────┤
-│  LEFT PANEL  │     VIEWPORT (r3f Canvas)   │  RIGHT PANEL   │
-│  ──────────  │                             │  ────────────  │
-│  🖊 Build    │   Teren GLB + siatka        │  [Settings]    │
-│  💎 Resource │   + kolorowe tile overlay   │  [Inspector]   │
-│  🚫 Blocked  │   + markery 3D              │  [JSON]        │
-│  🚩 Spawn    │                             │                │
-│  🗑 Erase    │                             │  Formularz     │
-│  ──────────  │                             │  wybranego     │
-│  Brush: 1×1  │                             │  elementu      │
-│  Brush: 3×3  │                             │                │
-│  Brush: 5×5  │                             │  Live JSON     │
-│              │                             │  preview       │
-└──────────────┴─────────────────────────────┴────────────────┘
-```
+Zrobione: siatka heksów, edycja terenu, build/resource/spawn/decor + inspektory (z footprintem),
+szczelny schodkowy mesh z fazowaniem (Preview = renderer gry), materiał triplanar + slope + szron,
+bloom (tylko Preview), tło/światło/akcent UI spójne ze stroną główną, eksport/import + walidacja zod,
+walidacja reguł gry, minimapa, undo, skróty.
 
-Styling: TailwindCSS 4, ciemny motyw (`bg-zinc-900`, `text-zinc-100`), akcenty marsjańskie (`orange-500`).
+Do zrobienia:
+1. **Seed → proceduralna generacja** (TODO): dziś `Generate Map` daje płaskie „plains", `seed` jest zapisany,
+   ale nieużywany. Plan: seeded `simplex-noise` fBm → wysokości/typy terenu, kratery, łaty rocky;
+   deterministycznie (ten sam seed = ta sama mapa); opcjonalnie seeded auto-placement spawnów/złóż.
+2. Decor: więcej typów niż `rock_01` (głaz, kamienie, kryształ/złoże, wrak).
+3. Resource `model` — edycja w inspektorze (gdy będzie lista modeli).
+4. (Później) Agent AI podpięty do generatora — korzysta ze schematu v2.0 / seeda.
+5. **Faza 2**: rozgrywka na wygenerowanej mapie zastępuje `/mars`; ruch jednostek po grafie heksów
+   (`worldY` per heks, klify jako bariery, drony nad powierzchnią).
 
----
-
-## Keyboard shortcuts
-
-| Klawisz | Akcja |
-|---|---|
-| `B` | Tryb Build |
-| `R` | Tryb Resource |
-| `X` | Tryb Blocked |
-| `S` | Tryb Spawn |
-| `E` | Tryb Erase |
-| `G` | Toggle Grid |
-| `Ctrl+Z` | Undo |
-| `1/2/3` | Brush size 1×1 / 3×3 / 5×5 |
-
----
-
-## Etapy wdrożenia (kolejność)
-
-Implementuj etap po etapie. Po każdym etapie uruchom `npm run build` i upewnij się, że nie ma błędów.
-
-### Etap 1 — Route + layout *(zrób najpierw)*
-- Dodaj route `/generate` w `App.tsx`
-- Stwórz `GeneratorPage.tsx` z layoutem CSS Grid (trzy panele)
-- Stwórz pusty `useMapEditorStore.ts` z typami
-- Viewport: pusty Canvas r3f z OrbitControls, kamera z góry
-- Wynik: wchodzisz na `/generate`, widzisz ciemny layout z pustą sceną 3D
-
-### Etap 2 — Teren GLB
-- Skopiuj `C:\Users\Public\mars_terrain.glb` → `public/models/`
-- `TerrainMesh.tsx`: `useGLTF('/models/mars_terrain.glb')` + materiał mars
-- Światło zgodne z Blenderem: directional (30, -30, 60), ambient słabe
-- Wynik: widzisz teren marsjański w edytorze
-
-### Etap 3 — Siatka 100×100
-- `GridOverlay.tsx`: `LineSegments` 100×100 tile
-- Hover raycast do płaszczyzny y=0, snap do tile
-- Toggle widoczności siatki (stan w store)
-- Wynik: siatka nakłada się na teren, hover podświetla tile
-
-### Etap 4 — Tryby narzędzi + malowanie
-- `TileOverlay.tsx`: `InstancedMesh` z quads dla każdego aktywnego tile
-- Malowanie kliknięciem i przeciąganiem
-- Brush size 1×1 / 3×3 / 5×5
-- Wynik: możesz malować kolorowe obszary na siatce
-
-### Etap 5 — Build Nodes Inspector
-- Kliknięcie na build tile → Inspector w prawym panelu
-- Formularz: footprint, allowedTypes (checkboxy)
-- Wynik: konfiguracja miejsc pod budynki
-
-### Etap 6 — Resource Nodes
-- `ResourceNodeMarker.tsx`: kolorowy Box + `<Html>` label (drei)
-- Inspector: type, amount, richness
-- Wynik: złoża z markerami i konfiguracją
-
-### Etap 7 — Spawn Points
-- `SpawnPointMarker.tsx`: stożek z numerem gracza
-- Max 4 spawnPoint'y
-- Wynik: punkty startowe graczy
-
-### Etap 8 — Panel JSON + Settings
-- Zakładki w prawym panelu: Settings / Inspector / JSON
-- Live JSON preview (read-only textarea)
-- Formularz meta: name, description, players
-- Wynik: widzisz aktualny JSON mapy
-
-### Etap 9 — Eksport / Import
-- Export: `Blob` → download jako `{name}.json`
-- `blockedTiles`: pako gzip + base64 bitmask
-- Import: `<input type="file">` → parse → `loadFromJSON()`
-- Walidacja Zod
-- Wynik: możesz zapisać i wczytać mapę
-
-### Etap 10 — Polish
-- Keyboard shortcuts (useEffect na keydown)
-- Undo stack (max 20 snapshots w store)
-- Minimap 2D (canvas 2D 200×200px, overhead view)
-- Status bar w toolbarze: tile count per type
-- Wynik: profesjonalne narzędzie
-
----
-
-## Ważne zasady (z RULES.md)
-
-- Używaj arrow functions dla komponentów, PascalCase dla plików
-- Strict TypeScript — żadnych `any`, używaj interfejsów
-- Zustand stores w `src/application/store/`
-- TailwindCSS 4 — bez inline styles (oprócz dynamicznych właściwości 3D)
-- Każdy nowy feature = unit test (Vitest)
-- Po każdym etapie: `npm run build`
-- Nie instaluj nowych npm packages bez potwierdzenia użytkownika
-- Nie zmieniaj struktury folderów bez uzasadnienia
-- Nie modyfikuj `package.json` scripts bez potwierdzenia
-
----
-
-## Paczki npm które będą potrzebne (zapytaj użytkownika)
-
-```
-pako        — gzip kompresja blockedTiles (mała, ~50KB)
-zod         — walidacja JSON przy imporcie
-```
-
-Jeśli projekt już ma `pako` lub `zod` — sprawdź `package.json` przed pytaniem.
-
----
-
-*Wygenerowano na podstawie sesji planowania z Claude, 2026-06-03*
+*Zaktualizowano po przebudowie na heksy.*

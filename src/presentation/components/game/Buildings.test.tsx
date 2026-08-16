@@ -5,7 +5,7 @@ import type { PlacedBuilding } from "../../../domain/entities/Building";
 
 // Mock @react-three/drei's Html component to just render its children
 vi.mock("@react-three/drei", () => ({
-  Html: ({ children }: any) => <div data-testid="mock-html">{children}</div>,
+  Html: ({ children }: { children?: React.ReactNode }) => <div data-testid="mock-html">{children}</div>,
 }));
 
 it("should render building production with correct sign formatting", () => {

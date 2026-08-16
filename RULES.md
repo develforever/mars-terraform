@@ -19,6 +19,11 @@ This document defines the guidelines and standards for AI agents working on the 
 - **Dependency Management**: Never install new npm packages without asking the user.
 - **Configuration**: Always use `src_backend/config.ts` to access environment variables. Never use `process.env` directly in the code. Use files .env and .env.local for dotenv-flow.
 
+### Git & Branching Workflow
+- **No Direct Work on `main`**: Never develop or commit directly to the `main` branch.
+- **Feature Branches**: Always create a dedicated branch (e.g., `feat/...`, `fix/...`, `refactor/...`) for each task.
+- **Commit & Review**: Commit completed and verified changes to the task branch at the end. All changes require code review before merging.
+
 ---
 
 ## 2. Backend (Node.js + TypeScript + TSOA)

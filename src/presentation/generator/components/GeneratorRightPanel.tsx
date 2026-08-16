@@ -36,7 +36,6 @@ const TERRAIN_TYPES: { value: HexTerrainType; label: string; color: string }[] =
 const HexInspector = ({ q, r }: { q: number; r: number }) => {
   const hexGrid = useMapEditorStore(s => s.hexGrid)
   const setHexTerrainType = useMapEditorStore(s => s.setHexTerrainType)
-  const setHexUserType = useMapEditorStore(s => s.setHexUserType)
 
   const cell = hexGrid?.getCell(q, r)
   if (!cell) return (
@@ -59,24 +58,6 @@ const HexInspector = ({ q, r }: { q: number; r: number }) => {
           {TERRAIN_TYPES.map(tt => (
             <option key={tt.value} value={tt.value}>{tt.label}</option>
           ))}
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1">
-        <span className="text-xs text-zinc-400">User type (overlay)</span>
-        <select
-          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-[#e74c3c]"
-          value={cell.userType ?? 'empty'}
-          onChange={e => {
-            const v = e.target.value
-            setHexUserType(q, r, v === 'empty' ? null : v as import('../../../domain/mapEditorTypes').TileType)
-          }}
-        >
-          <option value="empty">— none —</option>
-          <option value="build">Build</option>
-          <option value="resource">Resource</option>
-          <option value="blocked">Blocked</option>
-          <option value="spawn">Spawn</option>
         </select>
       </label>
 
@@ -135,8 +116,34 @@ const BuildNodeInspector = ({ nodeId }: { nodeId: string }) => {
         ))}
       </div>
 
-      <div className="text-xs text-zinc-500 font-mono border-t border-zinc-700 pt-2">
-        hex: ({node.pos[0]}, {node.pos[1]})
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-zinc-400">Footprint</span>
+        <div className="flex gap-1">
+          {[1, 2, 3].map(n => (
+            <button
+              key={n}
+              onClick={() => updateBuildNode(nodeId, { footprint: [n, n] })}
+              className={`flex-1 py-1 rounded text-xs font-mono transition-colors
+                ${node.footprint[0] === n
+                  ? 'bg-[#e74c3c] text-white'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'}`}
+            >
+              {n}×{n}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="border-t border-zinc-700 pt-2">
+        <span className="text-xs text-zinc-400">Position (q, r)</span>
+        <div className="flex gap-1 mt-1">
+          <input type="number" value={node.pos[0]}
+            onChange={e => updateBuildNode(nodeId, { pos: [Number(e.target.value), node.pos[1]] })}
+            className="w-1/2 bg-zinc-800 border border-zinc-600 rounded px-1 py-0.5 text-xs text-zinc-100 focus:outline-none focus:border-[#e74c3c]" />
+          <input type="number" value={node.pos[1]}
+            onChange={e => updateBuildNode(nodeId, { pos: [node.pos[0], Number(e.target.value)] })}
+            className="w-1/2 bg-zinc-800 border border-zinc-600 rounded px-1 py-0.5 text-xs text-zinc-100 focus:outline-none focus:border-[#e74c3c]" />
+        </div>
       </div>
     </div>
   )
@@ -202,8 +209,16 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
         </div>
       </label>
 
-      <div className="text-xs text-zinc-500 font-mono border-t border-zinc-700 pt-2">
-        hex: ({node.pos[0]}, {node.pos[1]})
+      <div className="border-t border-zinc-700 pt-2">
+        <span className="text-xs text-zinc-400">Position (q, r)</span>
+        <div className="flex gap-1 mt-1">
+          <input type="number" value={node.pos[0]}
+            onChange={e => updateResourceNode(nodeId, { pos: [Number(e.target.value), node.pos[1]] })}
+            className="w-1/2 bg-zinc-800 border border-zinc-600 rounded px-1 py-0.5 text-xs text-zinc-100 focus:outline-none focus:border-[#e74c3c]" />
+          <input type="number" value={node.pos[1]}
+            onChange={e => updateResourceNode(nodeId, { pos: [node.pos[0], Number(e.target.value)] })}
+            className="w-1/2 bg-zinc-800 border border-zinc-600 rounded px-1 py-0.5 text-xs text-zinc-100 focus:outline-none focus:border-[#e74c3c]" />
+        </div>
       </div>
     </div>
   )
@@ -215,6 +230,7 @@ const SpawnInspector = ({ spawnKey }: { spawnKey: string }) => {
   const player = parseInt(spawnKey.replace('spawn-', ''))
   const spawn  = useMapEditorStore(s => s.spawnPoints.find(s => s.player === player))
   const removeSpawnPoint  = useMapEditorStore(s => s.removeSpawnPoint)
+  const addSpawnPoint     = useMapEditorStore(s => s.addSpawnPoint)
   const setSelectedNodeId = useMapEditorStore(s => s.setSelectedNodeId)
 
   if (!spawn) return null
@@ -232,8 +248,16 @@ const SpawnInspector = ({ spawnKey }: { spawnKey: string }) => {
           🗑 Remove
         </button>
       </div>
-      <div className="text-xs text-zinc-500 font-mono border-t border-zinc-700 pt-2">
-        hex: ({spawn.pos[0]}, {spawn.pos[1]})
+      <div className="border-t border-zinc-700 pt-2">
+        <span className="text-xs text-zinc-400">Position (q, r)</span>
+        <div className="flex gap-1 mt-1">
+          <input type="number" value={spawn.pos[0]}
+            onChange={e => addSpawnPoint({ player: spawn.player, pos: [Number(e.target.value), spawn.pos[1]] })}
+            className="w-1/2 bg-zinc-800 border border-zinc-600 rounded px-1 py-0.5 text-xs text-zinc-100 focus:outline-none focus:border-[#e74c3c]" />
+          <input type="number" value={spawn.pos[1]}
+            onChange={e => addSpawnPoint({ player: spawn.player, pos: [spawn.pos[0], Number(e.target.value)] })}
+            className="w-1/2 bg-zinc-800 border border-zinc-600 rounded px-1 py-0.5 text-xs text-zinc-100 focus:outline-none focus:border-[#e74c3c]" />
+        </div>
       </div>
     </div>
   )
@@ -251,6 +275,7 @@ const GeneratorRightPanel = () => {
   const selectedHex    = useMapEditorStore(s => s.selectedHex)
   const buildNodes     = useMapEditorStore(s => s.buildNodes)
   const resourceNodes  = useMapEditorStore(s => s.resourceNodes)
+  const spawnPoints    = useMapEditorStore(s => s.spawnPoints)
   const hexGrid        = useMapEditorStore(s => s.hexGrid)
   const hexRadius      = useMapEditorStore(s => s.hexRadius)
 
@@ -265,7 +290,6 @@ const GeneratorRightPanel = () => {
 
   // Terrain stats from hexGrid
   const terrainStats = hexGrid?.getTerrainStats()
-  const userStats    = hexGrid?.getUserTypeStats()
   const totalHexes   = hexGrid?.getCellCount() ?? 0
 
   const jsonPreview = JSON.stringify(exportToJSON(), null, 2)
@@ -384,23 +408,20 @@ const GeneratorRightPanel = () => {
               </div>
             )}
 
-            {/* User type stats */}
-            {userStats && (
-              <div className="border-t border-zinc-700 pt-3">
-                <p className="text-xs text-zinc-500 uppercase tracking-widest mb-2">User types</p>
-                {([
-                  ['Build',    userStats.build,    'text-green-400'],
-                  ['Resource', userStats.resource, 'text-yellow-400'],
-                  ['Blocked',  userStats.blocked,  'text-red-400'],
-                  ['Spawn',    userStats.spawn,    'text-blue-400'],
-                ] as [string, number, string][]).map(([label, count, cls]) => (
-                  <div key={label} className="flex justify-between py-0.5">
-                    <span className={`text-xs ${cls}`}>{label}</span>
-                    <span className="text-xs font-mono text-zinc-300">{count}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Node counts */}
+            <div className="border-t border-zinc-700 pt-3">
+              <p className="text-xs text-zinc-500 uppercase tracking-widest mb-2">Nodes</p>
+              {([
+                ['Build',    buildNodes.length,    'text-green-400'],
+                ['Resource', resourceNodes.length, 'text-yellow-400'],
+                ['Spawn',    spawnPoints.length,   'text-blue-400'],
+              ] as [string, number, string][]).map(([label, count, cls]) => (
+                <div key={label} className="flex justify-between py-0.5">
+                  <span className={`text-xs ${cls}`}>{label}</span>
+                  <span className="text-xs font-mono text-zinc-300">{count}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

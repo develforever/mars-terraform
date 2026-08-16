@@ -56,11 +56,11 @@ describe('useMapEditorStore — hexGrid', () => {
 
   it('paintHexes paints multiple hexes', () => {
     act(() => useMapEditorStore.getState().generateHexGrid(5))
-    act(() => useMapEditorStore.getState().paintHexes([[0,0],[1,0],[0,1]], 'blocked'))
+    act(() => useMapEditorStore.getState().paintHexes([[0,0],[1,0],[0,1]], 'build'))
     const { hexGrid } = useMapEditorStore.getState()
-    expect(hexGrid!.getCell(0, 0)!.userType).toBe('blocked')
-    expect(hexGrid!.getCell(1, 0)!.userType).toBe('blocked')
-    expect(hexGrid!.getCell(0, 1)!.userType).toBe('blocked')
+    expect(hexGrid!.getCell(0, 0)!.userType).toBe('build')
+    expect(hexGrid!.getCell(1, 0)!.userType).toBe('build')
+    expect(hexGrid!.getCell(0, 1)!.userType).toBe('build')
   })
 
   it('setHexTerrainType changes terrain', () => {
@@ -197,8 +197,8 @@ describe('useMapEditorStore — export/import', () => {
 
 describe('useMapEditorStore — UI state', () => {
   it('setActiveTool updates tool', () => {
-    act(() => useMapEditorStore.getState().setActiveTool('blocked'))
-    expect(useMapEditorStore.getState().activeTool).toBe('blocked')
+    act(() => useMapEditorStore.getState().setActiveTool('decor'))
+    expect(useMapEditorStore.getState().activeTool).toBe('decor')
   })
 
   it('toggleGrid flips showGrid', () => {
@@ -215,5 +215,64 @@ describe('useMapEditorStore — UI state', () => {
   it('setHexRadius updates hexRadius', () => {
     act(() => useMapEditorStore.getState().setHexRadius(15))
     expect(useMapEditorStore.getState().hexRadius).toBe(15)
+  })
+})
+
+
+// ─── Round-trip eksport/import ────────────────────────────────────────────────
+
+describe('useMapEditorStore — round-trip export/import', () => {
+  it('export -> reset -> import -> export daje identyczny JSON', () => {
+    const s = () => useMapEditorStore.getState()
+
+    act(() => {
+      s().generateHexGrid(5, 7)
+      s().updateMeta({ name: 'rt_map', description: 'opis', players: 3 })
+      s().paintHexTerrainType([[0, 0], [1, 0]], 'peak')
+      s().paintHexTerrainType([[-1, 0]], 'deep_crater')
+      s().paintHexTerrainType([[0, 1]], 'highland')
+      s().addBuildNode({ id: 'b1', pos: [2, 0], footprint: [1, 1], allowedTypes: ['colony', 'greenhouse'] })
+      s().addResourceNode({ id: 'r1', type: 'minerals', pos: [0, 2], amount: 1500, richness: 'high', model: 'mineral_pile_01' })
+      s().addSpawnPoint({ player: 1, pos: [3, 0] })
+      s().addSpawnPoint({ player: 2, pos: [-3, 0] })
+      s().addDecor({ model: 'rock_01', pos: [1, 1], rot: 0.5, scale: 1.2 })
+    })
+
+    const exportA = s().exportToJSON()
+
+    // Symulacja: nowa sesja wczytuje plik
+    act(() => {
+      s().resetMap()
+      s().loadFromJSON(exportA)
+    })
+
+    const exportB = s().exportToJSON()
+
+    expect(exportB).toEqual(exportA)
+  })
+
+  it('odtwarza meta, teren, wezly i decor po imporcie', () => {
+    const s = () => useMapEditorStore.getState()
+
+    act(() => {
+      s().generateHexGrid(4, 11)
+      s().updateMeta({ name: 'check', description: 'd', players: 2 })
+      s().paintHexTerrainType([[0, 0]], 'rocky')
+      s().addResourceNode({ id: 'r9', type: 'ice', pos: [1, 0], amount: 800, richness: 'low', model: 'ice_01' })
+      s().addDecor({ model: 'rock_01', pos: [0, 1], rot: 1.0, scale: 0.8 })
+    })
+    const exp = s().exportToJSON()
+
+    act(() => { s().resetMap(); s().loadFromJSON(exp) })
+
+    const st = s()
+    expect(st.meta.name).toBe('check')
+    expect(st.meta.players).toBe(2)
+    expect(st.resourceNodes).toHaveLength(1)
+    expect(st.resourceNodes[0].type).toBe('ice')
+    expect(st.resourceNodes[0].amount).toBe(800)
+    expect(st.decor).toHaveLength(1)
+    expect(st.decor[0].scale).toBeCloseTo(0.8, 5)
+    expect(st.hexGrid?.getCell(0, 0)?.terrainType).toBe('rocky')
   })
 })

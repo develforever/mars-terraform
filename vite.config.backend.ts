@@ -1,8 +1,4 @@
 import { defineConfig } from 'vite'
-import { builtinModules } from 'module'
-import { readFileSync } from 'fs'
-
-const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
 export default defineConfig({
   publicDir: false,

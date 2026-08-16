@@ -212,7 +212,7 @@ describe('buildHexOverlayData', () => {
     grid.generate()
     grid.setUserType(0, 0, 'build')
     grid.setUserType(1, 0, 'resource')
-    grid.setUserType(-1, 1, 'blocked')
+    grid.setUserType(-1, 1, 'build')
     const { positions, colors } = buildHexOverlayData(grid.getAllCells())
     expect(positions).toHaveLength(3)
     expect(colors).toHaveLength(3)

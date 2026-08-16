@@ -12,8 +12,9 @@ import type { ThreeEvent } from '@react-three/fiber'
 import { useMapEditorStore } from '../../../../application/store/useMapEditorStore'
 import { buildBrushHighlightGeometry } from '../../hex/HexGeometry'
 import { worldToHex, hexBrush } from '../../hex/HexMath'
+import { floodFillSameTerrain } from '../../utils/floodFill'
 import { TERRAIN_HEIGHT } from '../../hex/HexGrid'
-import type { TileType, BuildNode, ResourceNode, SpawnPoint, DecorItem } from '../../../../domain/mapEditorTypes'
+import type { BuildNode, ResourceNode, SpawnPoint, DecorItem } from '../../../../domain/mapEditorTypes'
 
 // ─── Tool → highlight color ───────────────────────────────────────────────────
 
@@ -21,7 +22,6 @@ const TOOL_COLORS: Record<string, number> = {
   select:   0xffffff,
   build:    0x00ff88,
   resource: 0xffcc00,
-  blocked:  0xff3300,
   spawn:    0x0088ff,
   erase:    0xff6622,
   terrain:  0xffa040,
@@ -53,6 +53,8 @@ const HexInteraction = () => {
   const resourceNodes    = useMapEditorStore(s => s.resourceNodes)
   const spawnPoints      = useMapEditorStore(s => s.spawnPoints)
   const decor            = useMapEditorStore(s => s.decor)
+  const activeDecorModel = useMapEditorStore(s => s.activeDecorModel)
+  const fillMode         = useMapEditorStore(s => s.fillMode)
 
   const isPainting = useRef(false)
 
@@ -104,11 +106,6 @@ const HexInteraction = () => {
       for (const [cq, cr] of coords) removeDecorAt(cq, cr)
       return
     }
-    const tileMap: Record<string, TileType> = {
-      build: 'build', resource: 'resource', blocked: 'blocked', spawn: 'spawn',
-    }
-    const tileType = tileMap[activeTool]
-    if (tileType) paintHexes(coords, tileType)
   }, [activeTool, brushSize, hexGrid, paintHexes, paintHexTerrainType, activeTerrainType, removeDecorAt])
 
   const createNodeAt = useCallback((q: number, r: number) => {
@@ -116,30 +113,27 @@ const HexInteraction = () => {
       if (buildNodes.some(n => n.pos[0] === q && n.pos[1] === r)) return
       const node: BuildNode = { id: `b${Date.now()}`, pos: [q, r], footprint: [1, 1], allowedTypes: ['colony'] }
       addBuildNode(node)
-      paintHexes([[q, r]], 'build')
     } else if (activeTool === 'resource') {
       if (resourceNodes.some(n => n.pos[0] === q && n.pos[1] === r)) return
       const node: ResourceNode = { id: `r${Date.now()}`, type: 'minerals', pos: [q, r], amount: 1000, richness: 'med', model: 'mineral_pile_01' }
       addResourceNode(node)
-      paintHexes([[q, r]], 'resource')
     } else if (activeTool === 'spawn') {
       const nextPlayer = Math.min(4, spawnPoints.length + 1) as 1 | 2 | 3 | 4
       if (spawnPoints.some(s => s.player === nextPlayer)) return
       addSpawnPoint({ player: nextPlayer, pos: [q, r] } as SpawnPoint)
-      paintHexes([[q, r]], 'spawn')
     } else if (activeTool === 'decor') {
       if (decor.some(d => d.pos[0] === q && d.pos[1] === r)) return
       const seed = Math.sin(q * 12.9898 + r * 78.233) * 43758.5453
       const frac = seed - Math.floor(seed)
       const item: DecorItem = {
-        model: 'rock_01',
+        model: activeDecorModel,
         pos: [q, r],
         rot: frac * Math.PI * 2,
         scale: 0.6 + frac * 0.8,
       }
       addDecor(item)
     }
-  }, [activeTool, buildNodes, resourceNodes, spawnPoints, decor, addBuildNode, addResourceNode, addSpawnPoint, addDecor, paintHexes])
+  }, [activeTool, buildNodes, resourceNodes, spawnPoints, decor, activeDecorModel, addBuildNode, addResourceNode, addSpawnPoint, addDecor])
 
   // ── Pointer handlers ──────────────────────────────────────────────────────
 
@@ -160,15 +154,22 @@ const HexInteraction = () => {
     const hex = getHexFromEvent(e)
     if (!hex) return
 
-    isPainting.current = true
     const [q, r] = hex
+
+    if (activeTool === 'terrain' && fillMode && hexGrid) {
+      isPainting.current = false
+      paintHexTerrainType(floodFillSameTerrain(hexGrid, q, r), activeTerrainType)
+      return
+    }
+
+    isPainting.current = true
 
     if (activeTool === 'select') { selectHex(q, r); return }
     if (activeTool === 'build' || activeTool === 'resource' || activeTool === 'spawn' || activeTool === 'decor') {
       createNodeAt(q, r); return
     }
     paintAt(q, r)
-  }, [getHexFromEvent, activeTool, selectHex, createNodeAt, paintAt])
+  }, [getHexFromEvent, activeTool, selectHex, createNodeAt, paintAt, fillMode, hexGrid, paintHexTerrainType, activeTerrainType])
 
   return (
     <>

@@ -6,7 +6,7 @@ vi.mock("@react-three/fiber", async () => {
     const actual = await vi.importActual<typeof import("@react-three/fiber")>("@react-three/fiber");
     return {
         ...actual,
-        Canvas: ({ children, ...props }: any) => (
+        Canvas: ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => (
             <div data-testid="canvas" {...props}>{children}</div>
         ),
         useFrame: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock("@react-three/drei", () => {
 });
 
 vi.mock("../PostProcessingComposer", () => ({
-    PostProcessingComposer: (props: any) => (
+    PostProcessingComposer: (props: { bloomIntensity?: number; bloomThreshold?: number; glitch?: boolean }) => (
         <div
             data-testid="post-processing-composer"
             data-bloom-intensity={props.bloomIntensity}

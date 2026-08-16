@@ -10,6 +10,7 @@ export function expressAuthentication(
   securityName: string,
   _scopes?: string[],
 ): Promise<JwtPayload> {
+  void _scopes;
   if (securityName !== "jwt") {
     return Promise.reject(new Error("Unknown security scheme"));
   }

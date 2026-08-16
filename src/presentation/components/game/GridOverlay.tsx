@@ -16,7 +16,7 @@ export function GridOverlay({ terrainSize, visibilityMap }: GridOverlayProps) {
         uSize:          { value: new THREE.Vector2(terrainSize.x, terrainSize.z) },
         uHoverCell:     { value: new THREE.Vector2(-9999, -9999) },
         uBuildMode:     { value: 0 }, // 0=none, 1=place, 2=demolish
-    }), []); // Stable reference
+    }), [terrainSize.x, terrainSize.z, visibilityMap]);
 
     useEffect(() => {
         uniforms.uVisibilityMap.value = visibilityMap || null;

@@ -28,7 +28,8 @@ app.use((req, res, next) => {
 });
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const status = (err as any).status ?? 500;
+  void _next;
+  const status = (err as { status?: number }).status ?? 500;
   res.status(status).json({ error: err.message });
 });
 

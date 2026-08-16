@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
 import { validateMap } from '../utils/validateMap'
 import type { ValidationResult } from '../utils/validateMap'
+import { parseMapJSON } from '../schema/mapSchema'
 
 // ─── Validation modal ─────────────────────────────────────────────────────────
 
@@ -113,9 +114,14 @@ const GeneratorToolbar = () => {
       try {
         const text = await file.text()
         const data = JSON.parse(text)
-        loadFromJSON(data)
+        const parsed = parseMapJSON(data)
+        if (!parsed.ok) {
+          alert('Nieprawidlowy plik mapy:\n' + parsed.error)
+          return
+        }
+        loadFromJSON(parsed.data)
       } catch {
-        alert('Invalid map JSON file.')
+        alert('Nie udalo sie odczytac pliku JSON.')
       }
     }
     input.click()

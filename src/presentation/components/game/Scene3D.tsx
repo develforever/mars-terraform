@@ -60,7 +60,7 @@ function World() {
     const terrainSize = useMemo(() => ({ x: TERRAIN_BOUNDS.sizeX, z: TERRAIN_BOUNDS.sizeZ }), []);
 
     // Check if displacement texture is loaded
-    const isTextureLoaded = !!(dispMap?.image && (dispMap.image as any).width);
+    const isTextureLoaded = !!(dispMap?.image && "width" in dispMap.image && typeof (dispMap.image as { width?: number }).width === "number");
 
     const getTerrainY = useCallback(
         (wx: number, wz: number) => {
