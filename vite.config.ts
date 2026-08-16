@@ -25,6 +25,31 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            const normalizedId = id.replace(/\\/g, '/');
+            if (
+              normalizedId.includes('/node_modules/three/') ||
+              normalizedId.includes('/node_modules/@react-three/fiber/') ||
+              normalizedId.includes('/node_modules/@react-three/drei/')
+            ) {
+              return 'vendor-three';
+            }
+            if (
+              normalizedId.includes('/node_modules/postprocessing/') ||
+              normalizedId.includes('/node_modules/@react-three/postprocessing/')
+            ) {
+              return 'vendor-postprocessing';
+            }
+          }
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

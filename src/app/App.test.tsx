@@ -1,14 +1,16 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { it, expect } from 'vitest';
 import { MemoryRouter } from 'react-router';
 import './i18n';
 import App from './App';
 
-it('powinien wyrenderować nagłówek', () => {
+it('powinien wyrenderować nagłówek', async () => {
   render(
     <MemoryRouter>
       <App />
     </MemoryRouter>
   );
-  expect(screen.getByTestId('app')).toBeTruthy();
-});
+  await waitFor(() => {
+    expect(screen.getByTestId('app')).toBeTruthy();
+  });
+});
