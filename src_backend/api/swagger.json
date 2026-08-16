@@ -56,6 +56,136 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"MapDetailResponse": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"userId": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string",
+						"nullable": true
+					},
+					"players": {
+						"type": "number",
+						"format": "double"
+					},
+					"version": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
+					"data": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"id",
+					"userId",
+					"name",
+					"description",
+					"players",
+					"version",
+					"createdAt",
+					"updatedAt",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SaveMapDTO": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"players": {
+						"type": "number",
+						"format": "double"
+					},
+					"version": {
+						"type": "string"
+					},
+					"data": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"MapSummaryResponse": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"userId": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string",
+						"nullable": true
+					},
+					"players": {
+						"type": "number",
+						"format": "double"
+					},
+					"version": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					}
+				},
+				"required": [
+					"id",
+					"userId",
+					"name",
+					"description",
+					"players",
+					"version",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GroupResponse": {
 				"properties": {
 					"id": {
@@ -112,16 +242,279 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"ColonyNamesResponse": {
+				"properties": {
+					"names": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"names"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SavedResources": {
+				"properties": {
+					"o2": {
+						"type": "number",
+						"format": "double"
+					},
+					"power": {
+						"type": "number",
+						"format": "double"
+					},
+					"water": {
+						"type": "number",
+						"format": "double"
+					},
+					"biomass": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"o2",
+					"power",
+					"water",
+					"biomass"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SavedCapacity": {
+				"properties": {
+					"power": {
+						"type": "number",
+						"format": "double"
+					},
+					"water": {
+						"type": "number",
+						"format": "double"
+					},
+					"biomass": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"power",
+					"water",
+					"biomass"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SavedBuilding": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"definitionId": {
+						"type": "string"
+					},
+					"position": {
+						"properties": {
+							"z": {
+								"type": "number",
+								"format": "double"
+							},
+							"y": {
+								"type": "number",
+								"format": "double"
+							},
+							"x": {
+								"type": "number",
+								"format": "double"
+							}
+						},
+						"required": [
+							"z",
+							"y",
+							"x"
+						],
+						"type": "object"
+					},
+					"condition": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"id",
+					"definitionId",
+					"position",
+					"condition"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"Record_string.string_": {
+				"properties": {},
+				"additionalProperties": {
+					"type": "string"
+				},
+				"type": "object",
+				"description": "Construct a type with a set of properties K of type T"
+			},
+			"SavedWeather": {
+				"properties": {
+					"type": {
+						"type": "string"
+					},
+					"intensity": {
+						"type": "number",
+						"format": "double"
+					},
+					"remainingTicks": {
+						"type": "number",
+						"format": "double"
+					},
+					"cooldownTicks": {
+						"type": "number",
+						"format": "double"
+					},
+					"impactZones": {
+						"items": {
+							"properties": {
+								"z": {
+									"type": "number",
+									"format": "double"
+								},
+								"x": {
+									"type": "number",
+									"format": "double"
+								}
+							},
+							"required": [
+								"z",
+								"x"
+							],
+							"type": "object"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"type",
+					"intensity",
+					"remainingTicks",
+					"cooldownTicks"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SavedGameState": {
+				"properties": {
+					"resources": {
+						"$ref": "#/components/schemas/SavedResources"
+					},
+					"capacity": {
+						"$ref": "#/components/schemas/SavedCapacity"
+					},
+					"placed": {
+						"items": {
+							"$ref": "#/components/schemas/SavedBuilding"
+						},
+						"type": "array"
+					},
+					"occupied": {
+						"$ref": "#/components/schemas/Record_string.string_"
+					},
+					"weather": {
+						"$ref": "#/components/schemas/SavedWeather"
+					},
+					"terraforming": {
+						"type": "number",
+						"format": "double"
+					},
+					"o2Accumulated": {
+						"type": "number",
+						"format": "double"
+					},
+					"difficulty": {
+						"type": "string",
+						"enum": [
+							"easy",
+							"normal",
+							"hard"
+						]
+					},
+					"gameMode": {
+						"type": "string",
+						"enum": [
+							"exploration",
+							"survival"
+						]
+					}
+				},
+				"required": [
+					"resources",
+					"capacity",
+					"placed",
+					"occupied",
+					"weather",
+					"terraforming",
+					"o2Accumulated",
+					"difficulty",
+					"gameMode"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"ColonyData": {
 				"properties": {
 					"name": {
 						"type": "string"
 					},
-					"state": {}
+					"state": {
+						"$ref": "#/components/schemas/SavedGameState"
+					}
 				},
 				"required": [
 					"name",
 					"state"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ColonyResponse": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"userId": {
+						"type": "number",
+						"format": "double"
+					},
+					"name": {
+						"type": "string"
+					},
+					"state": {
+						"$ref": "#/components/schemas/SavedGameState"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					}
+				},
+				"required": [
+					"id",
+					"userId",
+					"name",
+					"state",
+					"updatedAt",
+					"createdAt"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -402,6 +795,166 @@
 				]
 			}
 		},
+		"/maps": {
+			"post": {
+				"operationId": "SaveMap",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/MapDetailResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Saves or updates a map for the authenticated user.",
+				"tags": [
+					"Maps"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SaveMapDTO"
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"operationId": "ListMaps",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/MapSummaryResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					}
+				},
+				"description": "Lists all map summaries for the authenticated user.",
+				"tags": [
+					"Maps"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/maps/{id}": {
+			"get": {
+				"operationId": "GetMap",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"$ref": "#/components/schemas/MapDetailResponse"
+										},
+										{
+											"properties": {
+												"message": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"message"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					}
+				},
+				"description": "Retrieves a specific map by ID for the authenticated user.",
+				"tags": [
+					"Maps"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			},
+			"delete": {
+				"operationId": "DeleteMap",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"description": "Deletes a map by ID for the authenticated user.",
+				"tags": [
+					"Maps"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
 		"/groups": {
 			"get": {
 				"operationId": "List",
@@ -608,6 +1161,33 @@
 				]
 			}
 		},
+		"/colony-names/generate": {
+			"post": {
+				"operationId": "Generate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ColonyNamesResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Generates creative Mars colony name suggestions using AI (OpenRouter).\nRequires authentication. Falls back to local generator if AI is unavailable.",
+				"tags": [
+					"ColonyNames"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
 		"/colony": {
 			"post": {
 				"operationId": "SaveColony",
@@ -665,7 +1245,9 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"items": {},
+									"items": {
+										"$ref": "#/components/schemas/ColonyResponse"
+									},
 									"type": "array"
 								}
 							}
@@ -692,12 +1274,71 @@
 						"description": "Ok",
 						"content": {
 							"application/json": {
-								"schema": {}
+								"schema": {
+									"anyOf": [
+										{
+											"$ref": "#/components/schemas/ColonyResponse"
+										},
+										{
+											"properties": {
+												"message": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"message"
+											],
+											"type": "object"
+										}
+									]
+								}
 							}
 						}
 					}
 				},
 				"description": "Retrieves a specific colony by name for the authenticated user.",
+				"tags": [
+					"Colony"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "name",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			},
+			"delete": {
+				"operationId": "DeleteColony",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"description": "Deletes a colony by name for the authenticated user.",
 				"tags": [
 					"Colony"
 				],

@@ -89,3 +89,22 @@ export const coloniesTable = sqliteTable("colonies", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+export const mapsTable = sqliteTable("maps", {
+  id: int().primaryKey({ autoIncrement: true }),
+  userId: int("user_id")
+    .notNull()
+    .references(() => usersTable.id),
+  name: text().notNull(),
+  description: text(),
+  players: int().notNull().default(2),
+  version: text().notNull().default("2.0"),
+  data: text().notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+

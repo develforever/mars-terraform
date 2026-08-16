@@ -6,6 +6,8 @@ import {  fetchMiddlewares, ExpressTemplateService } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { UsersController } from './../controller/UsersController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { MapController } from './../controller/MapController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { GroupsController } from './../controller/GroupsController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { ColonyNameController } from './../controller/ColonyNameController';
@@ -41,6 +43,50 @@ const models: TsoaRoute.Models = {
         "properties": {
             "name": {"dataType":"string"},
             "email": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "MapDetailResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"double","required":true},
+            "userId": {"dataType":"double","required":true},
+            "name": {"dataType":"string","required":true},
+            "description": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
+            "players": {"dataType":"double","required":true},
+            "version": {"dataType":"string","required":true},
+            "createdAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
+            "updatedAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
+            "data": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SaveMapDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"double"},
+            "name": {"dataType":"string","required":true},
+            "description": {"dataType":"string"},
+            "players": {"dataType":"double"},
+            "version": {"dataType":"string"},
+            "data": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "MapSummaryResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"double","required":true},
+            "userId": {"dataType":"double","required":true},
+            "name": {"dataType":"string","required":true},
+            "description": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
+            "players": {"dataType":"double","required":true},
+            "version": {"dataType":"string","required":true},
+            "createdAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
+            "updatedAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
         },
         "additionalProperties": false,
     },
@@ -81,11 +127,89 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SavedResources": {
+        "dataType": "refObject",
+        "properties": {
+            "o2": {"dataType":"double","required":true},
+            "power": {"dataType":"double","required":true},
+            "water": {"dataType":"double","required":true},
+            "biomass": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SavedCapacity": {
+        "dataType": "refObject",
+        "properties": {
+            "power": {"dataType":"double","required":true},
+            "water": {"dataType":"double","required":true},
+            "biomass": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SavedBuilding": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "definitionId": {"dataType":"string","required":true},
+            "position": {"dataType":"nestedObjectLiteral","nestedProperties":{"z":{"dataType":"double","required":true},"y":{"dataType":"double","required":true},"x":{"dataType":"double","required":true}},"required":true},
+            "condition": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Record_string.string_": {
+        "dataType": "refAlias",
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SavedWeather": {
+        "dataType": "refObject",
+        "properties": {
+            "type": {"dataType":"string","required":true},
+            "intensity": {"dataType":"double","required":true},
+            "remainingTicks": {"dataType":"double","required":true},
+            "cooldownTicks": {"dataType":"double","required":true},
+            "impactZones": {"dataType":"array","array":{"dataType":"nestedObjectLiteral","nestedProperties":{"z":{"dataType":"double","required":true},"x":{"dataType":"double","required":true}}}},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SavedGameState": {
+        "dataType": "refObject",
+        "properties": {
+            "resources": {"ref":"SavedResources","required":true},
+            "capacity": {"ref":"SavedCapacity","required":true},
+            "placed": {"dataType":"array","array":{"dataType":"refObject","ref":"SavedBuilding"},"required":true},
+            "occupied": {"ref":"Record_string.string_","required":true},
+            "weather": {"ref":"SavedWeather","required":true},
+            "terraforming": {"dataType":"double","required":true},
+            "o2Accumulated": {"dataType":"double","required":true},
+            "difficulty": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["easy"]},{"dataType":"enum","enums":["normal"]},{"dataType":"enum","enums":["hard"]}],"required":true},
+            "gameMode": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["exploration"]},{"dataType":"enum","enums":["survival"]}],"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ColonyData": {
         "dataType": "refObject",
         "properties": {
             "name": {"dataType":"string","required":true},
-            "state": {"dataType":"any","required":true},
+            "state": {"ref":"SavedGameState","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ColonyResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"double","required":true},
+            "userId": {"dataType":"double","required":true},
+            "name": {"dataType":"string","required":true},
+            "state": {"ref":"SavedGameState","required":true},
+            "updatedAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
+            "createdAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
         },
         "additionalProperties": false,
     },
@@ -290,6 +414,133 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'softDelete',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsMapController_saveMap: Record<string, TsoaRoute.ParameterSchema> = {
+                request: {"in":"request","name":"request","required":true,"dataType":"object"},
+                body: {"in":"body","name":"body","required":true,"ref":"SaveMapDTO"},
+        };
+        app.post('/api/maps',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(MapController)),
+            ...(fetchMiddlewares<RequestHandler>(MapController.prototype.saveMap)),
+
+            async function MapController_saveMap(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsMapController_saveMap, request, response });
+
+                const controller = new MapController();
+
+              await templateService.apiHandler({
+                methodName: 'saveMap',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsMapController_listMaps: Record<string, TsoaRoute.ParameterSchema> = {
+                request: {"in":"request","name":"request","required":true,"dataType":"object"},
+        };
+        app.get('/api/maps',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(MapController)),
+            ...(fetchMiddlewares<RequestHandler>(MapController.prototype.listMaps)),
+
+            async function MapController_listMaps(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsMapController_listMaps, request, response });
+
+                const controller = new MapController();
+
+              await templateService.apiHandler({
+                methodName: 'listMaps',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsMapController_getMap: Record<string, TsoaRoute.ParameterSchema> = {
+                request: {"in":"request","name":"request","required":true,"dataType":"object"},
+                id: {"in":"path","name":"id","required":true,"dataType":"double"},
+        };
+        app.get('/api/maps/:id',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(MapController)),
+            ...(fetchMiddlewares<RequestHandler>(MapController.prototype.getMap)),
+
+            async function MapController_getMap(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsMapController_getMap, request, response });
+
+                const controller = new MapController();
+
+              await templateService.apiHandler({
+                methodName: 'getMap',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsMapController_deleteMap: Record<string, TsoaRoute.ParameterSchema> = {
+                request: {"in":"request","name":"request","required":true,"dataType":"object"},
+                id: {"in":"path","name":"id","required":true,"dataType":"double"},
+        };
+        app.delete('/api/maps/:id',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(MapController)),
+            ...(fetchMiddlewares<RequestHandler>(MapController.prototype.deleteMap)),
+
+            async function MapController_deleteMap(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsMapController_deleteMap, request, response });
+
+                const controller = new MapController();
+
+              await templateService.apiHandler({
+                methodName: 'deleteMap',
                 controller,
                 response,
                 next,
@@ -571,6 +822,38 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'listColonies',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsColonyController_deleteColony: Record<string, TsoaRoute.ParameterSchema> = {
+                request: {"in":"request","name":"request","required":true,"dataType":"object"},
+                name: {"in":"path","name":"name","required":true,"dataType":"string"},
+        };
+        app.delete('/api/colony/:name',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ColonyController)),
+            ...(fetchMiddlewares<RequestHandler>(ColonyController.prototype.deleteColony)),
+
+            async function ColonyController_deleteColony(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsColonyController_deleteColony, request, response });
+
+                const controller = new ColonyController();
+
+              await templateService.apiHandler({
+                methodName: 'deleteColony',
                 controller,
                 response,
                 next,
