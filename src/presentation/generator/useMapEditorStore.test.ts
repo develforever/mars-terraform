@@ -276,3 +276,79 @@ describe('useMapEditorStore — round-trip export/import', () => {
     expect(st.hexGrid?.getCell(0, 0)?.terrainType).toBe('rocky')
   })
 })
+
+// ─── Decor & Resource Node updates ───────────────────────────────────────────
+
+describe('useMapEditorStore — decor & resource node modifications', () => {
+  it('updateDecorAt patches model, scale, and rot for decor item', () => {
+    const s = () => useMapEditorStore.getState()
+
+    act(() => {
+      s().addDecor({ model: 'rock_01', pos: [2, 3], rot: 0, scale: 1.0 })
+    })
+
+    expect(s().decor[0]).toEqual({ model: 'rock_01', pos: [2, 3], rot: 0, scale: 1.0 })
+
+    act(() => {
+      s().updateDecorAt(2, 3, { model: 'crystal', scale: 1.8, rot: Math.PI })
+    })
+
+    const updated = s().decor.find(d => d.pos[0] === 2 && d.pos[1] === 3)
+    expect(updated).toBeDefined()
+    expect(updated?.model).toBe('crystal')
+    expect(updated?.scale).toBe(1.8)
+    expect(updated?.rot).toBe(Math.PI)
+  })
+
+  it('updateDecorAt does nothing if decor does not exist', () => {
+    const s = () => useMapEditorStore.getState()
+    act(() => {
+      s().addDecor({ model: 'rock_01', pos: [2, 3], rot: 0, scale: 1.0 })
+    })
+
+    act(() => {
+      s().updateDecorAt(99, 99, { model: 'boulder' })
+    })
+
+    expect(s().decor).toHaveLength(1)
+    expect(s().decor[0].model).toBe('rock_01')
+  })
+
+  it('undo restores decor properties before updateDecorAt', () => {
+    const s = () => useMapEditorStore.getState()
+    act(() => {
+      s().addDecor({ model: 'rock_01', pos: [0, 0], rot: 0, scale: 1.0 })
+    })
+    act(() => {
+      s().updateDecorAt(0, 0, { model: 'wreck', scale: 2.0 })
+    })
+    expect(s().decor[0].model).toBe('wreck')
+    expect(s().decor[0].scale).toBe(2.0)
+
+    act(() => {
+      s().undo()
+    })
+
+    expect(s().decor[0].model).toBe('rock_01')
+    expect(s().decor[0].scale).toBe(1.0)
+  })
+
+  it('updateResourceNode updates 3D model variant and resource type', () => {
+    const s = () => useMapEditorStore.getState()
+    act(() => {
+      s().addResourceNode({ id: 'r1', type: 'minerals', pos: [1, 1], amount: 1000, richness: 'med', model: 'mineral_pile_01' })
+    })
+
+    act(() => {
+      s().updateResourceNode('r1', { model: 'crystal_cluster_01' })
+    })
+    expect(s().resourceNodes[0].model).toBe('crystal_cluster_01')
+
+    act(() => {
+      s().updateResourceNode('r1', { type: 'ice', model: 'ice_spire_01' })
+    })
+    expect(s().resourceNodes[0].type).toBe('ice')
+    expect(s().resourceNodes[0].model).toBe('ice_spire_01')
+  })
+})
+

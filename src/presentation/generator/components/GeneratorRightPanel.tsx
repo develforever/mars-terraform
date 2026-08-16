@@ -31,6 +31,109 @@ const TERRAIN_TYPES: { value: HexTerrainType; label: string; color: string }[] =
   { value: 'peak',        label: 'Peak',        color: '#9e8060' },
 ]
 
+const DECOR_MODEL_OPTIONS: { value: string; label: string }[] = [
+  { value: 'rock_01', label: '🪨 Rock (rock_01)' },
+  { value: 'rocks',   label: '🪨 Stones (rocks)' },
+  { value: 'boulder', label: '🪨 Boulder (boulder)' },
+  { value: 'crystal', label: '💎 Crystal (crystal)' },
+  { value: 'wreck',   label: '🛸 Wreck (wreck)' },
+]
+
+const RESOURCE_MODEL_OPTIONS: Record<ResourceType, { value: string; label: string }[]> = {
+  minerals: [
+    { value: 'mineral_pile_01',    label: 'Mineral Pile (mineral_pile_01)' },
+    { value: 'crystal_cluster_01', label: 'Crystal Cluster (crystal_cluster_01)' },
+  ],
+  ice: [
+    { value: 'ice_01',             label: 'Ice Deposit (ice_01)' },
+    { value: 'ice_spire_01',       label: 'Ice Spire (ice_spire_01)' },
+  ],
+  organics: [
+    { value: 'organics_01',        label: 'Organic Patch (organics_01)' },
+  ],
+  energy: [
+    { value: 'energy_01',          label: 'Energy Node (energy_01)' },
+    { value: 'energy_vent_01',     label: 'Energy Vent (energy_vent_01)' },
+  ],
+}
+
+// ─── Decor Inspector ──────────────────────────────────────────────────────────
+
+const DecorInspector = ({ q, r }: { q: number; r: number }) => {
+  const decor = useMapEditorStore(s => s.decor)
+  const updateDecorAt = useMapEditorStore(s => s.updateDecorAt)
+  const removeDecorAt = useMapEditorStore(s => s.removeDecorAt)
+
+  const decorItem = decor.find(d => d.pos[0] === q && d.pos[1] === r)
+
+  if (!decorItem) return null
+
+  const degRotation = Math.round((((decorItem.rot % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) * 180 / Math.PI) % 360
+
+  return (
+    <div className="border-t border-zinc-700 pt-3 mt-3 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-zinc-300">Decoration</span>
+        <button
+          onClick={() => removeDecorAt(q, r)}
+          className="text-xs text-red-500 hover:text-red-400 px-1"
+        >
+          🗑 Remove Decor
+        </button>
+      </div>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-zinc-400">Model</span>
+        <select
+          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-[#e74c3c]"
+          value={decorItem.model}
+          onChange={e => updateDecorAt(q, r, { model: e.target.value })}
+        >
+          {DECOR_MODEL_OPTIONS.map(m => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <div className="flex justify-between text-xs text-zinc-400">
+          <span>Scale (0.4 – 2.5)</span>
+          <span className="font-mono text-zinc-300">{decorItem.scale.toFixed(2)}</span>
+        </div>
+        <input
+          type="range"
+          min={0.4}
+          max={2.5}
+          step={0.05}
+          value={decorItem.scale}
+          onChange={e => updateDecorAt(q, r, { scale: Number(e.target.value) })}
+          className="accent-[#e74c3c]"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <div className="flex justify-between text-xs text-zinc-400">
+          <span>Rotation (0° – 360°)</span>
+          <span className="font-mono text-zinc-300">{degRotation}°</span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={360}
+          step={1}
+          value={degRotation}
+          onChange={e => {
+            const deg = Number(e.target.value)
+            const rad = (deg * Math.PI) / 180
+            updateDecorAt(q, r, { rot: rad })
+          }}
+          className="accent-[#e74c3c]"
+        />
+      </label>
+    </div>
+  )
+}
+
 // ─── Hex Inspector ────────────────────────────────────────────────────────────
 
 const HexInspector = ({ q, r }: { q: number; r: number }) => {
@@ -61,11 +164,7 @@ const HexInspector = ({ q, r }: { q: number; r: number }) => {
         </select>
       </label>
 
-      {cell.decor && (
-        <div className="text-xs text-zinc-500 font-mono">
-          decor: {cell.decor}
-        </div>
-      )}
+      <DecorInspector q={q} r={r} />
     </div>
   )
 }
@@ -159,6 +258,8 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
 
   if (!node) return <p className="text-zinc-500 text-xs text-center mt-4">Node not found.</p>
 
+  const modelOptions = RESOURCE_MODEL_OPTIONS[node.type] ?? []
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -176,9 +277,28 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
         <select
           className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-[#e74c3c]"
           value={node.type}
-          onChange={e => updateResourceNode(nodeId, { type: e.target.value as ResourceType })}
+          onChange={e => {
+            const newType = e.target.value as ResourceType
+            const available = RESOURCE_MODEL_OPTIONS[newType] ?? []
+            const currentValid = available.some(m => m.value === node.model)
+            const nextModel = currentValid ? node.model : (available[0]?.value ?? 'mineral_pile_01')
+            updateResourceNode(nodeId, { type: newType, model: nextModel })
+          }}
         >
           {RESOURCE_TYPES.map(rt => <option key={rt.value} value={rt.value}>{rt.label}</option>)}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-zinc-400">3D Model Variant</span>
+        <select
+          className="bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-sm text-zinc-100 focus:outline-none focus:border-[#e74c3c]"
+          value={node.model}
+          onChange={e => updateResourceNode(nodeId, { model: e.target.value })}
+        >
+          {modelOptions.map(m => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
         </select>
       </label>
 
@@ -223,6 +343,7 @@ const ResourceNodeInspector = ({ nodeId }: { nodeId: string }) => {
     </div>
   )
 }
+
 
 // ─── Spawn Inspector ──────────────────────────────────────────────────────────
 
