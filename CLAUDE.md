@@ -120,26 +120,28 @@ spawn na zablokowanym heksie, zbyt bliskie spawny, balans złóż).
 - Zustand stores w `src/application/store/`. TailwindCSS 4 (arbitrary values OK, np. `bg-[#e74c3c]`).
 - Każdy nowy feature = test (Vitest). Po zmianach: `npm run build` / `tsc --noEmit -p tsconfig.app.json`.
 - Nie instaluj paczek npm bez potwierdzenia użytkownika.
-- HMR nie odświeża zmemoizowanych materiałów 3D — przy zmianach shaderów/materiałów testuj po twardym reloadzie (F5).
-- **Git & Gałęzie**: Nigdy nie pracujemy na `main`. Zawsze tworzymy dedykowany branch (`feat/...`, `fix/...`, `refactor/...`). Na koniec zadania commitujemy na ten branch. Wymagany jest review zmian przed merge.
+- **Shader & Postprocessing Standards**:
+  - Dithering w custom GLSL: dla gradientów i poświat obowiązkowy screen-space dither `(fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) / 255.0` przeciw bandingowi 8-bit.
+  - Bloom & HDR: źródła światła HDR mają `toneMapped: false` i emisję > 1.0; próg `bloomThreshold` w `PostProcessingComposer` ustawiony na `>= 1.0` (brak rozmywania terenu i UI).
+  - Billboardy poświaty: płynne okno wygaszania `smoothstep(1.0, 0.2, dist)` eliminuje odcięcia na krawędzi quada.
 
 ---
 
-## Status / roadmapa generatora
+## Status / roadmapa generatora i silnika gry
 
-Zrobione: siatka heksów, edycja terenu, build/resource/spawn/decor + inspektory (z footprintem),
-szczelny schodkowy mesh z fazowaniem (Preview = renderer gry), materiał triplanar + slope + szron,
-bloom (tylko Preview), tło/światło/akcent UI spójne ze stroną główną, eksport/import + walidacja zod,
-walidacja reguł gry, minimapa, undo, skróty.
+Zrobione:
+- Siatka heksów, edycja terenu, build/resource/spawn/decor + inspektory modeli 3D (z footprintem).
+- Szczelny schodkowy mesh z fazowaniem (`TerrainMeshBuilder` + `CliffBuilder`), materiał triplanar + slope + szron.
+- Backend Persistence (`/api/maps` w TSOA + Drizzle ORM) + `CloudMapsModal` w generatorze i `ColonyNameModal` w grze.
+- Algorytm ścieżek `HexPathfindingService` (A* z detekcją i omijaniem klifów dla jednostek naziemnych).
+- Kinowe słońce proceduralne (analityczny billboard korony `exp(-dist * k)` z ditherem) + kierunkowy rim light atmosfery (Mie scattering) + kalibracja Bloom HDR.
+- Eksport/import map JSON v2.0 + walidacja Zod, minimapa, undo/redo, skróty klawiszowe.
 
 Do zrobienia:
-1. **Seed → proceduralna generacja** (TODO): dziś `Generate Map` daje płaskie „plains", `seed` jest zapisany,
-   ale nieużywany. Plan: seeded `simplex-noise` fBm → wysokości/typy terenu, kratery, łaty rocky;
-   deterministycznie (ten sam seed = ta sama mapa); opcjonalnie seeded auto-placement spawnów/złóż.
-2. Decor: więcej typów niż `rock_01` (głaz, kamienie, kryształ/złoże, wrak).
-3. Resource `model` — edycja w inspektorze (gdy będzie lista modeli).
-4. (Później) Agent AI podpięty do generatora — korzysta ze schematu v2.0 / seeda.
-5. **Faza 2**: rozgrywka na wygenerowanej mapie zastępuje `/mars`; ruch jednostek po grafie heksów
-   (`worldY` per heks, klify jako bariery, drony nad powierzchnią).
-
-*Zaktualizowano po przebudowie na heksy.*
+1. **Deterministyczna generacja proceduralna z Seed (Simplex-Noise fBm)**:
+   - Dziś `Generate Map` tworzy płaskie plains; implementacja wielooktawowego szumu `simplex-noise` z seedem wygeneruje wzgórza, doliny, kratery, płaskowyże oraz deterministyczne rozmieszczenie złóż rudy i lodu.
+2. **Pełna symulacja ruchu jednostek po siatce heksagonalnej w `/mars`**:
+   - Integracja `HexPathfindingService` z pętlą gry i animacją ruchu jednostek (`AlienGroundUnit`, łaziki) z płynną interpolacją wysokości `worldY`.
+3. **Mechanika wydobycia złóż i połączeń logistycznych**:
+   - Wykorzystanie złóż mineralnych i lodowych przez dedykowane budynki wydobywcze na sąsiadujących heksach.
+4. **Podpięcie agenta AI do generatora map** (na bazie ustalonego kontraktu JSON v2.0 / seeda).
