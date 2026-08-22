@@ -133,15 +133,19 @@ Zrobione:
 - Siatka heksów, edycja terenu, build/resource/spawn/decor + inspektory modeli 3D (z footprintem).
 - Szczelny schodkowy mesh z fazowaniem (`TerrainMeshBuilder` + `CliffBuilder`), materiał triplanar + slope + szron.
 - Backend Persistence (`/api/maps` w TSOA + Drizzle ORM) + `CloudMapsModal` w generatorze i `ColonyNameModal` w grze.
-- Algorytm ścieżek `HexPathfindingService` (A* z detekcją i omijaniem klifów dla jednostek naziemnych).
+- Deterministyczna generacja proceduralna z Seed (4-oktawowe fBm, pasma górskie, kratery uderzeniowe i złoża).
+- Algorytm ścieżek `HexPathfindingService` (A* z detekcją i omijaniem klifów) + płynny ruch 3D jednostek inwazji obcych.
 - Kinowe słońce proceduralne (analityczny billboard korony `exp(-dist * k)` z ditherem) + kierunkowy rim light atmosfery (Mie scattering) + kalibracja Bloom HDR.
 - Eksport/import map JSON v2.0 + walidacja Zod, minimapa, undo/redo, skróty klawiszowe.
 
 Do zrobienia:
-1. **Deterministyczna generacja proceduralna z Seed (Simplex-Noise fBm)**:
-   - Dziś `Generate Map` tworzy płaskie plains; implementacja wielooktawowego szumu `simplex-noise` z seedem wygeneruje wzgórza, doliny, kratery, płaskowyże oraz deterministyczne rozmieszczenie złóż rudy i lodu.
-2. **Pełna symulacja ruchu jednostek po siatce heksagonalnej w `/mars`**:
-   - Integracja `HexPathfindingService` z pętlą gry i animacją ruchu jednostek (`AlienGroundUnit`, łaziki) z płynną interpolacją wysokości `worldY`.
-3. **Mechanika wydobycia złóż i połączeń logistycznych**:
-   - Wykorzystanie złóż mineralnych i lodowych przez dedykowane budynki wydobywcze na sąsiadujących heksach.
+1. **Mechanika wydobycia złóż surowców (Ice/Mineral Deposits) i premia sąsiedztwa heksów** (W trakcie):
+   - Wykorzystanie złóż mineralnych i lodowych przez budynki wydobywcze na sąsiadujących heksach z mnożnikami produkcji.
+2. **System poziomów budynków i jednostki logistyczne (Building Upgrades & Logistics Loop)**:
+   - Drzewo rozbudowy budynków (`level: 1 -> 2 -> 3`), gdzie każdy poziom zużywa surowce kolonii.
+   - **Poziom 1 (Bazowy)**: Wydobycie stacjonarne (bezpośredni heks / bezpośredni sąsiad).
+   - **Poziom 2 (Łazik transportowy - `rover.glb`)**: Automatyczne wysyłanie łazika naziemnego poruszającego się po grafie heksów (A*) do złóż w promieniu 1-2 heksów z omijaniem klifów.
+   - **Poziom 3 (Dron logistyczny - `craft_miner.glb` / `craft_cargoA.glb`)**: Odblokowanie drona powietrznego latającego ponad klifami po krzywej Béziera do odległych złóż (promień 3-4 heksy).
+   - UI podglądu drzewa ulepszeń i przycisk "Rozbuduj" w panelu szczegółów budynku.
+3. **Połączenia energetyczne i rurociągi na siatce heksagonalnej (`BuildingConnections.tsx`)**.
 4. **Podpięcie agenta AI do generatora map** (na bazie ustalonego kontraktu JSON v2.0 / seeda).
