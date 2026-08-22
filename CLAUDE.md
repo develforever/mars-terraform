@@ -23,6 +23,19 @@ Renderer Preview generatora = docelowy renderer terenu w grze.
 
 ---
 
+## Blender 3D Asset Library & MCP
+
+- **Główny plik biblioteki 3D (Project Library)**:
+  `C:\Users\robert\Documents\mars-terraform.blend`
+- **Ścieżka docelowa eksportu modeli dla silnika gry**:
+  `public/models/mars/*.glb`
+- **Integracja Blender MCP**:
+  - Serwer: `uvx blender-mcp` (zdefiniowany w `.agents/mcp_config.json`).
+  - Addon Blendera: `Interface: Blender MCP` (Blender 5.1+, socket `localhost:9876`).
+  - Zastosowanie: inspekcja geometrii, modelowanie assetów 3D, optymalizacja polygon count i bezpośredni eksport `.glb`.
+
+---
+
 ## Architektura HEKSAGONALNA
 
 - Siatka flat-top, współrzędne AXIAL `(q, r)`, generowana promieniem (`radius`, domyślnie 20).
