@@ -1,6 +1,7 @@
 import type { BuildingDefinition, PlacedBuilding } from "../entities/Building";
 import type { Resources, ResourceDelta, ResourceCapacity, ResourceProduction } from "../entities/Resources";
 import type { ColonyState } from "../entities/Colony";
+import type { ResourceNode } from "../mapEditorTypes";
 import { BuildingService } from "./BuildingService";
 import { NeighborService } from "./NeighborService";
 
@@ -9,6 +10,7 @@ export const O2_CONSUMPTION_PER_TICK = 0.05;
 export interface EconomyTickResult {
   delta: ResourceDelta;
   gameOver: boolean;
+  resourceNodes?: ResourceNode[];
 }
 
 export class EconomyService {
@@ -16,7 +18,8 @@ export class EconomyService {
     buildings: PlacedBuilding[],
     definitions: Record<string, BuildingDefinition>,
     sunFactor: number,
-    productionModifier: number = 1
+    productionModifier: number = 1,
+    resourceNodes: ResourceNode[] = []
   ): ResourceProduction {
     const production: ResourceProduction = {};
 
@@ -26,6 +29,7 @@ export class EconomyService {
 
       const condFactor = BuildingService.conditionFactor(building.condition);
       const neighborMult = NeighborService.getProductionMultiplier(building, def, buildings, definitions);
+      const depositMult = BuildingService.getDepositMultiplier(building, def, resourceNodes);
 
       for (const [resourceKey, value] of Object.entries(def.production)) {
         let adjustedValue = value ?? 0;
@@ -37,9 +41,9 @@ export class EconomyService {
 
         adjustedValue *= productionModifier;
 
-        // Condition only scales positive production, not consumption
+        // Condition, neighbor bonus, and deposit bonus only scale positive production, not consumption
         if (adjustedValue > 0) {
-          adjustedValue *= condFactor * neighborMult;
+          adjustedValue *= condFactor * neighborMult * depositMult;
         }
 
         const key = resourceKey as keyof Resources;
@@ -105,14 +109,72 @@ export class EconomyService {
     return delta;
   }
 
+  /**
+   * Depletes active resource nodes extracted by placed buildings.
+   * If depletionRate <= 0, returns the original resourceNodes without mutation.
+   */
+  static depleteDeposits(
+    buildings: PlacedBuilding[],
+    definitions: Record<string, BuildingDefinition>,
+    resourceNodes: ResourceNode[],
+    depletionRate: number
+  ): ResourceNode[] {
+    if (depletionRate <= 0 || resourceNodes.length === 0 || buildings.length === 0) {
+      return resourceNodes;
+    }
+
+    const extractedNodeIds = new Set<string>();
+    for (const building of buildings) {
+      const def = definitions[building.definitionId];
+      if (!def?.extractsDeposit) continue;
+
+      const efficiency = BuildingService.getDepositEfficiencyAtCell(
+        def,
+        { x: building.position.x, z: building.position.z },
+        resourceNodes
+      );
+      for (const node of efficiency.matchingNodes) {
+        extractedNodeIds.add(node.id);
+      }
+    }
+
+    if (extractedNodeIds.size === 0) {
+      return resourceNodes;
+    }
+
+    return resourceNodes.map((node) => {
+      if (extractedNodeIds.has(node.id) && node.amount > 0) {
+        return {
+          ...node,
+          amount: Math.max(0, Math.round((node.amount - depletionRate) * 100) / 100),
+        };
+      }
+      return node;
+    });
+  }
+
   static tick(
     colony: ColonyState,
     buildings: PlacedBuilding[],
     definitions: Record<string, BuildingDefinition>,
-    productionModifier: number = 1
+    productionModifier: number = 1,
+    resourceNodes: ResourceNode[] = [],
+    depletionRate: number = 0
   ): EconomyTickResult {
-    const production = this.calculateProduction(buildings, definitions, colony.sun, productionModifier);
+    const production = this.calculateProduction(
+      buildings,
+      definitions,
+      colony.sun,
+      productionModifier,
+      resourceNodes
+    );
     const consumption = this.calculateConsumption(buildings.length);
+    const updatedResourceNodes = this.depleteDeposits(
+      buildings,
+      definitions,
+      resourceNodes,
+      depletionRate
+    );
     
     // Merge production and consumption
     const totalDelta: ResourceDelta = { ...production };
@@ -145,6 +207,7 @@ export class EconomyService {
         biomass: finalResources.biomass - colony.resources.biomass,
       },
       gameOver,
+      resourceNodes: updatedResourceNodes,
     };
   }
 }

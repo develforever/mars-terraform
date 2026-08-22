@@ -80,6 +80,10 @@ const en = {
             depTreeAvailable: "Available",
             depTreeDependsOn: "Requires",
             depTreeUnlocksLabel: "Unlocks",
+            yieldBonus: "Yield",
+            noDepositsNearby: "No nearby deposits",
+            depositBonusTitle: "💎 Resource Deposits",
+            yieldPerDeposit: "yield per adjacent deposit:",
         },
         rdp: {
             current:    "Current",
@@ -252,6 +256,8 @@ const en = {
             integrity: "Structural integrity",
             production: "Production / tick",
             neighborBoost: "Neighbor boost",
+            depositYield: "Resource Deposit",
+            depositConnected: "+{{bonus}}% from {{type}} deposit (count: {{count}})",
         },
         lang: {
             toggle: "PL",

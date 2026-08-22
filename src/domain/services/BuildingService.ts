@@ -1,6 +1,15 @@
 import type { BuildingDefinition, PlacedBuilding } from "../entities/Building";
 import type { Resources, ResourceCost, ResourceDelta } from "../entities/Resources";
 import { keyFromCell } from "../entities/Position";
+import { worldToHex, hexNeighbors } from "../../presentation/generator/hex/HexMath";
+import type { ResourceNode, ResourceType } from "../mapEditorTypes";
+
+export interface DepositEfficiencyResult {
+  multiplier: number;
+  count: number;
+  depositType?: ResourceType;
+  matchingNodes: ResourceNode[];
+}
 
 export interface BuildResult {
   success: boolean;
@@ -142,5 +151,56 @@ export class BuildingService {
   static conditionFactor(condition: number): number {
     if (condition >= 50) return 1;
     return condition / 50;
+  }
+
+  /**
+   * Calculates extraction deposit efficiency and neighbor bonus for a building at a specific hex cell.
+   * Checks the cell itself and all 6 direct axial neighbors.
+   * Multiplier is 1.0 (base 100%) + 0.5 (+50%) per active matching deposit.
+   */
+  static getDepositEfficiencyAtCell(
+    definition: BuildingDefinition | undefined,
+    cell: { x: number; z: number },
+    resourceNodes: ResourceNode[] = []
+  ): DepositEfficiencyResult {
+    if (!definition?.extractsDeposit) {
+      return { multiplier: 1.0, count: 0, matchingNodes: [] };
+    }
+
+    const [q, r] = worldToHex(cell.x, cell.z);
+    const neighbors = hexNeighbors(q, r);
+    const validCoords = new Set<string>([
+      `${q},${r}`,
+      ...neighbors.map(([nq, nr]) => `${nq},${nr}`),
+    ]);
+
+    const matchingNodes = resourceNodes.filter(
+      (node) =>
+        node.type === definition.extractsDeposit &&
+        node.amount > 0 &&
+        validCoords.has(`${node.pos[0]},${node.pos[1]}`)
+    );
+
+    const multiplier = 1.0 + matchingNodes.length * 0.5;
+
+    return {
+      multiplier,
+      count: matchingNodes.length,
+      depositType: definition.extractsDeposit,
+      matchingNodes,
+    };
+  }
+
+  /** Returns the deposit multiplier (1.0 = base / no matching deposit) for this placed building */
+  static getDepositMultiplier(
+    building: PlacedBuilding,
+    definition: BuildingDefinition | undefined,
+    resourceNodes: ResourceNode[] = []
+  ): number {
+    return this.getDepositEfficiencyAtCell(
+      definition,
+      { x: building.position.x, z: building.position.z },
+      resourceNodes
+    ).multiplier;
   }
 }

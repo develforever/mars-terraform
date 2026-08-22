@@ -80,6 +80,10 @@ const pl = {
             depTreeAvailable: "Dostępny",
             depTreeDependsOn: "Wymaga",
             depTreeUnlocksLabel: "Odblokuje",
+            yieldBonus: "Wydajność",
+            noDepositsNearby: "Brak złóż w sąsiedztwie",
+            depositBonusTitle: "💎 Złoża surowców",
+            yieldPerDeposit: "wydajności za każde sąsiednie złoże:",
         },
         rdp: {
             current:    "Aktualnie",
@@ -256,6 +260,8 @@ const pl = {
             integrity: "Integralność strukturalna",
             production: "Produkcja / tick",
             neighborBoost: "Boost sąsiedztwa",
+            depositYield: "Złoże surowca",
+            depositConnected: "+{{bonus}}% ze złoża {{type}} (znaleziono: {{count}})",
         },
         lang: {
             toggle: "EN",

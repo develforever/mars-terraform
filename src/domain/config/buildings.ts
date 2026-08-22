@@ -94,6 +94,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/pipe_entrance.glb",
     modelScale: 2.5,
     dependsOn: ["hab"],
+    extractsDeposit: "ice",
     influenceRadius: 3,
   },
   {
@@ -106,6 +107,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/craft_miner.glb",
     modelScale: 3.0,
     dependsOn: ["ice"],
+    extractsDeposit: "minerals",
     connectionType: "biomass" as const,
     bonusNeighbors: [
       { neighborId: "silo",  bonusPercent: 10, description: "+10% Biomasa obok Silosu" },

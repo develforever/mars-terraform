@@ -26,6 +26,8 @@ export interface BuildingDefinition {
   connectionType?: ConnectionType;
   /** Visual influence radius for terrain highlight (world units) */
   influenceRadius?: number;
+  /** Resource deposit type extracted by this building (receives neighbor bonus) */
+  extractsDeposit?: import("../mapEditorTypes").ResourceType;
 }
 
 export interface PlacedBuilding {

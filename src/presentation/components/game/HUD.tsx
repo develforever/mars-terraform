@@ -47,6 +47,7 @@ export function HUD() {
     const weather        = useGameStore((state) => state.weather);
     const o2Accumulated  = useGameStore((state) => state.o2Accumulated);
     const placedBuildings = useGameStore((state) => state.placed);
+    const resourceNodes  = useGameStore((state) => state.resourceNodes);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
@@ -134,6 +135,7 @@ export function HUD() {
                     o2Accumulated={o2Accumulated}
                     difficulty={difficulty}
                     lastDelta={lastDelta ?? {}}
+                    resourceNodes={resourceNodes}
                     onClose={() => setActivePanel(null)}
                 />
             )}

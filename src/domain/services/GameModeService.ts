@@ -10,6 +10,7 @@ export interface GameModeConfig {
   meteorChanceMultiplier: number;
   hasWinCondition: boolean;
   alienInvasion: boolean;
+  depositDepletionRate: number;
 }
 
 export const GAME_MODE_CONFIGS: Record<GameMode, GameModeConfig> = {
@@ -23,6 +24,7 @@ export const GAME_MODE_CONFIGS: Record<GameMode, GameModeConfig> = {
     meteorChanceMultiplier: 0,
     hasWinCondition: false,
     alienInvasion: false,
+    depositDepletionRate: 0,
   },
   exploration: {
     label: "Eksploracja",
@@ -34,6 +36,7 @@ export const GAME_MODE_CONFIGS: Record<GameMode, GameModeConfig> = {
     meteorChanceMultiplier: 1.0,
     hasWinCondition: true,
     alienInvasion: false,
+    depositDepletionRate: 0.05,
   },
   survival: {
     label: "Przetrwanie",
@@ -45,5 +48,6 @@ export const GAME_MODE_CONFIGS: Record<GameMode, GameModeConfig> = {
     meteorChanceMultiplier: 1.5,
     hasWinCondition: true,
     alienInvasion: true,
+    depositDepletionRate: 0.1,
   },
 };

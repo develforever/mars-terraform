@@ -5,6 +5,8 @@ import type { ResourceDelta } from "../../../domain/entities/Resources";
 import type { DifficultyLevel } from "../../../domain/services/TerraformingService";
 import { DIFFICULTY_TARGETS } from "../../../domain/services/TerraformingService";
 import { ResourceBreakdownService } from "../../../domain/services/ResourceBreakdownService";
+import { BuildingService } from "../../../domain/services/BuildingService";
+import type { ResourceNode } from "../../../domain/mapEditorTypes";
 import "./ResourceDetailPanel.css";
 
 
@@ -26,6 +28,7 @@ interface ResourceDetailPanelProps {
     o2Accumulated: number;
     difficulty: DifficultyLevel;
     lastDelta?: ResourceDelta;
+    resourceNodes?: ResourceNode[];
     onClose: () => void;
 }
 
@@ -41,6 +44,7 @@ export function ResourceDetailPanel({
     o2Accumulated,
     difficulty,
     lastDelta,
+    resourceNodes = [],
     onClose,
 }: ResourceDetailPanelProps) {
     const { t } = useTranslation();
@@ -63,7 +67,7 @@ export function ResourceDetailPanel({
 
     const resource = activePanel as ResourceKey;
     const breakdown = ResourceBreakdownService.getBreakdown(
-        resource, placed, definitions, sunFactor, productionModifier
+        resource, placed, definitions, sunFactor, productionModifier, resourceNodes
     );
 
     const hasCapacity = CAPACITY_KEYS[resource];
@@ -105,17 +109,29 @@ export function ResourceDetailPanel({
                     <div className="rdp__section-label">{t("rdp.producers")}</div>
                     {breakdown.producers.length === 0
                         ? <div className="rdp__empty">{t("rdp.noProducers")}</div>
-                        : breakdown.producers.map((p) => (
-                            <div key={p.buildingId} className="rdp__row">
-                                <span className="rdp__row-label">{p.label.startsWith("hint.") ? t(p.label) : p.label}</span>
-                                {p.condition < 100 && (
-                                    <span className="rdp__row-cond">{p.condition}%</span>
-                                )}
-                                <span className={`rdp__row-val ${valClass(p.value)}`}>
-                                    {p.value > 0 ? "+" : ""}{p.value.toFixed(2)}
-                                </span>
-                            </div>
-                        ))
+                        : breakdown.producers.map((p) => {
+                            const b = placed.find((pl) => pl.id === p.buildingId);
+                            const d = b ? definitions[b.definitionId] : undefined;
+                            const eff = d && b ? BuildingService.getDepositEfficiencyAtCell(d, { x: b.position.x, z: b.position.z }, resourceNodes) : undefined;
+                            const hasDepositBonus = eff && eff.count > 0;
+
+                            return (
+                                <div key={p.buildingId} className="rdp__row">
+                                    <span className="rdp__row-label">{p.label.startsWith("hint.") ? t(p.label) : p.label}</span>
+                                    {hasDepositBonus && (
+                                        <span className="rdp__row-cond" style={{ color: "#38bdf8", borderColor: "rgba(56,189,248,0.3)", background: "rgba(56,189,248,0.1)" }}>
+                                            +{Math.round((eff.multiplier - 1) * 100)}% ⛏️
+                                        </span>
+                                    )}
+                                    {p.condition < 100 && (
+                                        <span className="rdp__row-cond">{p.condition}%</span>
+                                    )}
+                                    <span className={`rdp__row-val ${valClass(p.value)}`}>
+                                        {p.value > 0 ? "+" : ""}{p.value.toFixed(2)}
+                                    </span>
+                                </div>
+                            );
+                        })
                     }
                 </div>
 

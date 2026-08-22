@@ -1,5 +1,6 @@
 import type { PlacedBuilding, BuildingDefinition } from "../entities/Building";
 import type { ResourceKey } from "../entities/Resources";
+import type { ResourceNode } from "../mapEditorTypes";
 import { BuildingService } from "./BuildingService";
 import { NeighborService } from "./NeighborService";
 import { O2_CONSUMPTION_PER_TICK } from "./EconomyService";
@@ -24,7 +25,8 @@ export class ResourceBreakdownService {
     placed: PlacedBuilding[],
     definitions: Record<string, BuildingDefinition>,
     sunFactor: number,
-    productionModifier: number = 1
+    productionModifier: number = 1,
+    resourceNodes: ResourceNode[] = []
   ): ResourceBreakdown {
     const producers: BuildingContribution[] = [];
     const consumers: BuildingContribution[] = [];
@@ -35,6 +37,7 @@ export class ResourceBreakdownService {
 
       const condFactor = BuildingService.conditionFactor(building.condition);
       const neighborMult = NeighborService.getProductionMultiplier(building, def, placed, definitions);
+      const depositMult = BuildingService.getDepositMultiplier(building, def, resourceNodes);
 
       if (def.production?.[resource] !== undefined) {
         let value = def.production[resource] ?? 0;
@@ -45,7 +48,7 @@ export class ResourceBreakdownService {
         value *= productionModifier;
 
         if (value > 0) {
-          value *= condFactor * neighborMult;
+          value *= condFactor * neighborMult * depositMult;
         }
 
         const contribution: BuildingContribution = {

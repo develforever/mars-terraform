@@ -250,10 +250,13 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
     const placed = useGameStore((state) => state.placed);
     const sunFactor = useGameStore((state) => state.sun);
     const weather = useGameStore((state) => state.weather);
+    const resourceNodes = useGameStore((state) => state.resourceNodes);
 
     const productionModifier = WeatherService.getProductionModifier(weather);
     const condFactor = BuildingService.conditionFactor(building.condition);
     const neighborMult = def ? NeighborService.getProductionMultiplier(building, def, placed, BUILDING_DEFINITIONS) : 1;
+    const depositMult = def ? BuildingService.getDepositMultiplier(building, def, resourceNodes) : 1;
+    const depositEfficiency = def ? BuildingService.getDepositEfficiencyAtCell(def, { x: building.position.x, z: building.position.z }, resourceNodes) : undefined;
 
     const baseValues = def?.production ? Object.entries(def.production) : [];
 
@@ -272,7 +275,7 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
         return adjusted > 0;
     });
     const showModifiers = hasAnyProduction && (
-        condFactor < 1 || neighborMult > 1 || (def?.tags?.includes("dayScaled")) || productionModifier < 1
+        condFactor < 1 || neighborMult > 1 || depositMult > 1 || (def?.tags?.includes("dayScaled")) || productionModifier < 1
     );
 
     return (
@@ -308,7 +311,7 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
                                 adjusted *= productionModifier;
                                 const isProduction = adjusted > 0;
                                 if (isProduction) {
-                                    adjusted *= condFactor * neighborMult;
+                                    adjusted *= condFactor * neighborMult * depositMult;
                                 }
                                 const hasDiff = Math.abs(adjusted - baseVal) >= 0.001;
                                 return (
@@ -339,6 +342,9 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
                                     {neighborMult > 1 && (
                                         <span className="mod-tag mod-bonus">🔗 +{Math.round((neighborMult - 1) * 100)}%</span>
                                     )}
+                                    {depositMult > 1 && (
+                                        <span className="mod-tag mod-deposit">⛏️ +{Math.round((depositMult - 1) * 100)}% ({t("popover.depositYield")})</span>
+                                    )}
                                     {productionModifier < 1 && (
                                         <span className="mod-tag mod-storm">🌪️ {Math.round(productionModifier * 100)}%</span>
                                     )}
@@ -346,9 +352,21 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
                             )}
                         </div>
                     )}
-                    {activeBonuses.length > 0 && (
+                    {(activeBonuses.length > 0 || (depositEfficiency && depositEfficiency.count > 0)) && (
                         <div className="popover-section">
                             <div className="section-title">{t("popover.neighborBoost")}</div>
+                            {depositEfficiency && depositEfficiency.count > 0 && (
+                                <div className="boost-item">
+                                    <span className="boost-check">💎</span>
+                                    <span className="boost-desc">
+                                        {t("popover.depositConnected", {
+                                            count: depositEfficiency.count,
+                                            type: depositEfficiency.depositType,
+                                            bonus: Math.round((depositMult - 1) * 100),
+                                        })}
+                                    </span>
+                                </div>
+                            )}
                             {activeBonuses.map((b) => (
                                 <div key={b.neighborId} className="boost-item">
                                     <span className="boost-check">✓</span>
@@ -364,11 +382,13 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
 }
 
 export function HoverGhost() {
+    const { t } = useTranslation();
     const hoverCell = useUIStore((state) => state.hoverCell);
     const selectedBuildingId = useUIStore((state) => state.selectedBuildingId);
     const buildMode = useUIStore((state) => state.buildMode);
     const resources = useGameStore((state) => state.resources);
     const placedBuildings = useGameStore((state) => state.placed);
+    const resourceNodes = useGameStore((state) => state.resourceNodes);
     const terrainY = useTerrainHeight();
     const debugOverlayVisible = useUIStore((state) => state.debugOverlayVisible);
 
@@ -383,6 +403,7 @@ export function HoverGhost() {
     const def = BUILDING_DEFINITIONS[selectedBuildingId];
     const canAfford = def ? BuildingService.canAfford(def.cost, resources) : false;
     const reqsMet = def ? BuildingService.hasRequirements(def, placedBuildings) : false;
+    const depositEfficiency = def ? BuildingService.getDepositEfficiencyAtCell(def, hoverCell, resourceNodes) : undefined;
     const baseY = terrainY(hoverCell.x, hoverCell.z) + 0.3;
 
     const isValid = canAfford && reqsMet;
@@ -416,12 +437,32 @@ export function HoverGhost() {
             <mesh position={[0, -0.4, 0]}>
                 <cylinderGeometry args={[1.0, 1.1, 0.4, 32]} />
                 <meshStandardMaterial 
-                    color={isValid ? "#00ff88" : "#ff3355"} 
+                    color={isValid ? (depositEfficiency && depositEfficiency.count > 0 ? "#38bdf8" : "#00ff88") : "#ff3355"} 
                     transparent 
-                    opacity={0.2} 
+                    opacity={depositEfficiency && depositEfficiency.count > 0 ? 0.4 : 0.2} 
                     depthWrite={false}
                 />
             </mesh>
+
+            {/* Extraction deposit efficiency indicator tag */}
+            {def?.extractsDeposit && (
+                <Html position={[0, 2.2, 0]} center style={{ pointerEvents: "none" }}>
+                    <div
+                        className={`px-2 py-1 rounded text-xs font-mono font-bold whitespace-nowrap shadow-xl flex items-center gap-1.5 select-none border transition-all duration-200 ${
+                            depositEfficiency && depositEfficiency.count > 0
+                                ? "bg-cyan-950/95 border-cyan-400 text-cyan-200 shadow-cyan-500/40 scale-105"
+                                : "bg-zinc-900/90 border-zinc-600 text-zinc-300"
+                        }`}
+                    >
+                        <span>{depositEfficiency && depositEfficiency.count > 0 ? "✨" : "⛏️"}</span>
+                        <span>
+                            {depositEfficiency && depositEfficiency.count > 0
+                                ? `+${Math.round((depositEfficiency.multiplier - 1) * 100)}% ${t("hud.yieldBonus", "Wydajność")} (${depositEfficiency.count} ${depositEfficiency.depositType})`
+                                : `100% ${t("hud.yieldBonus", "Wydajność")} (${t("hud.noDepositsNearby", "Brak złóż w sąsiedztwie")})`}
+                        </span>
+                    </div>
+                </Html>
+            )}
         </group>
     );
 }

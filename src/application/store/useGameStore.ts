@@ -19,7 +19,8 @@ import type { AlienState, AlienShip, AlienGroundUnit } from "../../domain/entiti
 import { authClient } from "../service/authService";
 import { HexGrid } from "../../presentation/generator/hex/HexGrid";
 import { applyProceduralTerrain } from "../../presentation/generator/terrain/ProceduralTerrain";
-import type { MapExportJSON } from "../../domain/mapEditorTypes";
+import { generateResources } from "../../presentation/generator/terrain/ProceduralPlacement";
+import type { MapExportJSON, ResourceNode } from "../../domain/mapEditorTypes";
 
 export interface GameState {
   // Resources and colony state
@@ -30,8 +31,9 @@ export interface GameState {
   alive: boolean;
   colonyName: string;
 
-  // Hex Grid Terrain
+  // Hex Grid Terrain & Resources
   hexGrid: HexGrid;
+  resourceNodes: ResourceNode[];
   currentMapData?: MapExportJSON | null;
 
   // Buildings
@@ -77,8 +79,13 @@ function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
     applyProceduralTerrain(defaultGrid, s);
   }
 
+  const resourceNodes: ResourceNode[] = mapData?.resourceNodes?.length
+    ? [...mapData.resourceNodes]
+    : generateResources(defaultGrid, s, 1);
+
   return {
     hexGrid: defaultGrid,
+    resourceNodes,
     currentMapData: mapData ?? null,
     resources: INITIAL_COLONY_STATE.resources,
     capacity: INITIAL_COLONY_STATE.capacity,
@@ -306,6 +313,8 @@ export const useGameStore = create<GameState>()(
           degradedPlaced,
           BUILDING_DEFINITIONS,
           productionModifier,
+          state.resourceNodes,
+          modeCfg.depositDepletionRate
         );
 
         const newO2Accumulated = TerraformingService.accumulateO2(state.o2Accumulated, tickResult.delta);
@@ -333,6 +342,7 @@ export const useGameStore = create<GameState>()(
           placed: finalPlaced,
           lastDelta: tickResult.delta,
           resources: newResources,
+          resourceNodes: tickResult.resourceNodes ?? state.resourceNodes,
           alive: !tickResult.gameOver,
           o2Accumulated: newO2Accumulated,
           terraforming: newTerraforming,
@@ -379,6 +389,7 @@ export const useGameStore = create<GameState>()(
                 gameMode: state.gameMode,
                 sun: state.sun,
                 alienState: state.alienState,
+                resourceNodes: state.resourceNodes,
                 currentMapData: state.currentMapData ?? null,
               }
             })
@@ -406,9 +417,16 @@ export const useGameStore = create<GameState>()(
             ? HexGrid.fromJSON(gameState.currentMapData)
             : getInitialGameState().hexGrid;
 
+          const loadedNodes: ResourceNode[] = gameState.resourceNodes ?? (
+            gameState.currentMapData?.resourceNodes?.length
+              ? gameState.currentMapData.resourceNodes
+              : generateResources(loadedGrid, 42, 1)
+          );
+
           set({
             colonyName: data.name,
             hexGrid: loadedGrid,
+            resourceNodes: loadedNodes,
             currentMapData: gameState.currentMapData ?? null,
             resources: gameState.resources,
             capacity: gameState.capacity,

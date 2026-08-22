@@ -52,4 +52,25 @@ describe("ResourceBreakdownService", () => {
     expect(breakdown.producers[0].value).toBe(0);
     expect(breakdown.net).toBe(0);
   });
+
+  it("should reflect deposit extraction bonuses in water breakdown", () => {
+    const placed: PlacedBuilding[] = [
+      { id: "ice-1", definitionId: "ice", position: { x: 0, y: 0, z: 0 }, condition: 100 },
+    ];
+    const deposits = [
+      { id: "d1", type: "ice" as const, pos: [0, 0] as [number, number], amount: 1000, richness: "high" as const, model: "ice_01" },
+    ];
+    const breakdown = ResourceBreakdownService.getBreakdown(
+      "water",
+      placed,
+      BUILDING_DEFINITIONS,
+      1.0,
+      1.0,
+      deposits
+    );
+
+    expect(breakdown.producers.length).toBe(1);
+    expect(breakdown.producers[0].value).toBeCloseTo(0.60, 3);
+    expect(breakdown.net).toBeCloseTo(0.60, 3);
+  });
 });

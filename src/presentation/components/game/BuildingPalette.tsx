@@ -141,6 +141,14 @@ export function BuildingPalette({
                                             })}
                                         </div>
                                     )}
+                                    {def.extractsDeposit && (
+                                        <div className="tooltip-section">
+                                            <div className="tooltip-subtitle">{t("hud.depositBonusTitle", "💎 Złoża surowców")}</div>
+                                            <div className="prod-positive" style={{ fontSize: "11px" }}>
+                                                ⛏️ +50% {t("hud.yieldPerDeposit", "wydajności za każde sąsiednie złoże:")} {def.extractsDeposit}
+                                            </div>
+                                        </div>
+                                    )}
                                     {capEntries.length > 0 && (
                                         <div className="tooltip-section">
                                             <div className="tooltip-subtitle">{t("hud.capacity")}</div>

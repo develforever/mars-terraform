@@ -112,4 +112,39 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     expect(state.hexGrid.radius).toBe(15);
     expect(state.hexGrid.getCell(1, 0)?.terrainType).toBe("peak");
   });
+
+  it("generates and manages resourceNodes during startNewGame and economy tick", () => {
+    useGameStore.getState().startNewGame("Resource Colony", "normal", "exploration");
+
+    const state = useGameStore.getState();
+    expect(state.resourceNodes).toBeDefined();
+    expect(state.resourceNodes.length).toBeGreaterThan(0);
+
+    // Place an ice extractor directly on one of the ice deposits
+    const iceDeposit = state.resourceNodes.find((n) => n.type === "ice");
+    expect(iceDeposit).toBeDefined();
+
+    if (iceDeposit) {
+      const initialAmount = iceDeposit.amount;
+      // Trigger economy tick with placed ice extractor
+      useGameStore.setState({
+        placed: [
+          {
+            id: "test-extractor",
+            definitionId: "ice",
+            position: { x: iceDeposit.pos[0] * 1.8, y: 0, z: iceDeposit.pos[1] * 2.07 },
+            condition: 100,
+          },
+        ],
+        resources: { o2: 50, power: 50, water: 50, biomass: 50 },
+      });
+
+      useGameStore.getState().applyEconomyTick();
+      const updatedState = useGameStore.getState();
+      const updatedDeposit = updatedState.resourceNodes.find((n) => n.id === iceDeposit.id);
+      expect(updatedDeposit).toBeDefined();
+      // Depletion should decrease deposit in exploration mode (rate = 0.05)
+      expect(updatedDeposit?.amount).toBeLessThanOrEqual(initialAmount);
+    }
+  });
 });

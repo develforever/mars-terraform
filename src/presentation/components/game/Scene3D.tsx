@@ -20,6 +20,7 @@ import { AlienInvasion } from "./AlienInvasion";
 import { OutlineEffectContext } from "./OutlineEffectContext";
 import type { OutlineEffect } from "postprocessing";
 import MapOverlay from "./MapOverlay";
+import { ResourceDepositMarkers } from "./ResourceDepositMarkers";
 
 export function Scene3D() {
     return (
@@ -101,6 +102,7 @@ function World() {
             <BuildingConnections />
             <AlienInvasion />
             <MapOverlay />
+            <ResourceDepositMarkers />
 
             <OrbitControls
                 enabled={buildMode === null}
