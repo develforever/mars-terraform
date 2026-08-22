@@ -6,7 +6,7 @@ import { useModalStore } from "../../../ui/ModalManager/store";
 export default function RegisterModal() {
   const { t } = useTranslation();
   const { register, isLoading } = useAuthStore();
-  const { open } = useModalStore();
+  const { open, close } = useModalStore();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,7 +33,15 @@ export default function RegisterModal() {
   };
 
   return (
-    <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md">
+    <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md relative">
+      <button
+        type="button"
+        onClick={close}
+        className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors text-lg p-1 rounded hover:bg-gray-800"
+        aria-label="Zamknij"
+      >
+        ✕
+      </button>
       <h2 className="text-xl font-bold mb-4">{t("auth.register.title")}</h2>
       {error && <p className="text-red-400 mb-3 text-sm">{error}</p>}
       {success && <p className="text-green-400 mb-3 text-sm">{success}</p>}

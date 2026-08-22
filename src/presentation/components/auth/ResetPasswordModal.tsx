@@ -6,7 +6,7 @@ import { authClient } from "../../../application/service/authService";
 
 export default function ResetPasswordModal() {
   const { t } = useTranslation();
-  const { open, modalData } = useModalStore();
+  const { open, close, modalData } = useModalStore();
   const [searchParams] = useSearchParams();
   const token = (modalData as { token?: string } | undefined)?.token || (searchParams.get("token") ?? "");
   const [newPassword, setNewPassword] = useState("");
@@ -43,7 +43,15 @@ export default function ResetPasswordModal() {
   };
 
   return (
-    <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md">
+    <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md relative">
+      <button
+        type="button"
+        onClick={close}
+        className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors text-lg p-1 rounded hover:bg-gray-800"
+        aria-label="Zamknij"
+      >
+        ✕
+      </button>
       <h2 className="text-xl font-bold mb-4">{t("auth.reset.title")}</h2>
       {error && <p className="text-red-400 mb-3 text-sm">{error}</p>}
       {success && (

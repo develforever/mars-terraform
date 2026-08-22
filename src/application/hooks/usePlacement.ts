@@ -58,7 +58,12 @@ export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacemen
       downPos.current = null;
       dragging.current = false;
 
-      if (wasDragging || !buildMode) return;
+      if (wasDragging) return;
+
+      if (!buildMode) {
+        useUIStore.getState().setInspectedInstance(null);
+        return;
+      }
 
       // Recalculate raycaster synchronously from the latest mouse position
       // to avoid reading a stale hoverCell that may not have been updated

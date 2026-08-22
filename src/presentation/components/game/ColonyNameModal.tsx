@@ -150,7 +150,15 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
     }
 
     return (
-        <div className="colony-modal">
+        <div className="colony-modal relative">
+            <button
+                type="button"
+                onClick={onCancel}
+                className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors text-lg p-1 rounded hover:bg-zinc-800"
+                aria-label="Zamknij"
+            >
+                ✕
+            </button>
             <h2 className="colony-modal__title">{t("modal.colony.title")}</h2>
             <p className="colony-modal__subtitle">
                 {isAuthenticated ? t("modal.colony.aiActive") : t("modal.colony.localGen")}

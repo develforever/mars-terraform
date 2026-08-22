@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useModalStore } from "../../../ui/ModalManager/store";
 import { ColonyNameModal } from "../game/ColonyNameModal";
 import { ExitConfirmModal } from "../game/ExitConfirmModal";
@@ -10,6 +11,17 @@ import VerifyEmailModal from "../auth/VerifyEmailModal";
 
 export default function ModalManager() {
     const { isOpen, modalType, close } = useModalStore();
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                close();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, close]);
 
     if (!isOpen || !modalType) return null;
 
@@ -40,8 +52,17 @@ export default function ModalManager() {
     if (!content) return null;
 
     return (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            {content}
+        <div 
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                    close();
+                }
+            }}
+        >
+            <div onClick={(e) => e.stopPropagation()} className="relative">
+                {content}
+            </div>
         </div>
     );
 }

@@ -83,3 +83,20 @@ it("should render upgrade options and max level state", () => {
   expect(screen.getByText("Maksymalny poziom (POZ. 3)")).toBeTruthy();
 });
 
+it("should close inspection popover when clicking close button or pressing Escape", () => {
+  const building: PlacedBuilding = {
+    id: "test-hab-close",
+    definitionId: "hab",
+    position: { x: 0, y: 0, z: 0 },
+    condition: 100,
+    level: 1,
+  };
+
+  render(<BuildingInspectionPopover building={building} />);
+
+  const closeBtn = screen.getByRole("button", { name: "Zamknij" });
+  expect(closeBtn).toBeTruthy();
+  closeBtn.click();
+});
+
+

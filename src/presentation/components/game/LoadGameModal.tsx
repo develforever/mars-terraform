@@ -85,6 +85,7 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
 
     return (
         <div style={{
+            position: "relative",
             background: "rgba(8, 12, 22, 0.97)",
             border: "1px solid rgba(231, 76, 60, 0.35)",
             borderRadius: "14px",
@@ -98,6 +99,25 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
             display: "flex",
             flexDirection: "column",
         }}>
+            <button
+                type="button"
+                onClick={onClose}
+                style={{
+                    position: "absolute",
+                    top: "16px",
+                    right: "16px",
+                    background: "transparent",
+                    border: "none",
+                    color: "#9ca3af",
+                    fontSize: "16px",
+                    cursor: "pointer",
+                    padding: "4px 8px",
+                    borderRadius: "4px",
+                }}
+                aria-label="Zamknij"
+            >
+                ✕
+            </button>
             <h2 style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", color: "#fff", marginBottom: "4px" }}>
                 {t("modal.loadGame.title")}
             </h2>

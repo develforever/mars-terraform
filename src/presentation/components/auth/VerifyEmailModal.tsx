@@ -6,7 +6,7 @@ import { authClient } from "../../../application/service/authService";
 
 export default function VerifyEmailModal() {
   const { t } = useTranslation();
-  const { open, modalData } = useModalStore();
+  const { open, close, modalData } = useModalStore();
   const [searchParams] = useSearchParams();
   const token = (modalData as { token?: string } | undefined)?.token || (searchParams.get("token") ?? "");
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
@@ -32,7 +32,15 @@ export default function VerifyEmailModal() {
   }, [token, t]);
 
   return (
-    <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md">
+    <div className="bg-gray-900 text-white p-6 rounded-lg w-full max-w-md relative">
+      <button
+        type="button"
+        onClick={close}
+        className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors text-lg p-1 rounded hover:bg-gray-800"
+        aria-label="Zamknij"
+      >
+        ✕
+      </button>
       <h2 className="text-xl font-bold mb-4">{t("auth.verify.title")}</h2>
       {status === "loading" && <p className="text-gray-300 text-sm">{t("auth.verify.verifying")}</p>}
       {status === "success" && (

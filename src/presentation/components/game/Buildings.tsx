@@ -253,6 +253,7 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
     const weather = useGameStore((state) => state.weather);
     const resourceNodes = useGameStore((state) => state.resourceNodes);
     const upgradeBuilding = useGameStore((state) => state.upgradeBuilding);
+    const setInspectedInstance = useUIStore((state) => state.setInspectedInstance);
 
     const currentLevel = building.level ?? 1;
     const productionModifier = WeatherService.getProductionModifier(weather);
@@ -286,14 +287,41 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
         condFactor < 1 || neighborMult > 1 || depositMult > 1 || levelMult > 1 || (def?.tags?.includes("dayScaled")) || productionModifier < 1
     );
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                setInspectedInstance(null);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [setInspectedInstance]);
+
     return (
         <Html position={[0, 3, 0]} center style={{ pointerEvents: "none" }}>
-            <div className="building-popover" style={{ pointerEvents: "auto" }}>
+            <div 
+                className="building-popover" 
+                style={{ pointerEvents: "auto" }}
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="popover-header">
-                    <h3>{def?.name}</h3>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 border border-cyan-500/50 text-cyan-300">
-                        {t("popover.levelBadge", { level: currentLevel })}
-                    </span>
+                    <div className="flex items-center gap-2 min-w-0">
+                        <h3 className="truncate">{def?.name}</h3>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 border border-cyan-500/50 text-cyan-300 whitespace-nowrap">
+                            {t("popover.levelBadge", { level: currentLevel })}
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        className="popover-close-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setInspectedInstance(null);
+                        }}
+                        aria-label="Zamknij"
+                    >
+                        ✕
+                    </button>
                 </div>
                 <div className="popover-content">
                     <div className="popover-stat">
