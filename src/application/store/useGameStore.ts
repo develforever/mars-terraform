@@ -58,7 +58,7 @@ export interface GameState {
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
   applyEconomyTick: () => void;
   resetGame: () => void;
-  startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode, mapData?: MapExportJSON | null) => void;
+  startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode, mapData?: MapExportJSON | null, seed?: number) => void;
   saveGame: () => Promise<boolean>;
   loadGame: (name: string) => Promise<boolean>;
   triggerAlienWave: (wave: 0 | 1 | 2, count?: number) => void;
@@ -66,14 +66,15 @@ export interface GameState {
   setWeather: (weather: WeatherState) => void;
 }
 
-function getInitialGameState(mapData?: MapExportJSON | null) {
+function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
   let defaultGrid: HexGrid;
+  const s = seed ?? mapData?.meta?.seed ?? 42;
   if (mapData) {
     defaultGrid = HexGrid.fromJSON(mapData);
   } else {
-    defaultGrid = new HexGrid(20, 42);
+    defaultGrid = new HexGrid(20, s);
     defaultGrid.generate();
-    applyProceduralTerrain(defaultGrid, 42);
+    applyProceduralTerrain(defaultGrid, s);
   }
 
   return {
@@ -369,9 +370,9 @@ export const useGameStore = create<GameState>()(
         set(getInitialGameState());
       },
 
-      startNewGame: (name: string, diff: DifficultyLevel, mode: GameMode, mapData?: MapExportJSON | null) => {
+      startNewGame: (name: string, diff: DifficultyLevel, mode: GameMode, mapData?: MapExportJSON | null, seed?: number) => {
         set({
-          ...getInitialGameState(mapData),
+          ...getInitialGameState(mapData, seed),
           colonyName: name,
           difficulty: diff,
           gameMode: mode,

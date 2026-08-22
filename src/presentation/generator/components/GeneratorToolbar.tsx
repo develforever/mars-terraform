@@ -67,6 +67,9 @@ const GeneratorToolbar = () => {
   const loadFromJSON = useMapEditorStore(s => s.loadFromJSON)
   const meta = useMapEditorStore(s => s.meta)
   const undo = useMapEditorStore(s => s.undo)
+  const generateHexGrid = useMapEditorStore(s => s.generateHexGrid)
+  const hexRadius = useMapEditorStore(s => s.hexRadius)
+  const hexSeed = useMapEditorStore(s => s.hexSeed)
 
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
   const [pendingExportData, setPendingExportData] = useState<string | null>(null)
@@ -215,6 +218,17 @@ const GeneratorToolbar = () => {
         <button onClick={handleReset}
           className="px-2 py-1 rounded hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors text-xs">
           🗺 New
+        </button>
+
+        <button
+          onClick={() => {
+            const s = Math.floor(Math.random() * 99999)
+            generateHexGrid(hexRadius, s)
+          }}
+          className="px-2 py-1 rounded bg-[#c0392b] hover:bg-[#e74c3c] text-white transition-colors text-xs font-medium flex items-center gap-1"
+          title={`Wygeneruj nową deterministyczną mapę (akt. seed: ${hexSeed})`}
+        >
+          🎲 Generate Map
         </button>
 
         <button onClick={handleImport}

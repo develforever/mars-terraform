@@ -137,7 +137,7 @@ describe("ColonyNameModal", () => {
     expect(screen.getByText("👥 2 graczy")).toBeInTheDocument();
   });
 
-  it("calls startNewGame with null mapData when procedural map is selected", async () => {
+  it("calls startNewGame with null mapData and procedural seed when procedural map is selected", async () => {
     const startNewGameSpy = vi.spyOn(useGameStore.getState(), "startNewGame");
 
     render(<ColonyNameModal onConfirm={mockOnConfirm} onCancel={mockOnCancel} />);
@@ -145,10 +145,14 @@ describe("ColonyNameModal", () => {
     const input = screen.getByPlaceholderText("modal.colony.placeholder");
     fireEvent.change(input, { target: { value: "Alpha Colony" } });
 
+    const seedInput = screen.getByLabelText(/seed:/i);
+    fireEvent.change(seedInput, { target: { value: "777" } });
+
     const confirmBtn = screen.getByText("modal.colony.start");
     fireEvent.click(confirmBtn);
 
-    expect(startNewGameSpy).toHaveBeenCalledWith("Alpha Colony", "normal", "exploration", null);
+    expect(startNewGameSpy).toHaveBeenCalledWith("Alpha Colony", "normal", "exploration", null, 777);
     expect(mockOnConfirm).toHaveBeenCalledTimes(1);
   });
 });
+

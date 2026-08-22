@@ -25,6 +25,7 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
 
     // Map selection state
     const [mapSource, setMapSource] = useState<"procedural" | "cloud">("procedural");
+    const [proceduralSeed, setProceduralSeed] = useState<number>(42);
     const [cloudMaps, setCloudMaps] = useState<MapSummaryResponse[]>([]);
     const [selectedCloudMapId, setSelectedCloudMapId] = useState<number | null>(null);
     const [selectedMapData, setSelectedMapData] = useState<MapExportJSON | null>(null);
@@ -90,7 +91,7 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
         setIsLaunching(true);
         resetUI();
         const mapPayload = mapSource === "procedural" ? null : selectedMapData;
-        startNewGame(colonyName.trim(), difficulty, gameMode, mapPayload);
+        startNewGame(colonyName.trim(), difficulty, gameMode, mapPayload, mapSource === "procedural" ? proceduralSeed : undefined);
         setLaunching(true);
         onConfirm(); // Close modal immediately — show 3D scene behind
 
@@ -237,6 +238,33 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
                         <span>Cloud Maps</span>
                     </button>
                 </div>
+
+                {mapSource === "procedural" && (
+                    <div className="colony-modal__procedural-section">
+                        <div className="colony-modal__seed-row">
+                            <label htmlFor="procedural-seed-input" className="colony-modal__seed-label">
+                                Seed:
+                            </label>
+                            <input
+                                id="procedural-seed-input"
+                                type="number"
+                                className="colony-modal__seed-input"
+                                value={proceduralSeed}
+                                onChange={(e) => setProceduralSeed(Number(e.target.value))}
+                                disabled={isLaunching}
+                            />
+                            <button
+                                type="button"
+                                className="colony-modal__seed-dice-btn"
+                                onClick={() => setProceduralSeed(Math.floor(Math.random() * 99999))}
+                                disabled={isLaunching}
+                                title="Wylosuj seed"
+                            >
+                                🎲
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {mapSource === "cloud" && (
                     <div className="colony-modal__cloud-section">

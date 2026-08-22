@@ -48,16 +48,26 @@ export function generateDecor(grid: HexGrid, seed: number): DecorItem[] {
 
 // ─── Resources ──────────────────────────────────────────────────────────────
 
-const RES_WEIGHTS: { type: ResourceType; w: number }[] = [
-  { type: 'minerals', w: 0.45 },
-  { type: 'ice',      w: 0.25 },
-  { type: 'organics', w: 0.18 },
-  { type: 'energy',   w: 0.12 },
-]
-function pickResourceType(r: number): ResourceType {
-  let acc = 0
-  for (const t of RES_WEIGHTS) { acc += t.w; if (r <= acc) return t.type }
-  return 'minerals'
+function pickResourceTypeForTerrain(terrainType: string, r: number): ResourceType {
+  if (terrainType === 'deep_crater' || terrainType === 'lowland') {
+    // Kratery i niziny: głównie lód wodny i minerały uderzeniowe
+    if (r < 0.55) return 'ice'
+    if (r < 0.85) return 'minerals'
+    if (r < 0.93) return 'organics'
+    return 'energy'
+  }
+  if (terrainType === 'rocky' || terrainType === 'peak') {
+    // Skały i szczyty: bogate minerały i energia geotermalna/solarna
+    if (r < 0.50) return 'minerals'
+    if (r < 0.75) return 'energy'
+    if (r < 0.90) return 'ice'
+    return 'organics'
+  }
+  // Równiny i wyżyny: zrównoważone złoża
+  if (r < 0.40) return 'minerals'
+  if (r < 0.65) return 'ice'
+  if (r < 0.85) return 'organics'
+  return 'energy'
 }
 
 const RES_MODEL: Record<ResourceType, string> = {
@@ -69,24 +79,26 @@ const RES_MODEL: Record<ResourceType, string> = {
 
 export function generateResources(grid: HexGrid, seed: number, players: number): ResourceNode[] {
   const rng = mulberry32((seed ^ 0x55aa) >>> 0)
-  const cells = grid.getAllCells().filter(c => c.terrainType !== 'deep_crater')
+  const cells = grid.getAllCells()
   if (cells.length === 0) return []
 
-  const count = Math.min(cells.length, players * 4 + 4)
+  // Preferencyjne wybieranie komórek nizin, kraterów i wyżyn
+  const count = Math.min(cells.length, Math.max(8, players * 4 + 4))
   const used = new Set<string>()
   const out: ResourceNode[] = []
-  let i = 0, guard = 0
+  let i = 0
+  let guard = 0
 
-  while (out.length < count && guard < count * 30) {
+  while (out.length < count && guard < count * 40) {
     guard++
     const c = cells[Math.floor(rng() * cells.length)]
     const key = `${c.q},${c.r}`
     if (used.has(key)) continue
     used.add(key)
 
-    const type = pickResourceType(rng())
+    const type = pickResourceTypeForTerrain(c.terrainType, rng())
     const rr = rng()
-    const richness: Richness = rr < 0.2 ? 'high' : rr < 0.55 ? 'med' : 'low'
+    const richness: Richness = rr < 0.25 ? 'high' : rr < 0.60 ? 'med' : 'low'
     const range = richness === 'high' ? [2000, 3500] : richness === 'med' ? [1000, 2000] : [500, 1000]
     const amount = Math.round((range[0] + rng() * (range[1] - range[0])) / 100) * 100
 

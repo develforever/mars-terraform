@@ -10,6 +10,7 @@ import {
   hexKey,
 } from './HexMath'
 import type { TileType, MapExportJSON } from '../../../domain/mapEditorTypes'
+import { applyProceduralTerrain, type ProceduralTerrainOptions } from '../terrain/ProceduralTerrain'
 
 // ─── Terrain types ────────────────────────────────────────────────────────────
 
@@ -96,6 +97,12 @@ export class HexGrid {
         decor: null,
       })
     }
+  }
+
+  // ── Procedural Generation ──────────────────────────────────────────────────
+
+  applyProcedural(seed?: number, options?: ProceduralTerrainOptions): void {
+    applyProceduralTerrain(this, seed ?? this.seed, options)
   }
 
   // ── Accessors ─────────────────────────────────────────────────────────────
@@ -225,3 +232,5 @@ export class HexGrid {
     return stats
   }
 }
+
+export { applyProceduralTerrain }

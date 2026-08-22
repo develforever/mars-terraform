@@ -37,6 +37,17 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     expect(state.currentMapData).toBeNull();
     expect(state.hexGrid).toBeDefined();
     expect(state.hexGrid.getCellCount()).toBeGreaterThan(0);
+    expect(state.hexGrid.seed).toBe(42);
+  });
+
+  it("initializes procedural hexGrid with explicit seed in startNewGame", () => {
+    useGameStore.getState().startNewGame("Seeded Colony", "hard", "exploration", null, 12345);
+
+    const state = useGameStore.getState();
+    expect(state.colonyName).toBe("Seeded Colony");
+    expect(state.currentMapData).toBeNull();
+    expect(state.hexGrid.seed).toBe(12345);
+    expect(state.hexGrid.getCellCount()).toBeGreaterThan(0);
   });
 
   it("initializes custom hexGrid when valid mapData is passed to startNewGame", () => {

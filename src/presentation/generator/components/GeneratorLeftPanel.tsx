@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
 import type { ToolMode, BrushSize } from '../../../domain/mapEditorTypes'
 import type { HexTerrainType } from '../hex/HexGrid'
@@ -68,6 +68,14 @@ const GeneratorLeftPanel = () => {
   const [radiusInput, setRadiusInput] = useState<number>(hexRadius)
   const [seedInput, setSeedInput]     = useState<number>(hexSeed)
 
+  useEffect(() => {
+    setSeedInput(hexSeed)
+  }, [hexSeed])
+
+  useEffect(() => {
+    setRadiusInput(hexRadius)
+  }, [hexRadius])
+
   const handleGenerate = () => {
     const r = Math.max(5, Math.min(40, radiusInput))
     generateHexGrid(r, seedInput)
@@ -76,6 +84,8 @@ const GeneratorLeftPanel = () => {
   const handleRandomSeed = () => {
     const s = Math.floor(Math.random() * 99999)
     setSeedInput(s)
+    const r = Math.max(5, Math.min(40, radiusInput))
+    generateHexGrid(r, s)
   }
 
   return (
