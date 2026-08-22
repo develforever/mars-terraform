@@ -5,6 +5,7 @@ import * as THREE from "three";
 import type { Group } from "three";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useDebugStore } from "../../../application/store/useDebugStore";
+import { useTerrainHeight } from "./TerrainHeightContext";
 import type { AlienShip, AlienGroundUnit } from "../../../domain/entities/Alien";
 
 const SHIP_MODEL   = "/models/mars/craft_speederA.glb";
@@ -210,27 +211,57 @@ function ShipMesh({ ship, targetPos }: ShipMeshProps) {
 
 function GroundUnitMesh({ unit }: { unit: AlienGroundUnit }) {
     const groupRef = useRef<THREE.Group>(null);
-    const prevPos  = useRef({ x: unit.position.x, z: unit.position.z });
+    const getTerrainY = useTerrainHeight();
+    const visualPos = useRef<THREE.Vector3 | null>(null);
+    const currentRotY = useRef(0);
 
-    useFrame(({ clock }) => {
+    useFrame(({ clock }, delta) => {
         if (!groupRef.current) return;
         const t = clock.elapsedTime;
 
-        // Bob up/down while walking
-        const moving =
-            Math.abs(unit.position.x - prevPos.current.x) > 0.001 ||
-            Math.abs(unit.position.z - prevPos.current.z) > 0.001;
+        const targetX = unit.position.x;
+        const targetZ = unit.position.z;
+        const initialY = unit.position.y ?? getTerrainY(targetX, targetZ);
 
-        const bobY = moving ? Math.abs(Math.sin(t * 6)) * 0.2 : 0;
-        groupRef.current.position.set(unit.position.x, (unit.position.y ?? 0) + bobY, unit.position.z);
-
-        // Face movement direction
-        const dx = unit.position.x - prevPos.current.x;
-        const dz = unit.position.z - prevPos.current.z;
-        if (Math.abs(dx) + Math.abs(dz) > 0.001) {
-            groupRef.current.rotation.y = Math.atan2(dx, dz);
+        if (!visualPos.current) {
+            visualPos.current = new THREE.Vector3(targetX, initialY, targetZ);
+            groupRef.current.position.copy(visualPos.current);
+            return;
         }
-        prevPos.current = { x: unit.position.x, z: unit.position.z };
+
+        const dx = targetX - visualPos.current.x;
+        const dz = targetZ - visualPos.current.z;
+        const dist = Math.hypot(dx, dz);
+
+        // If distance is excessively large (e.g. initial spawn / teleport), snap position
+        if (dist > 20) {
+            visualPos.current.set(targetX, initialY, targetZ);
+        } else if (dist > 0.001) {
+            // Smoothly move towards target position using catch-up speed
+            const speed = Math.max(2.0, dist * 3.5);
+            const step = Math.min(dist, delta * speed);
+            visualPos.current.x += (dx / dist) * step;
+            visualPos.current.z += (dz / dist) * step;
+
+            // Smooth rotation towards movement direction
+            const targetAngle = Math.atan2(dx, dz);
+            let angleDiff = targetAngle - currentRotY.current;
+            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+            currentRotY.current += angleDiff * Math.min(1, delta * 12);
+            groupRef.current.rotation.y = currentRotY.current;
+        }
+
+        // Dynamically sample terrain elevation at current visual (x, z)
+        const terrainY = getTerrainY(visualPos.current.x, visualPos.current.z);
+        const isMoving = dist > 0.05;
+        const bobY = isMoving ? Math.abs(Math.sin(t * 8)) * 0.15 : 0;
+
+        groupRef.current.position.set(
+            visualPos.current.x,
+            terrainY + bobY,
+            visualPos.current.z,
+        );
     });
 
     return (

@@ -1,4 +1,4 @@
-import type { HexGrid } from "../../presentation/generator/hex/HexGrid";
+import type { HexGrid, HexCell } from "../../presentation/generator/hex/HexGrid";
 import { hexNeighbors, hexDistance, hexKey } from "../../presentation/generator/hex/HexMath";
 
 export interface PathfindingOptions {
@@ -68,6 +68,30 @@ class MinHeap {
 
 export class HexPathfindingService {
   /**
+   * Evaluates if movement between two adjacent hex cells is passable.
+   * Checks for blocked user types and maximum climbable cliff height difference.
+   */
+  static isPassable(
+    fromCell: HexCell,
+    toCell: HexCell,
+    options?: PathfindingOptions,
+  ): boolean {
+    const maxClimb = options?.maxClimb ?? 0.85;
+    const blockedUserTypes = options?.blockedUserTypes ?? ["blocked"];
+
+    if (toCell.userType && blockedUserTypes.includes(toCell.userType)) {
+      return false;
+    }
+
+    const heightDiff = Math.abs(fromCell.worldY - toCell.worldY);
+    if (heightDiff > maxClimb + 1e-5) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Deterministic A* pathfinding algorithm on axial hex grid.
    * Considers cell existence, worldY cliff height difference (maxClimb), and blocked userTypes.
    */
@@ -77,7 +101,6 @@ export class HexPathfindingService {
     target: [number, number],
     options?: PathfindingOptions,
   ): [number, number][] | null {
-    const maxClimb = options?.maxClimb ?? 0.85;
     const blockedUserTypes = options?.blockedUserTypes ?? ["blocked"];
 
     const [startQ, startR] = start;
@@ -147,15 +170,11 @@ export class HexPathfindingService {
         const neighborCell = grid.getCell(neighborQ, neighborR);
         if (!neighborCell) continue;
 
-        if (neighborCell.userType && blockedUserTypes.includes(neighborCell.userType)) {
+        if (!this.isPassable(currentCell, neighborCell, options)) {
           continue;
         }
 
         const heightDiff = Math.abs(currentCell.worldY - neighborCell.worldY);
-        if (heightDiff > maxClimb + 1e-5) {
-          continue;
-        }
-
         const stepCost = 1 + heightDiff;
         const tentativeG = currentG + stepCost;
         const neighborKey = hexKey(neighborQ, neighborR);

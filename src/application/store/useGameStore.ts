@@ -157,45 +157,20 @@ export const useGameStore = create<GameState>()(
       },
 
       triggerAlienWave: (wave, count = 3) => {
-        const { placed } = get();
+        const { placed, hexGrid } = get();
         if (placed.length === 0) return;
         const ships: AlienShip[] = [];
         const groundUnits: AlienGroundUnit[] = [];
 
         if (wave >= 1) {
           for (let i = 0; i < count; i++) {
-            const target = placed[Math.floor(Math.random() * placed.length)];
-            const angle = Math.random() * Math.PI * 2;
-            ships.push({
-              id: `ship-dbg-${Date.now()}-${i}`,
-              position: {
-                x: Math.cos(angle + i * 0.5) * (50 + Math.random() * 20),
-                y: 15 + Math.random() * 10,
-                z: Math.sin(angle + i * 0.5) * (30 + Math.random() * 20),
-              },
-              targetBuildingId: target?.id ?? null,
-              phase: "approaching" as const,
-              phaseProgress: 0,
-              active: true,
-            });
+            ships.push(AlienService.spawnShip(placed));
           }
         }
 
         if (wave >= 2) {
           for (let i = 0; i < count; i++) {
-            const side = Math.floor(Math.random() * 4);
-            let x = 0, z = 0;
-            if (side === 0) { x = -48; z = (Math.random() * 2 - 1) * 22; }
-            if (side === 1) { x =  48; z = (Math.random() * 2 - 1) * 22; }
-            if (side === 2) { x = (Math.random() * 2 - 1) * 48; z = -22; }
-            if (side === 3) { x = (Math.random() * 2 - 1) * 48; z =  22; }
-            groundUnits.push({
-              id: `ground-dbg-${Date.now()}-${i}`,
-              position: { x, z },
-              targetBuildingId: null,
-              attackCooldown: 0,
-              active: true,
-            });
+            groundUnits.push(AlienService.spawnGroundUnit(hexGrid));
           }
         }
 

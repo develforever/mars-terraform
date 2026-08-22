@@ -1,7 +1,7 @@
 import type { AlienShip, AlienGroundUnit, AlienState } from "../entities/Alien";
 import type { PlacedBuilding } from "../entities/Building";
 import type { HexGrid } from "../../presentation/generator/hex/HexGrid";
-import { worldToHex, hexToWorld } from "../../presentation/generator/hex/HexMath";
+import { worldToHex, hexToWorld, hexRing } from "../../presentation/generator/hex/HexMath";
 import { HexPathfindingService } from "./HexPathfindingService";
 
 const SHIP_DAMAGE   = 50;
@@ -94,6 +94,10 @@ export class AlienService {
 
       // Move & attack
       groundUnits = groundUnits.map((unit) => {
+        if (damagedBuildings.length === 0) {
+          return { ...unit, targetBuildingId: null, path: undefined, currentPathIndex: undefined };
+        }
+
         const target = this.findClosestBuilding(unit.position, damagedBuildings);
         if (!target) {
           return { ...unit, targetBuildingId: null, path: undefined, currentPathIndex: undefined };
@@ -124,6 +128,7 @@ export class AlienService {
 
           let currentPath = unit.path;
           let currentPathIndex = unit.currentPathIndex;
+          let currentTarget = target;
 
           const needsNewPath =
             unit.targetBuildingId !== target.id ||
@@ -133,7 +138,7 @@ export class AlienService {
             currentPathIndex >= currentPath.length;
 
           if (needsNewPath) {
-            const calculatedPath = HexPathfindingService.findPath(hexGrid, unitHex, targetHex);
+            const calculatedPath = HexPathfindingService.findPath(hexGrid, unitHex, targetHex, { maxClimb: 0.85 });
             if (calculatedPath && calculatedPath.length > 0) {
               currentPath = calculatedPath;
               if (
@@ -146,8 +151,36 @@ export class AlienService {
                 currentPathIndex = 0;
               }
             } else {
-              currentPath = undefined;
-              currentPathIndex = undefined;
+              // Try finding reachable building if closest is unreachable due to cliffs
+              const sortedBuildings = [...damagedBuildings].sort((a, b) => {
+                const da = Math.hypot(a.position.x - unit.position.x, a.position.z - unit.position.z);
+                const db = Math.hypot(b.position.x - unit.position.x, b.position.z - unit.position.z);
+                return da - db;
+              });
+
+              let altPath: [number, number][] | null = null;
+              let altTarget: PlacedBuilding | null = null;
+
+              for (const candidate of sortedBuildings) {
+                if (candidate.id === target.id) continue;
+                const candidateHex = worldToHex(candidate.position.x, candidate.position.z);
+                const p = HexPathfindingService.findPath(hexGrid, unitHex, candidateHex, { maxClimb: 0.85 });
+                if (p && p.length > 0) {
+                  altPath = p;
+                  altTarget = candidate;
+                  break;
+                }
+              }
+
+              if (altPath && altTarget) {
+                currentTarget = altTarget;
+                currentPath = altPath;
+                currentPathIndex =
+                  altPath.length > 1 && altPath[0][0] === unitHex[0] && altPath[0][1] === unitHex[1] ? 1 : 0;
+              } else {
+                currentPath = undefined;
+                currentPathIndex = undefined;
+              }
             }
           }
 
@@ -158,7 +191,7 @@ export class AlienService {
             let wdz = wz - unit.position.z;
             let wDist = Math.sqrt(wdx * wdx + wdz * wdz);
 
-            if (wDist <= 0.1) {
+            if (wDist <= 0.2) {
               if (currentPathIndex + 1 < currentPath.length) {
                 currentPathIndex++;
                 waypointHex = currentPath[currentPathIndex];
@@ -179,25 +212,29 @@ export class AlienService {
 
             return {
               ...unit,
-              targetBuildingId: target.id,
+              targetBuildingId: currentTarget.id,
               attackCooldown: Math.max(0, unit.attackCooldown - 1),
               position: { x: moveX, y: newY, z: moveZ },
               path: currentPath,
               currentPathIndex,
             };
           }
+
+          // If path cannot be found because cliffs block the way, remain in place and wait
+          return {
+            ...unit,
+            targetBuildingId: currentTarget.id,
+            attackCooldown: Math.max(0, unit.attackCooldown - 1),
+            path: undefined,
+            currentPathIndex: undefined,
+          };
         }
 
-        // Fallback straight line movement
+        // Fallback straight line movement if hexGrid is not present
         const speed = Math.min(GROUND_SPEED, dist);
         const newX = unit.position.x + (dx / dist) * speed;
         const newZ = unit.position.z + (dz / dist) * speed;
-        let newY = unit.position.y ?? 0;
-        if (hexGrid) {
-          const [curQ, curR] = worldToHex(newX, newZ);
-          const curCell = hexGrid.getCell(curQ, curR);
-          if (curCell) newY = curCell.worldY;
-        }
+        const newY = unit.position.y ?? 0;
 
         return {
           ...unit,
@@ -228,7 +265,7 @@ export class AlienService {
     };
   }
 
-  private static spawnShip(buildings: PlacedBuilding[]): AlienShip {
+  static spawnShip(buildings: PlacedBuilding[]): AlienShip {
     const target = buildings[Math.floor(Math.random() * buildings.length)];
     const angle = Math.random() * Math.PI * 2;
     return {
@@ -238,14 +275,34 @@ export class AlienService {
         y: SHIP_SPAWN_HEIGHT + Math.random() * SHIP_SPAWN_HEIGHT_VAR,
         z: Math.sin(angle) * SHIP_ORBIT_Z,
       },
-      targetBuildingId: target.id,
+      targetBuildingId: target?.id ?? null,
       phase: "approaching",
       phaseProgress: 0,
       active: true,
     };
   }
 
-  private static spawnGroundUnit(hexGrid?: HexGrid): AlienGroundUnit {
+  static spawnGroundUnit(hexGrid?: HexGrid): AlienGroundUnit {
+    if (hexGrid) {
+      const radius = Math.max(1, hexGrid.radius);
+      const ring = hexRing(0, 0, radius);
+      const validCells = ring
+        .map(([q, r]) => hexGrid.getCell(q, r))
+        .filter((cell): cell is NonNullable<typeof cell> => cell !== undefined);
+
+      if (validCells.length > 0) {
+        const chosen = validCells[Math.floor(Math.random() * validCells.length)];
+        const [x, z] = hexToWorld(chosen.q, chosen.r);
+        return {
+          id: `ground-${crypto.randomUUID()}`,
+          position: { x, y: chosen.worldY, z },
+          targetBuildingId: null,
+          attackCooldown: 0,
+          active: true,
+        };
+      }
+    }
+
     const side = Math.floor(Math.random() * 4);
     let x = 0, z = 0;
     if (side === 0) { x = -TERRAIN_HALF_X; z = (Math.random() * 2 - 1) * TERRAIN_HALF_Z; }
@@ -269,7 +326,7 @@ export class AlienService {
     };
   }
 
-  private static findClosestBuilding(
+  static findClosestBuilding(
     pos: { x: number; z: number },
     buildings: PlacedBuilding[],
   ): PlacedBuilding | null {
