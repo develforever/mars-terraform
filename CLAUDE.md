@@ -172,15 +172,24 @@ Zrobione:
 - Algorytm ścieżek `HexPathfindingService` (A* z detekcją i omijaniem klifów) + płynny ruch 3D jednostek inwazji obcych.
 - Kinowe słońce proceduralne (analityczny billboard korony `exp(-dist * k)` z ditherem) + kierunkowy rim light atmosfery (Mie scattering) + kalibracja Bloom HDR.
 - Eksport/import map JSON v2.0 + walidacja Zod, minimapa, undo/redo, skróty klawiszowe.
+- Mechanika wydobycia złóż surowców (Ice/Mineral Deposits) i premia sąsiedztwa heksów (`+50%` per złoże) + tempo wyczerpywania.
+- System poziomów budynków (Lvl 1 -> 2 -> 3) i pętla logistyczna 3D: łaziki naziemne A* (`rover.glb`) i drony powietrzne Béziera (`craft_miner.glb`).
+- Połączenia energetyczne i rurociągi wodne na siatce heksów z algorytmem Minimum Spanning Forest (`BuildingConnections.tsx`).
+- Asystent AI w Generatorze Map (`AIMapGeneratorService.ts` z NLP i generowaniem/edycją map kontraktu v2.0).
+- Pełna integracja wygenerowanych map (`MapExportJSON v2.0`) w silniku gry `/mars` (`TerrainHexMesh.tsx`, `Decorations.tsx`, `useGameStore.ts`).
+- Globalna reguła UX *Modal & Popover Dismiss Rule* (`✕`, click-outside backdrop, Escape) we wszystkich oknach i popoverach.
+- Połączenie i weryfikacja środowiska Blender 5.1.1 MCP live (`localhost:9876`, 504 obiekty, `mars-terraform.blend`).
 
 Do zrobienia:
-1. **Mechanika wydobycia złóż surowców (Ice/Mineral Deposits) i premia sąsiedztwa heksów** (W trakcie):
-   - Wykorzystanie złóż mineralnych i lodowych przez budynki wydobywcze na sąsiadujących heksach z mnożnikami produkcji.
-2. **System poziomów budynków i jednostki logistyczne (Building Upgrades & Logistics Loop)**:
-   - Drzewo rozbudowy budynków (`level: 1 -> 2 -> 3`), gdzie każdy poziom zużywa surowce kolonii.
-   - **Poziom 1 (Bazowy)**: Wydobycie stacjonarne (bezpośredni heks / bezpośredni sąsiad).
-   - **Poziom 2 (Łazik transportowy - `rover.glb`)**: Automatyczne wysyłanie łazika naziemnego poruszającego się po grafie heksów (A*) do złóż w promieniu 1-2 heksów z omijaniem klifów.
-   - **Poziom 3 (Dron logistyczny - `craft_miner.glb` / `craft_cargoA.glb`)**: Odblokowanie drona powietrznego latającego ponad klifami po krzywej Béziera do odległych złóż (promień 3-4 heksy).
-   - UI podglądu drzewa ulepszeń i przycisk "Rozbuduj" w panelu szczegółów budynku.
-3. **Połączenia energetyczne i rurociągi na siatce heksagonalnej (`BuildingConnections.tsx`)**.
-4. **Podpięcie agenta AI do generatora map** (na bazie ustalonego kontraktu JSON v2.0 / seeda).
+1. **Warianty Modeli 3D dla Poziomów Rozbudowy (Blender MCP Kitbashing Pipeline)**:
+   - Wygenerowanie przez Blender MCP dedykowanych wariantów wizualnych dla budynków Lvl 2 i Lvl 3 (np. `generator_lvl2.glb`, `generator_lvl3.glb` z platformą lądowania drona) z biblioteki `mars-terraform.blend`.
+   - Nowe wyspecjalizowane klasy jednostek (np. opancerzony łazik bojowy z wieżyczką, ciężki transporter zasobów).
+2. **Zautomatyzowany Renderer Ikon 3D dla HUD (Blender MCP Icon Pipeline)**:
+   - Skrypt w Blenderze renderujący spójne miniatury 128x128 `.webp` dla wszystkich assetów z kamery izometrycznej w `00_STUDIO_ENV` do `public/icons/` dla palety budowy i HUD-u.
+3. **System Badań Naukowych (Tech Tree / Research System) i Wskaźniki Terraformacji**:
+   - Produkcja Punktów Badań (RP) przez Laboratorium (`lab`), interaktywne drzewo technologii (`ResearchTreeModal.tsx`) odblokowujące zaawansowane budynki i technologie planetarne.
+   - Wskaźniki postępu terraformacji (O₂, Temperatura, Ciśnienie, Woda) z progami sukcesu misji.
+4. **Proceduralne Prefaby Ruin i Baz Obcych (Map POI) przez Blender MCP**:
+   - Kompozycja modułów korytarzy, platform i wraków statków w zoptymalizowane prefaby `.glb` do umieszczania jako unikalne obiekty na mapach.
+5. **Optymalizacja Polycount i Siatki LOD (Level of Detail)**:
+   - Zautomatyzowany audyt gęstości siatek w Blenderze i generowanie wariantów `_lod1.glb` modyfikatorem Decimate dla obiektów tła i dalekiego planu.
