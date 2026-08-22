@@ -1,0 +1,2149 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-08-22T09:29:24Z",
+  "totalAssets": 153,
+  "assets": [
+    {
+      "id": "alien",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Characters_Misc",
+      "path": "/models/mars/alien.glb",
+      "fileSize": 32024,
+      "dimensions": {
+        "x": 0.483,
+        "y": 0.33,
+        "z": 0.843
+      },
+      "triangles": 292,
+      "vertices": 488
+    },
+    {
+      "id": "astronautA",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Characters_Misc",
+      "path": "/models/mars/astronautA.glb",
+      "fileSize": 32804,
+      "dimensions": {
+        "x": 0.483,
+        "y": 0.33,
+        "z": 0.793
+      },
+      "triangles": 296,
+      "vertices": 496
+    },
+    {
+      "id": "astronautB",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Characters_Misc",
+      "path": "/models/mars/astronautB.glb",
+      "fileSize": 32928,
+      "dimensions": {
+        "x": 0.483,
+        "y": 0.33,
+        "z": 0.793
+      },
+      "triangles": 314,
+      "vertices": 518
+    },
+    {
+      "id": "barrel",
+      "category": "01_BUILDINGS",
+      "subCategory": "Storage",
+      "path": "/models/mars/barrel.glb",
+      "fileSize": 5412,
+      "dimensions": {
+        "x": 0.2,
+        "y": 0.173,
+        "z": 0.25
+      },
+      "triangles": 56,
+      "vertices": 96
+    },
+    {
+      "id": "barrels",
+      "category": "01_BUILDINGS",
+      "subCategory": "Storage",
+      "path": "/models/mars/barrels.glb",
+      "fileSize": 22932,
+      "dimensions": {
+        "x": 2.5,
+        "y": 1.946,
+        "z": 0.35
+      },
+      "triangles": 268,
+      "vertices": 464
+    },
+    {
+      "id": "barrels_rail",
+      "category": "01_BUILDINGS",
+      "subCategory": "Storage",
+      "path": "/models/mars/barrels_rail.glb",
+      "fileSize": 32652,
+      "dimensions": {
+        "x": 2.5,
+        "y": 1.946,
+        "z": 0.35
+      },
+      "triangles": 428,
+      "vertices": 704
+    },
+    {
+      "id": "bones",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Characters_Misc",
+      "path": "/models/mars/bones.glb",
+      "fileSize": 12924,
+      "dimensions": {
+        "x": 0.861,
+        "y": 0.582,
+        "z": 0.442
+      },
+      "triangles": 168,
+      "vertices": 336
+    },
+    {
+      "id": "chimney",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Misc",
+      "path": "/models/mars/chimney.glb",
+      "fileSize": 8968,
+      "dimensions": {
+        "x": 0.4,
+        "y": 0.4,
+        "z": 2.0
+      },
+      "triangles": 140,
+      "vertices": 192
+    },
+    {
+      "id": "chimney_detailed",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/chimney_detailed.glb",
+      "fileSize": 23312,
+      "dimensions": {
+        "x": 0.4,
+        "y": 0.4,
+        "z": 2.0
+      },
+      "triangles": 332,
+      "vertices": 576
+    },
+    {
+      "id": "corridor",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor.glb",
+      "fileSize": 7560,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 84,
+      "vertices": 136
+    },
+    {
+      "id": "corridor_corner",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_corner.glb",
+      "fileSize": 8988,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 110,
+      "vertices": 174
+    },
+    {
+      "id": "corridor_cornerRound",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_cornerRound.glb",
+      "fileSize": 26964,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 414,
+      "vertices": 678
+    },
+    {
+      "id": "corridor_cornerRoundWindow",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_cornerRoundWindow.glb",
+      "fileSize": 31716,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 484,
+      "vertices": 788
+    },
+    {
+      "id": "corridor_cross",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_cross.glb",
+      "fileSize": 13368,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 172,
+      "vertices": 296
+    },
+    {
+      "id": "corridor_detailed",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_detailed.glb",
+      "fileSize": 12972,
+      "dimensions": {
+        "x": 1.2,
+        "y": 1.0,
+        "z": 1.1
+      },
+      "triangles": 164,
+      "vertices": 260
+    },
+    {
+      "id": "corridor_end",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_end.glb",
+      "fileSize": 10332,
+      "dimensions": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 1.0
+      },
+      "triangles": 120,
+      "vertices": 190
+    },
+    {
+      "id": "corridor_open",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_open.glb",
+      "fileSize": 11104,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 170,
+      "vertices": 250
+    },
+    {
+      "id": "corridor_roof",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_roof.glb",
+      "fileSize": 4532,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.241
+      },
+      "triangles": 44,
+      "vertices": 72
+    },
+    {
+      "id": "corridor_split",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_split.glb",
+      "fileSize": 11364,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 128,
+      "vertices": 216
+    },
+    {
+      "id": "corridor_wall",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_wall.glb",
+      "fileSize": 5252,
+      "dimensions": {
+        "x": 0.1,
+        "y": 1.0,
+        "z": 0.8
+      },
+      "triangles": 36,
+      "vertices": 72
+    },
+    {
+      "id": "corridor_wallCorner",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_wallCorner.glb",
+      "fileSize": 20924,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.8
+      },
+      "triangles": 256,
+      "vertices": 514
+    },
+    {
+      "id": "corridor_window",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_window.glb",
+      "fileSize": 13720,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 190,
+      "vertices": 274
+    },
+    {
+      "id": "corridor_windowClosed",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Corridors",
+      "path": "/models/mars/corridor_windowClosed.glb",
+      "fileSize": 14908,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 214,
+      "vertices": 306
+    },
+    {
+      "id": "craft_cargoA",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/craft_cargoA.glb",
+      "fileSize": 18948,
+      "dimensions": {
+        "x": 1.6,
+        "y": 2.45,
+        "z": 0.8
+      },
+      "triangles": 264,
+      "vertices": 422
+    },
+    {
+      "id": "craft_cargoB",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/craft_cargoB.glb",
+      "fileSize": 25484,
+      "dimensions": {
+        "x": 1.5,
+        "y": 2.5,
+        "z": 0.9
+      },
+      "triangles": 380,
+      "vertices": 602
+    },
+    {
+      "id": "craft_miner",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/craft_miner.glb",
+      "fileSize": 26596,
+      "dimensions": {
+        "x": 1.8,
+        "y": 2.6,
+        "z": 0.7
+      },
+      "triangles": 384,
+      "vertices": 640
+    },
+    {
+      "id": "craft_racer",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/craft_racer.glb",
+      "fileSize": 20068,
+      "dimensions": {
+        "x": 1.2,
+        "y": 2.026,
+        "z": 0.75
+      },
+      "triangles": 280,
+      "vertices": 446
+    },
+    {
+      "id": "craft_speederA",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/craft_speederA.glb",
+      "fileSize": 20696,
+      "dimensions": {
+        "x": 2.0,
+        "y": 2.1,
+        "z": 0.8
+      },
+      "triangles": 280,
+      "vertices": 464
+    },
+    {
+      "id": "craft_speederB",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/craft_speederB.glb",
+      "fileSize": 19436,
+      "dimensions": {
+        "x": 2.0,
+        "y": 2.026,
+        "z": 0.6
+      },
+      "triangles": 270,
+      "vertices": 426
+    },
+    {
+      "id": "craft_speederC",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/craft_speederC.glb",
+      "fileSize": 21192,
+      "dimensions": {
+        "x": 2.8,
+        "y": 1.926,
+        "z": 0.6
+      },
+      "triangles": 292,
+      "vertices": 472
+    },
+    {
+      "id": "craft_speederD",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/craft_speederD.glb",
+      "fileSize": 22896,
+      "dimensions": {
+        "x": 2.8,
+        "y": 2.226,
+        "z": 0.9
+      },
+      "triangles": 322,
+      "vertices": 532
+    },
+    {
+      "id": "crater",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Craters",
+      "path": "/models/mars/crater.glb",
+      "fileSize": 5464,
+      "dimensions": {
+        "x": 0.715,
+        "y": 0.826,
+        "z": 0.118
+      },
+      "triangles": 60,
+      "vertices": 96
+    },
+    {
+      "id": "craterLarge",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Craters",
+      "path": "/models/mars/craterLarge.glb",
+      "fileSize": 5476,
+      "dimensions": {
+        "x": 0.886,
+        "y": 0.886,
+        "z": 0.12
+      },
+      "triangles": 60,
+      "vertices": 96
+    },
+    {
+      "id": "desk_chair",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Furniture",
+      "path": "/models/mars/desk_chair.glb",
+      "fileSize": 7952,
+      "dimensions": {
+        "x": 0.15,
+        "y": 0.15,
+        "z": 0.294
+      },
+      "triangles": 88,
+      "vertices": 142
+    },
+    {
+      "id": "desk_chairArms",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Furniture",
+      "path": "/models/mars/desk_chairArms.glb",
+      "fileSize": 10524,
+      "dimensions": {
+        "x": 0.25,
+        "y": 0.15,
+        "z": 0.344
+      },
+      "triangles": 128,
+      "vertices": 210
+    },
+    {
+      "id": "desk_chairStool",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Furniture",
+      "path": "/models/mars/desk_chairStool.glb",
+      "fileSize": 6588,
+      "dimensions": {
+        "x": 0.15,
+        "y": 0.15,
+        "z": 0.169
+      },
+      "triangles": 76,
+      "vertices": 128
+    },
+    {
+      "id": "desk_computer",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Furniture",
+      "path": "/models/mars/desk_computer.glb",
+      "fileSize": 7736,
+      "dimensions": {
+        "x": 0.525,
+        "y": 0.225,
+        "z": 0.375
+      },
+      "triangles": 88,
+      "vertices": 126
+    },
+    {
+      "id": "desk_computerCorner",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Furniture",
+      "path": "/models/mars/desk_computerCorner.glb",
+      "fileSize": 9472,
+      "dimensions": {
+        "x": 0.75,
+        "y": 0.75,
+        "z": 0.375
+      },
+      "triangles": 126,
+      "vertices": 176
+    },
+    {
+      "id": "desk_computerScreen",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Furniture",
+      "path": "/models/mars/desk_computerScreen.glb",
+      "fileSize": 8784,
+      "dimensions": {
+        "x": 0.525,
+        "y": 0.225,
+        "z": 0.637
+      },
+      "triangles": 108,
+      "vertices": 154
+    },
+    {
+      "id": "gate_complex",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/gate_complex.glb",
+      "fileSize": 29980,
+      "dimensions": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 1.013
+      },
+      "triangles": 460,
+      "vertices": 720
+    },
+    {
+      "id": "gate_simple",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/gate_simple.glb",
+      "fileSize": 14412,
+      "dimensions": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 1.08
+      },
+      "triangles": 212,
+      "vertices": 318
+    },
+    {
+      "id": "hangar_largeA",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/hangar_largeA.glb",
+      "fileSize": 27908,
+      "dimensions": {
+        "x": 3.9,
+        "y": 4.4,
+        "z": 1.0
+      },
+      "triangles": 412,
+      "vertices": 572
+    },
+    {
+      "id": "hangar_largeB",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/hangar_largeB.glb",
+      "fileSize": 26808,
+      "dimensions": {
+        "x": 4.0,
+        "y": 4.4,
+        "z": 1.1
+      },
+      "triangles": 360,
+      "vertices": 524
+    },
+    {
+      "id": "hangar_roundA",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/hangar_roundA.glb",
+      "fileSize": 13548,
+      "dimensions": {
+        "x": 3.271,
+        "y": 2.833,
+        "z": 1.5
+      },
+      "triangles": 166,
+      "vertices": 278
+    },
+    {
+      "id": "hangar_roundB",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/hangar_roundB.glb",
+      "fileSize": 13564,
+      "dimensions": {
+        "x": 3.271,
+        "y": 2.833,
+        "z": 1.8
+      },
+      "triangles": 166,
+      "vertices": 278
+    },
+    {
+      "id": "hangar_roundGlass",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/hangar_roundGlass.glb",
+      "fileSize": 10348,
+      "dimensions": {
+        "x": 3.271,
+        "y": 2.833,
+        "z": 1.4
+      },
+      "triangles": 113,
+      "vertices": 187
+    },
+    {
+      "id": "hangar_smallA",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/hangar_smallA.glb",
+      "fileSize": 21620,
+      "dimensions": {
+        "x": 3.9,
+        "y": 3.4,
+        "z": 1.0
+      },
+      "triangles": 280,
+      "vertices": 400
+    },
+    {
+      "id": "hangar_smallB",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/hangar_smallB.glb",
+      "fileSize": 21816,
+      "dimensions": {
+        "x": 3.9,
+        "y": 2.966,
+        "z": 1.0
+      },
+      "triangles": 284,
+      "vertices": 404
+    },
+    {
+      "id": "machine_barrel",
+      "category": "01_BUILDINGS",
+      "subCategory": "Storage",
+      "path": "/models/mars/machine_barrel.glb",
+      "fileSize": 24984,
+      "dimensions": {
+        "x": 2.3,
+        "y": 1.908,
+        "z": 0.6
+      },
+      "triangles": 338,
+      "vertices": 518
+    },
+    {
+      "id": "machine_barrelLarge",
+      "category": "01_BUILDINGS",
+      "subCategory": "Storage",
+      "path": "/models/mars/machine_barrelLarge.glb",
+      "fileSize": 15468,
+      "dimensions": {
+        "x": 0.754,
+        "y": 0.754,
+        "z": 0.6
+      },
+      "triangles": 192,
+      "vertices": 330
+    },
+    {
+      "id": "machine_generator",
+      "category": "01_BUILDINGS",
+      "subCategory": "Production",
+      "path": "/models/mars/machine_generator.glb",
+      "fileSize": 27504,
+      "dimensions": {
+        "x": 2.6,
+        "y": 1.962,
+        "z": 0.4
+      },
+      "triangles": 406,
+      "vertices": 624
+    },
+    {
+      "id": "machine_generatorLarge",
+      "category": "01_BUILDINGS",
+      "subCategory": "Production",
+      "path": "/models/mars/machine_generatorLarge.glb",
+      "fileSize": 10344,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.3,
+        "z": 0.683
+      },
+      "triangles": 126,
+      "vertices": 186
+    },
+    {
+      "id": "machine_wireless",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Communications",
+      "path": "/models/mars/machine_wireless.glb",
+      "fileSize": 13548,
+      "dimensions": {
+        "x": 0.75,
+        "y": 0.5,
+        "z": 0.6
+      },
+      "triangles": 174,
+      "vertices": 272
+    },
+    {
+      "id": "machine_wirelessCable",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Communications",
+      "path": "/models/mars/machine_wirelessCable.glb",
+      "fileSize": 22356,
+      "dimensions": {
+        "x": 2.675,
+        "y": 2.05,
+        "z": 0.8
+      },
+      "triangles": 282,
+      "vertices": 444
+    },
+    {
+      "id": "meteor",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/meteor.glb",
+      "fileSize": 5928,
+      "dimensions": {
+        "x": 0.866,
+        "y": 0.75,
+        "z": 0.735
+      },
+      "triangles": 68,
+      "vertices": 132
+    },
+    {
+      "id": "meteor_detailed",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/meteor_detailed.glb",
+      "fileSize": 13204,
+      "dimensions": {
+        "x": 0.866,
+        "y": 0.825,
+        "z": 0.735
+      },
+      "triangles": 196,
+      "vertices": 324
+    },
+    {
+      "id": "meteor_half",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/meteor_half.glb",
+      "fileSize": 4252,
+      "dimensions": {
+        "x": 0.866,
+        "y": 0.75,
+        "z": 0.368
+      },
+      "triangles": 44,
+      "vertices": 84
+    },
+    {
+      "id": "monorail_trackCornerLarge",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Monorail_Tracks",
+      "path": "/models/mars/monorail_trackCornerLarge.glb",
+      "fileSize": 13388,
+      "dimensions": {
+        "x": 1.6,
+        "y": 1.6,
+        "z": 0.13
+      },
+      "triangles": 204,
+      "vertices": 312
+    },
+    {
+      "id": "monorail_trackCornerSmall",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Monorail_Tracks",
+      "path": "/models/mars/monorail_trackCornerSmall.glb",
+      "fileSize": 24568,
+      "dimensions": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 0.13
+      },
+      "triangles": 408,
+      "vertices": 624
+    },
+    {
+      "id": "monorail_trackSlope",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Monorail_Tracks",
+      "path": "/models/mars/monorail_trackSlope.glb",
+      "fileSize": 3896,
+      "dimensions": {
+        "x": 0.2,
+        "y": 1.0,
+        "z": 0.63
+      },
+      "triangles": 28,
+      "vertices": 48
+    },
+    {
+      "id": "monorail_trackStraight",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Monorail_Tracks",
+      "path": "/models/mars/monorail_trackStraight.glb",
+      "fileSize": 3904,
+      "dimensions": {
+        "x": 0.2,
+        "y": 1.0,
+        "z": 0.13
+      },
+      "triangles": 28,
+      "vertices": 48
+    },
+    {
+      "id": "monorail_trackSupport",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Monorail_Tracks",
+      "path": "/models/mars/monorail_trackSupport.glb",
+      "fileSize": 12972,
+      "dimensions": {
+        "x": 0.2,
+        "y": 0.2,
+        "z": 0.5
+      },
+      "triangles": 176,
+      "vertices": 272
+    },
+    {
+      "id": "monorail_trackSupportCorner",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Monorail_Tracks",
+      "path": "/models/mars/monorail_trackSupportCorner.glb",
+      "fileSize": 12272,
+      "dimensions": {
+        "x": 0.2,
+        "y": 0.2,
+        "z": 0.5
+      },
+      "triangles": 164,
+      "vertices": 252
+    },
+    {
+      "id": "monorail_trainBox",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Ground",
+      "path": "/models/mars/monorail_trainBox.glb",
+      "fileSize": 8628,
+      "dimensions": {
+        "x": 0.5,
+        "y": 1.0,
+        "z": 0.8
+      },
+      "triangles": 100,
+      "vertices": 160
+    },
+    {
+      "id": "monorail_trainCargo",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Ground",
+      "path": "/models/mars/monorail_trainCargo.glb",
+      "fileSize": 53064,
+      "dimensions": {
+        "x": 2.48,
+        "y": 2.405,
+        "z": 0.64
+      },
+      "triangles": 816,
+      "vertices": 1220
+    },
+    {
+      "id": "monorail_trainEnd",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Ground",
+      "path": "/models/mars/monorail_trainEnd.glb",
+      "fileSize": 15296,
+      "dimensions": {
+        "x": 0.5,
+        "y": 1.0,
+        "z": 0.8
+      },
+      "triangles": 190,
+      "vertices": 314
+    },
+    {
+      "id": "monorail_trainFlat",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Ground",
+      "path": "/models/mars/monorail_trainFlat.glb",
+      "fileSize": 7940,
+      "dimensions": {
+        "x": 0.5,
+        "y": 1.0,
+        "z": 0.25
+      },
+      "triangles": 84,
+      "vertices": 140
+    },
+    {
+      "id": "monorail_trainFront",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Ground",
+      "path": "/models/mars/monorail_trainFront.glb",
+      "fileSize": 17352,
+      "dimensions": {
+        "x": 0.6,
+        "y": 1.05,
+        "z": 0.8
+      },
+      "triangles": 242,
+      "vertices": 396
+    },
+    {
+      "id": "monorail_trainPassenger",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Ground",
+      "path": "/models/mars/monorail_trainPassenger.glb",
+      "fileSize": 13684,
+      "dimensions": {
+        "x": 0.5,
+        "y": 1.0,
+        "z": 0.8
+      },
+      "triangles": 164,
+      "vertices": 276
+    },
+    {
+      "id": "pipe_corner",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_corner.glb",
+      "fileSize": 6808,
+      "dimensions": {
+        "x": 0.846,
+        "y": 0.846,
+        "z": 0.6
+      },
+      "triangles": 84,
+      "vertices": 127
+    },
+    {
+      "id": "pipe_cornerDiagonal",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_cornerDiagonal.glb",
+      "fileSize": 4632,
+      "dimensions": {
+        "x": 0.846,
+        "y": 0.846,
+        "z": 0.6
+      },
+      "triangles": 48,
+      "vertices": 72
+    },
+    {
+      "id": "pipe_cornerRound",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_cornerRound.glb",
+      "fileSize": 20872,
+      "dimensions": {
+        "x": 0.846,
+        "y": 0.846,
+        "z": 0.6
+      },
+      "triangles": 352,
+      "vertices": 522
+    },
+    {
+      "id": "pipe_cornerRoundLarge",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_cornerRoundLarge.glb",
+      "fileSize": 21324,
+      "dimensions": {
+        "x": 1.846,
+        "y": 1.846,
+        "z": 0.6
+      },
+      "triangles": 356,
+      "vertices": 534
+    },
+    {
+      "id": "pipe_cross",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_cross.glb",
+      "fileSize": 14100,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.6
+      },
+      "triangles": 200,
+      "vertices": 299
+    },
+    {
+      "id": "pipe_end",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_end.glb",
+      "fileSize": 7092,
+      "dimensions": {
+        "x": 0.693,
+        "y": 1.0,
+        "z": 0.6
+      },
+      "triangles": 82,
+      "vertices": 118
+    },
+    {
+      "id": "pipe_entrance",
+      "category": "01_BUILDINGS",
+      "subCategory": "Production",
+      "path": "/models/mars/pipe_entrance.glb",
+      "fileSize": 8424,
+      "dimensions": {
+        "x": 0.924,
+        "y": 0.6,
+        "z": 0.8
+      },
+      "triangles": 126,
+      "vertices": 174
+    },
+    {
+      "id": "pipe_open",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_open.glb",
+      "fileSize": 7192,
+      "dimensions": {
+        "x": 0.693,
+        "y": 1.0,
+        "z": 0.6
+      },
+      "triangles": 104,
+      "vertices": 140
+    },
+    {
+      "id": "pipe_rampLarge",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_rampLarge.glb",
+      "fileSize": 11856,
+      "dimensions": {
+        "x": 0.693,
+        "y": 2.0,
+        "z": 1.2
+      },
+      "triangles": 160,
+      "vertices": 248
+    },
+    {
+      "id": "pipe_rampSmall",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_rampSmall.glb",
+      "fileSize": 11856,
+      "dimensions": {
+        "x": 0.693,
+        "y": 2.0,
+        "z": 0.9
+      },
+      "triangles": 160,
+      "vertices": 248
+    },
+    {
+      "id": "pipe_ring",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_ring.glb",
+      "fileSize": 11168,
+      "dimensions": {
+        "x": 0.924,
+        "y": 1.0,
+        "z": 0.8
+      },
+      "triangles": 144,
+      "vertices": 204
+    },
+    {
+      "id": "pipe_ringHigh",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_ringHigh.glb",
+      "fileSize": 15160,
+      "dimensions": {
+        "x": 0.924,
+        "y": 1.0,
+        "z": 1.3
+      },
+      "triangles": 190,
+      "vertices": 292
+    },
+    {
+      "id": "pipe_ringHighEnd",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_ringHighEnd.glb",
+      "fileSize": 14808,
+      "dimensions": {
+        "x": 0.924,
+        "y": 0.8,
+        "z": 1.3
+      },
+      "triangles": 186,
+      "vertices": 288
+    },
+    {
+      "id": "pipe_ringSupport",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_ringSupport.glb",
+      "fileSize": 8804,
+      "dimensions": {
+        "x": 0.924,
+        "y": 0.4,
+        "z": 1.3
+      },
+      "triangles": 104,
+      "vertices": 168
+    },
+    {
+      "id": "pipe_split",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_split.glb",
+      "fileSize": 10708,
+      "dimensions": {
+        "x": 1.0,
+        "y": 0.846,
+        "z": 0.6
+      },
+      "triangles": 142,
+      "vertices": 212
+    },
+    {
+      "id": "pipe_straight",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_straight.glb",
+      "fileSize": 6944,
+      "dimensions": {
+        "x": 0.693,
+        "y": 1.0,
+        "z": 0.6
+      },
+      "triangles": 80,
+      "vertices": 112
+    },
+    {
+      "id": "pipe_supportHigh",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_supportHigh.glb",
+      "fileSize": 5712,
+      "dimensions": {
+        "x": 0.4,
+        "y": 0.4,
+        "z": 1.0
+      },
+      "triangles": 40,
+      "vertices": 84
+    },
+    {
+      "id": "pipe_supportLow",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Pipes",
+      "path": "/models/mars/pipe_supportLow.glb",
+      "fileSize": 5712,
+      "dimensions": {
+        "x": 0.4,
+        "y": 0.4,
+        "z": 0.5
+      },
+      "triangles": 40,
+      "vertices": 84
+    },
+    {
+      "id": "platform_center",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_center.glb",
+      "fileSize": 1424,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "triangles": 4,
+      "vertices": 8
+    },
+    {
+      "id": "platform_corner",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_corner.glb",
+      "fileSize": 7636,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.1
+      },
+      "triangles": 84,
+      "vertices": 134
+    },
+    {
+      "id": "platform_cornerOpen",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_cornerOpen.glb",
+      "fileSize": 5648,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.1
+      },
+      "triangles": 50,
+      "vertices": 80
+    },
+    {
+      "id": "platform_cornerRound",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_cornerRound.glb",
+      "fileSize": 19808,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.1
+      },
+      "triangles": 356,
+      "vertices": 464
+    },
+    {
+      "id": "platform_end",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_end.glb",
+      "fileSize": 6396,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.1
+      },
+      "triangles": 64,
+      "vertices": 100
+    },
+    {
+      "id": "platform_high",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_high.glb",
+      "fileSize": 17660,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 236,
+      "vertices": 388
+    },
+    {
+      "id": "platform_large",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_large.glb",
+      "fileSize": 6600,
+      "dimensions": {
+        "x": 2.0,
+        "y": 2.0,
+        "z": 0.1
+      },
+      "triangles": 76,
+      "vertices": 104
+    },
+    {
+      "id": "platform_long",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_long.glb",
+      "fileSize": 6592,
+      "dimensions": {
+        "x": 2.0,
+        "y": 1.0,
+        "z": 0.1
+      },
+      "triangles": 76,
+      "vertices": 104
+    },
+    {
+      "id": "platform_low",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_low.glb",
+      "fileSize": 11904,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.5
+      },
+      "triangles": 156,
+      "vertices": 252
+    },
+    {
+      "id": "platform_side",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_side.glb",
+      "fileSize": 5580,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.1
+      },
+      "triangles": 30,
+      "vertices": 58
+    },
+    {
+      "id": "platform_small",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_small.glb",
+      "fileSize": 6600,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.1
+      },
+      "triangles": 76,
+      "vertices": 104
+    },
+    {
+      "id": "platform_smallDiagonal",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_smallDiagonal.glb",
+      "fileSize": 6432,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.1
+      },
+      "triangles": 72,
+      "vertices": 98
+    },
+    {
+      "id": "platform_straight",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Platforms",
+      "path": "/models/mars/platform_straight.glb",
+      "fileSize": 7352,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.1
+      },
+      "triangles": 56,
+      "vertices": 108
+    },
+    {
+      "id": "rail",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/rail.glb",
+      "fileSize": 6272,
+      "dimensions": {
+        "x": 0.8,
+        "y": 0.05,
+        "z": 0.25
+      },
+      "triangles": 76,
+      "vertices": 120
+    },
+    {
+      "id": "rail_corner",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/rail_corner.glb",
+      "fileSize": 9460,
+      "dimensions": {
+        "x": 0.9,
+        "y": 0.9,
+        "z": 0.25
+      },
+      "triangles": 130,
+      "vertices": 204
+    },
+    {
+      "id": "rail_end",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/rail_end.glb",
+      "fileSize": 4688,
+      "dimensions": {
+        "x": 0.9,
+        "y": 0.05,
+        "z": 0.25
+      },
+      "triangles": 46,
+      "vertices": 76
+    },
+    {
+      "id": "rail_middle",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/rail_middle.glb",
+      "fileSize": 4916,
+      "dimensions": {
+        "x": 1.0,
+        "y": 0.05,
+        "z": 0.25
+      },
+      "triangles": 46,
+      "vertices": 84
+    },
+    {
+      "id": "rock",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/rock.glb",
+      "fileSize": 12508,
+      "dimensions": {
+        "x": 0.801,
+        "y": 0.851,
+        "z": 0.3
+      },
+      "triangles": 172,
+      "vertices": 288
+    },
+    {
+      "id": "rock_crystals",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/rock_crystals.glb",
+      "fileSize": 23664,
+      "dimensions": {
+        "x": 0.851,
+        "y": 0.801,
+        "z": 0.337
+      },
+      "triangles": 364,
+      "vertices": 576
+    },
+    {
+      "id": "rock_crystalsLargeA",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/rock_crystalsLargeA.glb",
+      "fileSize": 24952,
+      "dimensions": {
+        "x": 0.834,
+        "y": 0.919,
+        "z": 0.541
+      },
+      "triangles": 384,
+      "vertices": 600
+    },
+    {
+      "id": "rock_crystalsLargeB",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/rock_crystalsLargeB.glb",
+      "fileSize": 24480,
+      "dimensions": {
+        "x": 0.939,
+        "y": 0.932,
+        "z": 0.55
+      },
+      "triangles": 380,
+      "vertices": 594
+    },
+    {
+      "id": "rock_largeA",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/rock_largeA.glb",
+      "fileSize": 12296,
+      "dimensions": {
+        "x": 0.919,
+        "y": 0.834,
+        "z": 0.5
+      },
+      "triangles": 176,
+      "vertices": 288
+    },
+    {
+      "id": "rock_largeB",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/rock_largeB.glb",
+      "fileSize": 12076,
+      "dimensions": {
+        "x": 0.928,
+        "y": 0.939,
+        "z": 0.5
+      },
+      "triangles": 172,
+      "vertices": 282
+    },
+    {
+      "id": "rocket_baseA",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/rocket_baseA.glb",
+      "fileSize": 21720,
+      "dimensions": {
+        "x": 1.8,
+        "y": 1.8,
+        "z": 1.6
+      },
+      "triangles": 300,
+      "vertices": 518
+    },
+    {
+      "id": "rocket_baseB",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/rocket_baseB.glb",
+      "fileSize": 20472,
+      "dimensions": {
+        "x": 1.8,
+        "y": 1.8,
+        "z": 1.3
+      },
+      "triangles": 284,
+      "vertices": 494
+    },
+    {
+      "id": "rocket_finsA",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Energy_Rockets",
+      "path": "/models/mars/rocket_finsA.glb",
+      "fileSize": 14352,
+      "dimensions": {
+        "x": 1.2,
+        "y": 1.2,
+        "z": 0.7
+      },
+      "triangles": 192,
+      "vertices": 312
+    },
+    {
+      "id": "rocket_finsB",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Energy_Rockets",
+      "path": "/models/mars/rocket_finsB.glb",
+      "fileSize": 16868,
+      "dimensions": {
+        "x": 1.2,
+        "y": 1.2,
+        "z": 0.7
+      },
+      "triangles": 249,
+      "vertices": 381
+    },
+    {
+      "id": "rocket_fuelA",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Energy_Rockets",
+      "path": "/models/mars/rocket_fuelA.glb",
+      "fileSize": 7008,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.5
+      },
+      "triangles": 94,
+      "vertices": 142
+    },
+    {
+      "id": "rocket_fuelB",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Energy_Rockets",
+      "path": "/models/mars/rocket_fuelB.glb",
+      "fileSize": 9104,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 130,
+      "vertices": 196
+    },
+    {
+      "id": "rocket_sidesA",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Energy_Rockets",
+      "path": "/models/mars/rocket_sidesA.glb",
+      "fileSize": 15272,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 222,
+      "vertices": 342
+    },
+    {
+      "id": "rocket_sidesB",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Energy_Rockets",
+      "path": "/models/mars/rocket_sidesB.glb",
+      "fileSize": 14916,
+      "dimensions": {
+        "x": 1.3,
+        "y": 1.3,
+        "z": 1.0
+      },
+      "triangles": 206,
+      "vertices": 334
+    },
+    {
+      "id": "rocket_topA",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Energy_Rockets",
+      "path": "/models/mars/rocket_topA.glb",
+      "fileSize": 6784,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.8
+      },
+      "triangles": 50,
+      "vertices": 98
+    },
+    {
+      "id": "rocket_topB",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Energy_Rockets",
+      "path": "/models/mars/rocket_topB.glb",
+      "fileSize": 8188,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.1
+      },
+      "triangles": 82,
+      "vertices": 154
+    },
+    {
+      "id": "rocks_smallA",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/rocks_smallA.glb",
+      "fileSize": 5420,
+      "dimensions": {
+        "x": 0.937,
+        "y": 0.87,
+        "z": 0.105
+      },
+      "triangles": 60,
+      "vertices": 120
+    },
+    {
+      "id": "rocks_smallB",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Rocks_Crystals",
+      "path": "/models/mars/rocks_smallB.glb",
+      "fileSize": 4580,
+      "dimensions": {
+        "x": 0.729,
+        "y": 0.699,
+        "z": 0.186
+      },
+      "triangles": 48,
+      "vertices": 96
+    },
+    {
+      "id": "rover",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Ground",
+      "path": "/models/mars/rover.glb",
+      "fileSize": 14084,
+      "dimensions": {
+        "x": 0.3,
+        "y": 0.35,
+        "z": 0.385
+      },
+      "triangles": 172,
+      "vertices": 288
+    },
+    {
+      "id": "satelliteDish",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Communications",
+      "path": "/models/mars/satelliteDish.glb",
+      "fileSize": 20380,
+      "dimensions": {
+        "x": 0.688,
+        "y": 0.566,
+        "z": 0.616
+      },
+      "triangles": 274,
+      "vertices": 424
+    },
+    {
+      "id": "satelliteDish_detailed",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Communications",
+      "path": "/models/mars/satelliteDish_detailed.glb",
+      "fileSize": 26568,
+      "dimensions": {
+        "x": 0.7,
+        "y": 0.7,
+        "z": 0.616
+      },
+      "triangles": 390,
+      "vertices": 584
+    },
+    {
+      "id": "satelliteDish_large",
+      "category": "04_INFRASTRUCTURE",
+      "subCategory": "Communications",
+      "path": "/models/mars/satelliteDish_large.glb",
+      "fileSize": 14016,
+      "dimensions": {
+        "x": 0.849,
+        "y": 0.737,
+        "z": 0.814
+      },
+      "triangles": 186,
+      "vertices": 308
+    },
+    {
+      "id": "stairs",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Misc",
+      "path": "/models/mars/stairs.glb",
+      "fileSize": 16264,
+      "dimensions": {
+        "x": 0.3,
+        "y": 0.7,
+        "z": 0.5
+      },
+      "triangles": 208,
+      "vertices": 370
+    },
+    {
+      "id": "stairs_corner",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/stairs_corner.glb",
+      "fileSize": 21008,
+      "dimensions": {
+        "x": 0.6,
+        "y": 0.6,
+        "z": 0.5
+      },
+      "triangles": 306,
+      "vertices": 483
+    },
+    {
+      "id": "stairs_short",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/stairs_short.glb",
+      "fileSize": 11548,
+      "dimensions": {
+        "x": 0.3,
+        "y": 0.4,
+        "z": 0.275
+      },
+      "triangles": 136,
+      "vertices": 235
+    },
+    {
+      "id": "structure",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Misc",
+      "path": "/models/mars/structure.glb",
+      "fileSize": 11972,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 168,
+      "vertices": 280
+    },
+    {
+      "id": "structure_closed",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/structure_closed.glb",
+      "fileSize": 17900,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 264,
+      "vertices": 408
+    },
+    {
+      "id": "structure_detailed",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/structure_detailed.glb",
+      "fileSize": 17208,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 232,
+      "vertices": 400
+    },
+    {
+      "id": "structure_diagonal",
+      "category": "01_BUILDINGS",
+      "subCategory": "Habitation",
+      "path": "/models/mars/structure_diagonal.glb",
+      "fileSize": 22552,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "triangles": 344,
+      "vertices": 544
+    },
+    {
+      "id": "supports_high",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/supports_high.glb",
+      "fileSize": 22244,
+      "dimensions": {
+        "x": 0.825,
+        "y": 0.825,
+        "z": 1.0
+      },
+      "triangles": 312,
+      "vertices": 540
+    },
+    {
+      "id": "supports_low",
+      "category": "03_MODULAR_BASE",
+      "subCategory": "Stairs_Gates",
+      "path": "/models/mars/supports_low.glb",
+      "fileSize": 14508,
+      "dimensions": {
+        "x": 0.825,
+        "y": 0.825,
+        "z": 0.5
+      },
+      "triangles": 184,
+      "vertices": 324
+    },
+    {
+      "id": "terrain",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain.glb",
+      "fileSize": 1228,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "triangles": 2,
+      "vertices": 4
+    },
+    {
+      "id": "terrain_ramp",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_ramp.glb",
+      "fileSize": 2188,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.5
+      },
+      "triangles": 4,
+      "vertices": 10
+    },
+    {
+      "id": "terrain_rampLarge",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_rampLarge.glb",
+      "fileSize": 2200,
+      "dimensions": {
+        "x": 1.0,
+        "y": 2.0,
+        "z": 0.5
+      },
+      "triangles": 4,
+      "vertices": 10
+    },
+    {
+      "id": "terrain_rampLarge_detailed",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_rampLarge_detailed.glb",
+      "fileSize": 2788,
+      "dimensions": {
+        "x": 1.0,
+        "y": 2.0,
+        "z": 0.5
+      },
+      "triangles": 12,
+      "vertices": 26
+    },
+    {
+      "id": "terrain_roadCorner",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_roadCorner.glb",
+      "fileSize": 5928,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "triangles": 98,
+      "vertices": 108
+    },
+    {
+      "id": "terrain_roadCross",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_roadCross.glb",
+      "fileSize": 4348,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "triangles": 50,
+      "vertices": 68
+    },
+    {
+      "id": "terrain_roadEnd",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_roadEnd.glb",
+      "fileSize": 4272,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "triangles": 58,
+      "vertices": 64
+    },
+    {
+      "id": "terrain_roadSplit",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_roadSplit.glb",
+      "fileSize": 8600,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "triangles": 162,
+      "vertices": 176
+    },
+    {
+      "id": "terrain_roadStraight",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_roadStraight.glb",
+      "fileSize": 2568,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "triangles": 10,
+      "vertices": 20
+    },
+    {
+      "id": "terrain_side",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_side.glb",
+      "fileSize": 1240,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.5
+      },
+      "triangles": 2,
+      "vertices": 4
+    },
+    {
+      "id": "terrain_sideCliff",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_sideCliff.glb",
+      "fileSize": 2676,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.5
+      },
+      "triangles": 12,
+      "vertices": 22
+    },
+    {
+      "id": "terrain_sideCorner",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_sideCorner.glb",
+      "fileSize": 2640,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.5
+      },
+      "triangles": 12,
+      "vertices": 22
+    },
+    {
+      "id": "terrain_sideCornerInner",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_sideCornerInner.glb",
+      "fileSize": 2452,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.5
+      },
+      "triangles": 10,
+      "vertices": 16
+    },
+    {
+      "id": "terrain_sideEnd",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "Terrains_Legacy",
+      "path": "/models/mars/terrain_sideEnd.glb",
+      "fileSize": 3284,
+      "dimensions": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 0.5
+      },
+      "triangles": 9,
+      "vertices": 21
+    },
+    {
+      "id": "turret_double",
+      "category": "01_BUILDINGS",
+      "subCategory": "Defense",
+      "path": "/models/mars/turret_double.glb",
+      "fileSize": 56140,
+      "dimensions": {
+        "x": 2.75,
+        "y": 2.1,
+        "z": 0.7
+      },
+      "triangles": 876,
+      "vertices": 1228
+    },
+    {
+      "id": "turret_single",
+      "category": "01_BUILDINGS",
+      "subCategory": "Defense",
+      "path": "/models/mars/turret_single.glb",
+      "fileSize": 38760,
+      "dimensions": {
+        "x": 4.44,
+        "y": 3.65,
+        "z": 0.9
+      },
+      "triangles": 576,
+      "vertices": 854
+    },
+    {
+      "id": "weapon_gun",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Weapons",
+      "path": "/models/mars/weapon_gun.glb",
+      "fileSize": 7948,
+      "dimensions": {
+        "x": 0.1,
+        "y": 0.35,
+        "z": 0.225
+      },
+      "triangles": 70,
+      "vertices": 118
+    },
+    {
+      "id": "weapon_rifle",
+      "category": "06_PROPS_INTERIOR",
+      "subCategory": "Weapons",
+      "path": "/models/mars/weapon_rifle.glb",
+      "fileSize": 10148,
+      "dimensions": {
+        "x": 0.1,
+        "y": 0.5,
+        "z": 0.275
+      },
+      "triangles": 106,
+      "vertices": 176
+    }
+  ]
+}

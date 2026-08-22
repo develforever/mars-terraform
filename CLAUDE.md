@@ -25,14 +25,32 @@ Renderer Preview generatora = docelowy renderer terenu w grze.
 
 ## Blender 3D Asset Library & MCP
 
-- **Główny plik biblioteki 3D (Project Library)**:
+- **Główny plik biblioteki 3D (Project Library - poza repozytorium Git)**:
   `C:\Users\robert\Documents\mars-terraform.blend`
 - **Ścieżka docelowa eksportu modeli dla silnika gry**:
   `public/models/mars/*.glb`
+- **Manifest assetów (generowany automatycznie)**:
+  `src/domain/config/assetManifest.json`
+- **Struktura Kolekcji w pliku `.blend`**:
+  - `00_STUDIO_ENV`: kamery i światła studyjne (wyłączone z eksportu).
+  - `01_BUILDINGS/`: `Habitation`, `Production`, `Storage`, `Defense` (np. `rocket_baseA`, `machine_generator`, `hangar_roundGlass`).
+  - `02_UNITS_LOGISTICS/`: `Ground`, `Air` (np. `rover`, `craft_miner`, `craft_cargoA`, `craft_speederA`).
+  - `03_MODULAR_BASE/`: `Corridors`, `Platforms`, `Monorail_Tracks`, `Stairs_Gates`.
+  - `04_INFRASTRUCTURE/`: `Pipes`, `Communications`, `Energy_Rockets`.
+  - `05_ENVIRONMENT_DECOR/`: `Rocks_Crystals`, `Craters`, `Terrains_Legacy`.
+  - `06_PROPS_INTERIOR/`: `Furniture`, `Weapons`, `Characters_Misc`.
+  - `99_STUDIO_SHOWCASE`: instancje kolekcji w siatce 14-kolumnowej do szybkiego podglądu wizualnego.
+- **Skrypty automatyzacji CLI (Headless)**:
+  - Przebudowa biblioteki z GLB:
+    `& 'C:\Program Files\Blender Foundation\Blender 5.1\blender.exe' -b -P scripts/blender/build_library_from_glbs.py`
+  - Batch eksport do GLB + aktualizacja manifestu:
+    `& 'C:\Program Files\Blender Foundation\Blender 5.1\blender.exe' -b 'C:\Users\robert\Documents\mars-terraform.blend' -P scripts/blender/export_all_assets.py`
+  - Eksport selektywny:
+    `& 'C:\Program Files\Blender Foundation\Blender 5.1\blender.exe' -b 'C:\Users\robert\Documents\mars-terraform.blend' -P scripts/blender/export_all_assets.py -- --filter="rover,craft_miner"`
 - **Integracja Blender MCP**:
   - Serwer: `uvx blender-mcp` (zdefiniowany w `.agents/mcp_config.json`).
   - Addon Blendera: `Interface: Blender MCP` (Blender 5.1+, socket `localhost:9876`).
-  - Zastosowanie: inspekcja geometrii, modelowanie assetów 3D, optymalizacja polygon count i bezpośredni eksport `.glb`.
+  - Zastosowanie: inspekcja geometrii, modelowanie assetów 3D na żywo, optymalizacja polygon count.
 
 ---
 

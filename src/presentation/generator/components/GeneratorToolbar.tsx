@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
 import { validateMap } from '../utils/validateMap'
 import type { ValidationResult } from '../utils/validateMap'
@@ -6,6 +6,7 @@ import { parseMapJSON } from '../schema/mapSchema'
 import { authClient } from '../../../application/service/authService'
 import { mapApiService } from '../../../application/service/mapApiService'
 import { CloudMapsModal } from './CloudMapsModal'
+import { AIAssistantModal } from './AIAssistantModal'
 
 // ─── Validation modal ─────────────────────────────────────────────────────────
 
@@ -17,43 +18,70 @@ const ValidationModal = ({
   result: ValidationResult
   onConfirm: () => void
   onCancel: () => void
-}) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-    <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-5 w-96 shadow-2xl">
-      <h2 className="text-sm font-bold text-zinc-100 mb-3">
-        {result.valid ? '⚠️ Map Warnings' : '🚫 Map Errors'}
-      </h2>
+}) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onCancel])
 
-      <ul className="flex flex-col gap-1.5 mb-4 max-h-60 overflow-y-auto">
-        {result.errors.map((e, i) => (
-          <li key={i} className={`text-xs flex gap-2 items-start ${
-            e.level === 'error' ? 'text-red-400' : 'text-yellow-400'
-          }`}>
-            <span>{e.level === 'error' ? '✖' : '⚠'}</span>
-            <span>{e.message}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={onCancel}
-          className="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors"
-        >
-          Cancel
-        </button>
-        {result.valid && (
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 select-none"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-zinc-900 border border-zinc-700 rounded-lg p-5 w-96 shadow-2xl relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold text-zinc-100">
+            {result.valid ? '⚠️ Map Warnings' : '🚫 Map Errors'}
+          </h2>
           <button
-            onClick={onConfirm}
-            className="px-3 py-1.5 rounded bg-[#c0392b] hover:bg-[#e74c3c] text-white text-xs font-medium transition-colors"
+            onClick={onCancel}
+            aria-label="Zamknij"
+            className="text-zinc-400 hover:text-zinc-100 text-sm p-1 rounded hover:bg-zinc-800"
           >
-            Export Anyway
+            ✕
           </button>
-        )}
+        </div>
+
+        <ul className="flex flex-col gap-1.5 mb-4 max-h-60 overflow-y-auto">
+          {result.errors.map((e, i) => (
+            <li key={i} className={`text-xs flex gap-2 items-start ${
+              e.level === 'error' ? 'text-red-400' : 'text-yellow-400'
+            }`}>
+              <span>{e.level === 'error' ? '✖' : '⚠'}</span>
+              <span>{e.message}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors"
+          >
+            Cancel
+          </button>
+          {result.valid && (
+            <button
+              onClick={onConfirm}
+              className="px-3 py-1.5 rounded bg-[#c0392b] hover:bg-[#e74c3c] text-white text-xs font-medium transition-colors"
+            >
+              Export Anyway
+            </button>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-)
+  )
+}
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
@@ -74,6 +102,7 @@ const GeneratorToolbar = () => {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
   const [pendingExportData, setPendingExportData] = useState<string | null>(null)
   const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false)
+  const [isAIModalOpen, setIsAIModalOpen] = useState<boolean>(false)
   const [isSavingCloud, setIsSavingCloud] = useState<boolean>(false)
   const [cloudSaveStatus, setCloudSaveStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
@@ -208,6 +237,10 @@ const GeneratorToolbar = () => {
         <CloudMapsModal onClose={() => setIsCloudModalOpen(false)} />
       )}
 
+      {isAIModalOpen && (
+        <AIAssistantModal onClose={() => setIsAIModalOpen(false)} />
+      )}
+
       <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-950 border-b border-zinc-700 text-sm select-none">
         <span className="text-[#e74c3c] font-bold tracking-wider text-xs uppercase mr-2">
           🪐 Map Generator
@@ -229,6 +262,14 @@ const GeneratorToolbar = () => {
           title={`Wygeneruj nową deterministyczną mapę (akt. seed: ${hexSeed})`}
         >
           🎲 Generate Map
+        </button>
+
+        <button
+          onClick={() => setIsAIModalOpen(true)}
+          className="px-2.5 py-1 rounded bg-linear-to-r from-purple-700 to-[#c0392b] hover:from-purple-600 hover:to-[#e74c3c] text-white transition-all text-xs font-semibold flex items-center gap-1 shadow-xs"
+          title="Otwórz asystenta AI generowania i modyfikacji mapy"
+        >
+          🤖 AI Assistant
         </button>
 
         <button onClick={handleImport}

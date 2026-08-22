@@ -105,6 +105,7 @@ interface MapEditorState {
   // Import / Export
   exportToJSON: () => MapExportJSON
   loadFromJSON: (data: unknown) => void
+  applyAIMap: (mapData: MapExportJSON) => void
   resetMap: () => void
 }
 
@@ -117,6 +118,9 @@ const defaultMeta: MapMeta = {
 }
 
 const makeSnapshot = (state: MapEditorState): MapSnapshot => ({
+  meta: { ...state.meta },
+  hexRadius: state.hexRadius,
+  hexSeed: state.hexSeed,
   hexCells: state.hexGrid
     ? Array.from(state.hexGrid.snapshot().entries()).map(([k, v]) => [k, { ...v } as Record<string, unknown>])
     : [],
@@ -347,6 +351,9 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
     }
 
     set({
+      meta: prev.meta ? { ...prev.meta } : state.meta,
+      hexRadius: prev.hexRadius ?? state.hexRadius,
+      hexSeed: prev.hexSeed ?? state.hexSeed,
       hexGrid,
       buildNodes: prev.buildNodes,
       resourceNodes: prev.resourceNodes,
@@ -419,6 +426,34 @@ export const useMapEditorStore = create<MapEditorState>((set, get) => ({
         selectedNodeId: null,
       })
     }
+  },
+
+  applyAIMap: (mapData: MapExportJSON) => {
+    get().pushUndo()
+    const radius = mapData.meta.hexRadius ?? DEFAULT_HEX_RADIUS
+    const seed = mapData.meta.seed ?? DEFAULT_SEED
+    const grid = new HexGrid(radius, seed)
+    grid.generate()
+    if (mapData.hexes && mapData.hexes.length > 0) {
+      grid.fromJSON({ hexes: mapData.hexes as Partial<import('../../presentation/generator/hex/HexGrid').HexCell>[] })
+    }
+
+    set({
+      meta: {
+        name: mapData.meta.name ?? 'mars_map',
+        description: mapData.meta.description ?? '',
+        players: mapData.meta.players ?? 2,
+      },
+      hexGrid: refreshGrid(grid),
+      hexRadius: radius,
+      hexSeed: seed,
+      buildNodes: mapData.buildNodes ?? [],
+      resourceNodes: mapData.resourceNodes ?? [],
+      spawnPoints: mapData.spawnPoints ?? [],
+      decor: mapData.decor ?? [],
+      selectedHex: null,
+      selectedNodeId: null,
+    })
   },
 
   resetMap: () => {

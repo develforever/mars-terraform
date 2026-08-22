@@ -86,6 +86,9 @@ export interface MapExportJSON {
 // ─── Store snapshot for undo ──────────────────────────────────────────────────
 
 export interface MapSnapshot {
+  meta?: MapMeta
+  hexRadius?: number
+  hexSeed?: number
   hexCells: [string, Record<string, unknown>][]
   buildNodes: BuildNode[]
   resourceNodes: ResourceNode[]

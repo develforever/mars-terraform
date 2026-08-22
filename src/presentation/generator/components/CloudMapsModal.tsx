@@ -95,9 +95,25 @@ export const CloudMapsModal = ({ onClose }: CloudMapsModalProps) => {
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 select-none">
-      <div className="bg-zinc-900 border border-zinc-700/80 rounded-xl p-6 w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] text-zinc-100 font-sans">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 select-none"
+      onClick={onClose}
+    >
+      <div
+        className="bg-zinc-900 border border-zinc-700/80 rounded-xl p-6 w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] text-zinc-100 font-sans"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
           <div>

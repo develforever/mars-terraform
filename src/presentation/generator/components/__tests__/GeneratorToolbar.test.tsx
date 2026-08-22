@@ -36,4 +36,13 @@ describe("GeneratorToolbar - Cloud Integration", () => {
 
     expect(screen.getByText("Cloud Maps Browser")).toBeInTheDocument();
   });
+
+  it("opens AIAssistantModal when AI Assistant button is clicked", () => {
+    render(<GeneratorToolbar />);
+
+    const aiBtn = screen.getByRole("button", { name: /AI Assistant/i });
+    fireEvent.click(aiBtn);
+
+    expect(screen.getByText("modal.aiAssistant.title")).toBeInTheDocument();
+  });
 });

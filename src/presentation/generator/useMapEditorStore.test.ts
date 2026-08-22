@@ -352,3 +352,94 @@ describe('useMapEditorStore — decor & resource node modifications', () => {
   })
 })
 
+// ─── AI Map Application ───────────────────────────────────────────────────────
+
+describe('useMapEditorStore — applyAIMap', () => {
+  it('applies AI-generated map and updates grid, entities, and metadata', () => {
+    const s = () => useMapEditorStore.getState()
+
+    act(() => {
+      s().generateHexGrid(4, 1)
+      s().updateMeta({ name: 'initial_map' })
+    })
+
+    const aiMap: import('../../domain/mapEditorTypes').MapExportJSON = {
+      meta: {
+        name: 'ai_ice_crater',
+        description: 'AI Generated Ice Crater',
+        version: '2.0',
+        gridType: 'hex-flat-top',
+        hexSize: 1.0,
+        hexRadius: 6,
+        players: 2,
+        seed: 999,
+      },
+      hexes: [
+        { q: 0, r: 0, terrainType: 'deep_crater', userType: null, decor: null },
+        { q: 1, r: 0, terrainType: 'lowland', userType: null, decor: null },
+      ],
+      buildNodes: [{ id: 'ab1', pos: [1, 0], footprint: [1, 1], allowedTypes: ['colony'] }],
+      resourceNodes: [{ id: 'ar1', type: 'ice', pos: [0, 0], amount: 3000, richness: 'high', model: 'ice_01' }],
+      spawnPoints: [{ player: 1, pos: [-3, 0] }, { player: 2, pos: [3, 0] }],
+      decor: [{ model: 'crystal', pos: [0, 0], rot: 0, scale: 1.2 }],
+    }
+
+    act(() => {
+      s().applyAIMap(aiMap)
+    })
+
+    const st = s()
+    expect(st.meta.name).toBe('ai_ice_crater')
+    expect(st.hexRadius).toBe(6)
+    expect(st.hexSeed).toBe(999)
+    expect(st.hexGrid?.getCell(0, 0)?.terrainType).toBe('deep_crater')
+    expect(st.resourceNodes).toHaveLength(1)
+    expect(st.resourceNodes[0].type).toBe('ice')
+    expect(st.spawnPoints).toHaveLength(2)
+    expect(st.buildNodes).toHaveLength(1)
+    expect(st.decor).toHaveLength(1)
+  })
+
+  it('supports undo after applyAIMap', () => {
+    const s = () => useMapEditorStore.getState()
+
+    act(() => {
+      s().generateHexGrid(5, 42)
+      s().updateMeta({ name: 'before_ai' })
+    })
+
+    const aiMap: import('../../domain/mapEditorTypes').MapExportJSON = {
+      meta: {
+        name: 'after_ai',
+        description: 'New',
+        version: '2.0',
+        gridType: 'hex-flat-top',
+        hexSize: 1.0,
+        hexRadius: 5,
+        players: 2,
+        seed: 999,
+      },
+      hexes: [
+        { q: 0, r: 0, terrainType: 'peak', userType: null, decor: null },
+      ],
+      buildNodes: [],
+      resourceNodes: [],
+      spawnPoints: [],
+      decor: [],
+    }
+
+    act(() => {
+      s().applyAIMap(aiMap)
+    })
+
+    expect(s().meta.name).toBe('after_ai')
+
+    act(() => {
+      s().undo()
+    })
+
+    expect(s().meta.name).toBe('before_ai')
+  })
+})
+
+
