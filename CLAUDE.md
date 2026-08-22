@@ -47,10 +47,14 @@ Renderer Preview generatora = docelowy renderer terenu w grze.
     `& 'C:\Program Files\Blender Foundation\Blender 5.1\blender.exe' -b 'C:\Users\robert\Documents\mars-terraform.blend' -P scripts/blender/export_all_assets.py`
   - Eksport selektywny:
     `& 'C:\Program Files\Blender Foundation\Blender 5.1\blender.exe' -b 'C:\Users\robert\Documents\mars-terraform.blend' -P scripts/blender/export_all_assets.py -- --filter="rover,craft_miner"`
-- **Integracja Blender MCP**:
-  - Serwer: `uvx blender-mcp` (zdefiniowany w `.agents/mcp_config.json`).
-  - Addon Blendera: `Interface: Blender MCP` (Blender 5.1+, socket `localhost:9876`).
-  - Zastosowanie: inspekcja geometrii, modelowanie assetów 3D na żywo, optymalizacja polygon count.
+- **Integracja Blender MCP (Zweryfikowana sesja Live)**:
+  - Wersja Blendera: **5.1.1**
+  - Wersja Addonu: **1.5 (protokół 4)**
+  - Endpoint/Socket: `localhost:9876`
+  - Stan sceny: 504 obiekty, 153 uporządkowane assety, siatka podglądowa `99_STUDIO_SHOWCASE`.
+  - Serwer MCP: `uvx blender-mcp` (zdefiniowany w `.agents/mcp_config.json`).
+  - Addon Blendera: `Interface: Blender MCP` (zainstalowany przez `uvx blender-mcp install-addon`).
+  - Zastosowanie: inspekcja geometrii, modelowanie assetów 3D na żywo, generowanie zrzutów ekranu (`get_viewport_screenshot`), optymalizacja siatek i automatyczny eksport `.glb`.
 
 ---
 
