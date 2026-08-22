@@ -1,7 +1,7 @@
-import type { BuildingDefinition, PlacedBuilding } from "../entities/Building";
+import type { BuildingDefinition, PlacedBuilding, BuildingUpgrade } from "../entities/Building";
 import type { Resources, ResourceCost, ResourceDelta } from "../entities/Resources";
 import { keyFromCell } from "../entities/Position";
-import { worldToHex, hexNeighbors } from "../../presentation/generator/hex/HexMath";
+import { worldToHex, hexesInRadius } from "../../presentation/generator/hex/HexMath";
 import type { ResourceNode, ResourceType } from "../mapEditorTypes";
 
 export interface DepositEfficiencyResult {
@@ -21,6 +21,13 @@ export interface BuildResult {
 export interface DemolishResult {
   success: boolean;
   refundDelta?: ResourceDelta;
+  error?: string;
+}
+
+export interface UpgradeResult {
+  success: boolean;
+  building?: PlacedBuilding;
+  costDelta?: ResourceDelta;
   error?: string;
 }
 
@@ -93,6 +100,7 @@ export class BuildingService {
       definitionId: definition.id,
       position: { x: cell.x, y: heightY, z: cell.z },
       condition: 100,
+      level: 1,
     };
 
     return {
@@ -131,6 +139,93 @@ export class BuildingService {
     };
   }
 
+  /** Returns extraction radius in hex units based on building level */
+  static getExtractionRadius(building: PlacedBuilding, definition?: BuildingDefinition): number {
+    const currentLevel = building.level ?? 1;
+    if (definition?.upgrades) {
+      const upgrade = definition.upgrades.find(u => u.level === currentLevel);
+      if (upgrade?.extractionRadius !== undefined) {
+        return upgrade.extractionRadius;
+      }
+    }
+    if (currentLevel >= 3) return 4;
+    if (currentLevel >= 2) return 2;
+    return 1;
+  }
+
+  /** Returns production multiplier (e.g. 1.0, 1.5, 2.2) based on building level */
+  static getLevelMultiplier(building: PlacedBuilding, definition?: BuildingDefinition): number {
+    const currentLevel = building.level ?? 1;
+    if (currentLevel <= 1) return 1.0;
+
+    if (definition?.upgrades) {
+      const upgrade = definition.upgrades.find(u => u.level === currentLevel);
+      if (upgrade?.productionMultiplier !== undefined) {
+        return upgrade.productionMultiplier;
+      }
+    }
+
+    if (currentLevel === 2) return 1.5;
+    if (currentLevel >= 3) return 2.2;
+    return 1.0;
+  }
+
+  /** Returns the upgrade definition for the next level if available */
+  static getNextUpgrade(
+    building: PlacedBuilding,
+    definition?: BuildingDefinition
+  ): BuildingUpgrade | undefined {
+    const currentLevel = building.level ?? 1;
+    if (currentLevel >= 3 || !definition?.upgrades) return undefined;
+    return definition.upgrades.find(u => u.level === currentLevel + 1);
+  }
+
+  /** Checks whether a building can be upgraded to the next level */
+  static canUpgrade(
+    building: PlacedBuilding,
+    definition: BuildingDefinition | undefined,
+    resources: Resources
+  ): { canUpgrade: boolean; error?: string; upgrade?: BuildingUpgrade } {
+    const currentLevel = building.level ?? 1;
+    if (currentLevel >= 3) {
+      return { canUpgrade: false, error: "Max level reached" };
+    }
+
+    const upgrade = this.getNextUpgrade(building, definition);
+    if (!upgrade) {
+      return { canUpgrade: false, error: "No upgrade available" };
+    }
+
+    if (!this.canAfford(upgrade.cost, resources)) {
+      return { canUpgrade: false, error: "Cannot afford upgrade", upgrade };
+    }
+
+    return { canUpgrade: true, upgrade };
+  }
+
+  /** Upgrades a placed building to the next level */
+  static upgradeBuilding(
+    building: PlacedBuilding,
+    definition: BuildingDefinition | undefined,
+    resources: Resources
+  ): UpgradeResult {
+    const check = this.canUpgrade(building, definition, resources);
+    if (!check.canUpgrade || !check.upgrade) {
+      return { success: false, error: check.error ?? "Cannot upgrade building" };
+    }
+
+    const updatedBuilding: PlacedBuilding = {
+      ...building,
+      level: (building.level ?? 1) + 1,
+    };
+
+    return {
+      success: true,
+      building: updatedBuilding,
+      costDelta: this.calculateCost(check.upgrade.cost),
+    };
+  }
+
   /** Returns updated buildings with condition degraded by storm.
    *  Each building loses `damagePerTick * intensity` condition per tick.
    */
@@ -155,24 +250,24 @@ export class BuildingService {
 
   /**
    * Calculates extraction deposit efficiency and neighbor bonus for a building at a specific hex cell.
-   * Checks the cell itself and all 6 direct axial neighbors.
+   * Checks all hexes within the given extraction radius.
    * Multiplier is 1.0 (base 100%) + 0.5 (+50%) per active matching deposit.
    */
   static getDepositEfficiencyAtCell(
     definition: BuildingDefinition | undefined,
     cell: { x: number; z: number },
-    resourceNodes: ResourceNode[] = []
+    resourceNodes: ResourceNode[] = [],
+    radius: number = 1
   ): DepositEfficiencyResult {
     if (!definition?.extractsDeposit) {
       return { multiplier: 1.0, count: 0, matchingNodes: [] };
     }
 
     const [q, r] = worldToHex(cell.x, cell.z);
-    const neighbors = hexNeighbors(q, r);
-    const validCoords = new Set<string>([
-      `${q},${r}`,
-      ...neighbors.map(([nq, nr]) => `${nq},${nr}`),
-    ]);
+    const coords = hexesInRadius(q, r, radius);
+    const validCoords = new Set<string>(
+      coords.map(([cq, cr]) => `${cq},${cr}`)
+    );
 
     const matchingNodes = resourceNodes.filter(
       (node) =>
@@ -197,10 +292,13 @@ export class BuildingService {
     definition: BuildingDefinition | undefined,
     resourceNodes: ResourceNode[] = []
   ): number {
+    const radius = this.getExtractionRadius(building, definition);
     return this.getDepositEfficiencyAtCell(
       definition,
       { x: building.position.x, z: building.position.z },
-      resourceNodes
+      resourceNodes,
+      radius
     ).multiplier;
   }
 }
+

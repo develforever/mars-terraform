@@ -248,15 +248,23 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
     const def = BUILDING_DEFINITIONS[building.definitionId];
     const { t } = useTranslation();
     const placed = useGameStore((state) => state.placed);
+    const resources = useGameStore((state) => state.resources);
     const sunFactor = useGameStore((state) => state.sun);
     const weather = useGameStore((state) => state.weather);
     const resourceNodes = useGameStore((state) => state.resourceNodes);
+    const upgradeBuilding = useGameStore((state) => state.upgradeBuilding);
 
+    const currentLevel = building.level ?? 1;
     const productionModifier = WeatherService.getProductionModifier(weather);
     const condFactor = BuildingService.conditionFactor(building.condition);
     const neighborMult = def ? NeighborService.getProductionMultiplier(building, def, placed, BUILDING_DEFINITIONS) : 1;
     const depositMult = def ? BuildingService.getDepositMultiplier(building, def, resourceNodes) : 1;
-    const depositEfficiency = def ? BuildingService.getDepositEfficiencyAtCell(def, { x: building.position.x, z: building.position.z }, resourceNodes) : undefined;
+    const levelMult = def ? BuildingService.getLevelMultiplier(building, def) : 1;
+    const extractionRadius = def ? BuildingService.getExtractionRadius(building, def) : 1;
+    const depositEfficiency = def ? BuildingService.getDepositEfficiencyAtCell(def, { x: building.position.x, z: building.position.z }, resourceNodes, extractionRadius) : undefined;
+
+    const nextUpgrade = def ? BuildingService.getNextUpgrade(building, def) : undefined;
+    const canAffordUpgrade = nextUpgrade ? BuildingService.canAfford(nextUpgrade.cost, resources) : false;
 
     const baseValues = def?.production ? Object.entries(def.production) : [];
 
@@ -275,14 +283,17 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
         return adjusted > 0;
     });
     const showModifiers = hasAnyProduction && (
-        condFactor < 1 || neighborMult > 1 || depositMult > 1 || (def?.tags?.includes("dayScaled")) || productionModifier < 1
+        condFactor < 1 || neighborMult > 1 || depositMult > 1 || levelMult > 1 || (def?.tags?.includes("dayScaled")) || productionModifier < 1
     );
 
     return (
         <Html position={[0, 3, 0]} center style={{ pointerEvents: "none" }}>
-            <div className="building-popover">
+            <div className="building-popover" style={{ pointerEvents: "auto" }}>
                 <div className="popover-header">
                     <h3>{def?.name}</h3>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 border border-cyan-500/50 text-cyan-300">
+                        {t("popover.levelBadge", { level: currentLevel })}
+                    </span>
                 </div>
                 <div className="popover-content">
                     <div className="popover-stat">
@@ -311,7 +322,7 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
                                 adjusted *= productionModifier;
                                 const isProduction = adjusted > 0;
                                 if (isProduction) {
-                                    adjusted *= condFactor * neighborMult * depositMult;
+                                    adjusted *= condFactor * neighborMult * depositMult * levelMult;
                                 }
                                 const hasDiff = Math.abs(adjusted - baseVal) >= 0.001;
                                 return (
@@ -345,6 +356,9 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
                                     {depositMult > 1 && (
                                         <span className="mod-tag mod-deposit">⛏️ +{Math.round((depositMult - 1) * 100)}% ({t("popover.depositYield")})</span>
                                     )}
+                                    {levelMult > 1 && (
+                                        <span className="mod-tag mod-bonus">⭐ x{levelMult.toFixed(1)} (POZ. {currentLevel})</span>
+                                    )}
                                     {productionModifier < 1 && (
                                         <span className="mod-tag mod-storm">🌪️ {Math.round(productionModifier * 100)}%</span>
                                     )}
@@ -375,6 +389,91 @@ export function BuildingInspectionPopover({ building }: { building: PlacedBuildi
                             ))}
                         </div>
                     )}
+
+                    {/* Upgrades section */}
+                    <div className="popover-section mt-2 pt-2 border-t border-white/10">
+                        <div className="section-title flex justify-between items-center text-[10px] uppercase text-zinc-400 font-bold mb-1.5">
+                            <span>{t("popover.upgrades")}</span>
+                            <span className="text-zinc-500 font-mono">{currentLevel}/3</span>
+                        </div>
+
+                        {currentLevel >= 3 || !nextUpgrade ? (
+                            <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                                <span>⭐</span>
+                                <span>{t("popover.maxLevel", { level: currentLevel })}</span>
+                            </div>
+                        ) : (
+                            <div className="bg-black/30 border border-white/10 rounded-lg p-2 flex flex-col gap-1.5">
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="font-bold text-zinc-200">
+                                        {t("popover.upgradeTo", { level: nextUpgrade.level })}
+                                    </span>
+                                    <span className="font-mono text-cyan-400 font-bold">
+                                        x{nextUpgrade.productionMultiplier.toFixed(1)}
+                                    </span>
+                                </div>
+
+                                {nextUpgrade.extractionRadius && (
+                                    <div className="text-[11px] text-zinc-300 flex items-center gap-1">
+                                        <span className="text-cyan-400">📏</span>
+                                        <span>{t("popover.extractionRadius", { radius: nextUpgrade.extractionRadius })}</span>
+                                    </div>
+                                )}
+
+                                {nextUpgrade.unlockedUnit && (
+                                    <div className="text-[11px] text-emerald-300 flex items-center gap-1">
+                                        <span>{nextUpgrade.unlockedUnit === "rover" ? "🚙" : "🛸"}</span>
+                                        <span>
+                                            {t("popover.unlockedUnit", {
+                                                unit: nextUpgrade.unlockedUnit === "rover"
+                                                    ? t("popover.units.rover")
+                                                    : t("popover.units.drone"),
+                                            })}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Cost preview */}
+                                <div className="mt-1 flex flex-wrap gap-1 items-center">
+                                    <span className="text-[10px] text-zinc-400 mr-1">{t("popover.upgradeCost")}</span>
+                                    {Object.entries(nextUpgrade.cost).map(([res, costVal]) => {
+                                        if (costVal === undefined) return null;
+                                        const resKey = res as keyof typeof resources;
+                                        const hasEnough = resources[resKey] >= costVal;
+                                        return (
+                                            <span
+                                                key={res}
+                                                className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold border ${
+                                                    hasEnough
+                                                        ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-300"
+                                                        : "bg-rose-950/60 border-rose-500/40 text-rose-300"
+                                                }`}
+                                            >
+                                                {res}: {costVal}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Upgrade Button */}
+                                <button
+                                    type="button"
+                                    disabled={!canAffordUpgrade}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        upgradeBuilding(building.id);
+                                    }}
+                                    className={`mt-1 w-full py-1.5 px-3 rounded text-xs font-bold uppercase tracking-wider transition-all duration-200 pointer-events-auto ${
+                                        canAffordUpgrade
+                                            ? "bg-cyan-600 hover:bg-cyan-500 active:scale-98 text-white shadow-md shadow-cyan-600/30 cursor-pointer"
+                                            : "bg-zinc-800 text-zinc-500 border border-zinc-700/40 cursor-not-allowed"
+                                    }`}
+                                >
+                                    {t("popover.upgrade")}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </Html>

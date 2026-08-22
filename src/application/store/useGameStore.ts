@@ -58,6 +58,7 @@ export interface GameState {
   setGameMode: (mode: GameMode) => void;
   placeBuilding: (cell: { x: number; z: number }, heightY: number, definitionId: string) => boolean;
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
+  upgradeBuilding: (buildingId: string) => boolean;
   applyEconomyTick: () => void;
   resetGame: () => void;
   startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode, mapData?: MapExportJSON | null, seed?: number) => void;
@@ -275,6 +276,34 @@ export const useGameStore = create<GameState>()(
         return true;
       },
 
+      upgradeBuilding: (buildingId) => {
+        const state = get();
+        const building = state.placed.find((b) => b.id === buildingId);
+        if (!building) return false;
+
+        const definition = BUILDING_DEFINITIONS[building.definitionId];
+        if (!definition) return false;
+
+        const result = BuildingService.upgradeBuilding(
+          building,
+          definition,
+          state.resources
+        );
+
+        if (!result.success || !result.building) return false;
+
+        const newResources = result.costDelta
+          ? applyResourceDelta(state.resources, result.costDelta)
+          : { ...state.resources };
+
+        set({
+          resources: newResources,
+          placed: state.placed.map((b) => (b.id === buildingId ? result.building! : b)),
+        });
+
+        return true;
+      },
+
       applyEconomyTick: () => {
         const state = get();
         if (!state.alive) return;
@@ -430,7 +459,10 @@ export const useGameStore = create<GameState>()(
             currentMapData: gameState.currentMapData ?? null,
             resources: gameState.resources,
             capacity: gameState.capacity,
-            placed: gameState.placed,
+            placed: (gameState.placed ?? []).map((b: PlacedBuilding) => ({
+              ...b,
+              level: b.level ?? 1,
+            })),
             occupied: gameState.occupied,
             weather: gameState.weather ?? { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
             terraforming: gameState.terraforming ?? 0,

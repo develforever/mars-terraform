@@ -24,6 +24,9 @@ vi.mock("@react-three/drei", () => ({
     Html: ({ children }: { children?: React.ReactNode }) => <div data-testid="mock-html">{children}</div>,
     Loader: () => <div data-testid="mock-loader" />,
     useProgress: () => ({ progress: 100, active: false }),
+    useGLTF: Object.assign(vi.fn(() => ({ scene: { clone: () => ({ position: { set: () => {} }, traverse: () => {} }) } })), {
+        preload: vi.fn(),
+    }),
 }));
 
 vi.mock("../PostProcessingComposer", () => ({
@@ -140,6 +143,10 @@ vi.mock("../BuildingConnections", () => ({
 
 vi.mock("../AlienInvasion", () => ({
     AlienInvasion: () => <div data-testid="alien-invasion" />,
+}));
+
+vi.mock("../MiningLogisticsSystem", () => ({
+    MiningLogisticsSystem: () => <div data-testid="mining-logistics-system" />,
 }));
 
 describe("Scene3D", () => {

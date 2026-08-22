@@ -9,6 +9,15 @@ export interface NeighborBonus {
 
 export type ConnectionType = "power" | "water" | "biomass" | "data";
 
+export interface BuildingUpgrade {
+  level: number;
+  cost: ResourceCost;
+  productionMultiplier: number;
+  extractionRadius?: number;
+  unlockedUnit?: "rover" | "drone";
+  description?: string;
+}
+
 export interface BuildingDefinition {
   id: string;
   name: string;
@@ -28,6 +37,8 @@ export interface BuildingDefinition {
   influenceRadius?: number;
   /** Resource deposit type extracted by this building (receives neighbor bonus) */
   extractsDeposit?: import("../mapEditorTypes").ResourceType;
+  /** Upgrade paths (levels 2 and 3) */
+  upgrades?: BuildingUpgrade[];
 }
 
 export interface PlacedBuilding {
@@ -35,4 +46,6 @@ export interface PlacedBuilding {
   definitionId: string;
   position: { x: number; y: number; z: number };
   condition: number; // 0-100%
+  level?: number; // 1-3 (default 1)
 }
+

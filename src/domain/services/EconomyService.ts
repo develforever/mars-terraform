@@ -30,6 +30,7 @@ export class EconomyService {
       const condFactor = BuildingService.conditionFactor(building.condition);
       const neighborMult = NeighborService.getProductionMultiplier(building, def, buildings, definitions);
       const depositMult = BuildingService.getDepositMultiplier(building, def, resourceNodes);
+      const levelMult = BuildingService.getLevelMultiplier(building, def);
 
       for (const [resourceKey, value] of Object.entries(def.production)) {
         let adjustedValue = value ?? 0;
@@ -41,9 +42,9 @@ export class EconomyService {
 
         adjustedValue *= productionModifier;
 
-        // Condition, neighbor bonus, and deposit bonus only scale positive production, not consumption
+        // Condition, neighbor bonus, deposit bonus, and level upgrade only scale positive production, not consumption
         if (adjustedValue > 0) {
-          adjustedValue *= condFactor * neighborMult * depositMult;
+          adjustedValue *= condFactor * neighborMult * depositMult * levelMult;
         }
 
         const key = resourceKey as keyof Resources;

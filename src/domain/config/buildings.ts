@@ -40,6 +40,20 @@ export const BUILDING_SEED: BuildingDefinition[] = [
       { neighborId: "ice",    bonusPercent: 15, description: "+15% Bio obok Ekstraktora" },
     ],
     influenceRadius: 4,
+    upgrades: [
+      {
+        level: 2,
+        cost: { power: 4, water: 4 },
+        productionMultiplier: 1.5,
+        description: "+50% Produkcji",
+      },
+      {
+        level: 3,
+        cost: { power: 8, water: 6, biomass: 3 },
+        productionMultiplier: 2.2,
+        description: "+120% Produkcji",
+      },
+    ],
   },
 
   // PRODUCTION
@@ -55,6 +69,20 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     dependsOn: ["hab"],
     connectionType: "power" as const,
     influenceRadius: 3,
+    upgrades: [
+      {
+        level: 2,
+        cost: { power: 5, water: 3 },
+        productionMultiplier: 1.5,
+        description: "+50% Produkcji O₂",
+      },
+      {
+        level: 3,
+        cost: { power: 8, water: 5 },
+        productionMultiplier: 2.2,
+        description: "+120% Produkcji O₂",
+      },
+    ],
   },
   {
     id: "solar",
@@ -71,6 +99,20 @@ export const BUILDING_SEED: BuildingDefinition[] = [
       { neighborId: "battery", bonusPercent: 15, description: "+15% Power obok Stacji" },
     ],
     influenceRadius: 2,
+    upgrades: [
+      {
+        level: 2,
+        cost: { biomass: 1.5, power: 2 },
+        productionMultiplier: 1.5,
+        description: "+50% Energii",
+      },
+      {
+        level: 3,
+        cost: { biomass: 3, water: 2 },
+        productionMultiplier: 2.2,
+        description: "+120% Energii",
+      },
+    ],
   },
   {
     id: "rtg",
@@ -83,6 +125,20 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelScale: 3.0,
     dependsOn: ["solar"],
     influenceRadius: 2.5,
+    upgrades: [
+      {
+        level: 2,
+        cost: { biomass: 6, water: 3 },
+        productionMultiplier: 1.5,
+        description: "+50% Energii",
+      },
+      {
+        level: 3,
+        cost: { biomass: 10, water: 5 },
+        productionMultiplier: 2.2,
+        description: "+120% Energii",
+      },
+    ],
   },
   {
     id: "ice",
@@ -96,6 +152,24 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     dependsOn: ["hab"],
     extractsDeposit: "ice",
     influenceRadius: 3,
+    upgrades: [
+      {
+        level: 2,
+        cost: { power: 4, biomass: 2 },
+        productionMultiplier: 1.5,
+        extractionRadius: 2,
+        unlockedUnit: "rover",
+        description: "Łazik Logistyczny (R=2, x1.5)",
+      },
+      {
+        level: 3,
+        cost: { power: 8, biomass: 4 },
+        productionMultiplier: 2.2,
+        extractionRadius: 4,
+        unlockedUnit: "drone",
+        description: "Dron Powietrzny (R=4, x2.2)",
+      },
+    ],
   },
   {
     id: "miner",
@@ -113,6 +187,24 @@ export const BUILDING_SEED: BuildingDefinition[] = [
       { neighborId: "silo",  bonusPercent: 10, description: "+10% Biomasa obok Silosu" },
     ],
     influenceRadius: 3.5,
+    upgrades: [
+      {
+        level: 2,
+        cost: { power: 6, water: 2, biomass: 2 },
+        productionMultiplier: 1.5,
+        extractionRadius: 2,
+        unlockedUnit: "rover",
+        description: "Łazik Logistyczny (R=2, x1.5)",
+      },
+      {
+        level: 3,
+        cost: { power: 10, water: 4, biomass: 4 },
+        productionMultiplier: 2.2,
+        extractionRadius: 4,
+        unlockedUnit: "drone",
+        description: "Dron Powietrzny (R=4, x2.2)",
+      },
+    ],
   },
 
   // STORAGE
@@ -169,6 +261,20 @@ export const BUILDING_SEED: BuildingDefinition[] = [
       { neighborId: "hab",  bonusPercent: 25, description: "+25% Biomasa obok Kolonii" },
     ],
     influenceRadius: 3.5,
+    upgrades: [
+      {
+        level: 2,
+        cost: { power: 12, biomass: 6 },
+        productionMultiplier: 1.5,
+        description: "+50% Badań",
+      },
+      {
+        level: 3,
+        cost: { power: 20, biomass: 10 },
+        productionMultiplier: 2.2,
+        description: "+120% Badań",
+      },
+    ],
   },
 
   // DEFENSE

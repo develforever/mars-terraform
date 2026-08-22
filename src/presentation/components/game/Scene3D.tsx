@@ -17,6 +17,7 @@ import { TerrainDataSystem } from "./TerrainDataSystem";
 import { MeteorShower } from "./MeteorShower";
 import { BuildingConnections } from "./BuildingConnections";
 import { AlienInvasion } from "./AlienInvasion";
+import { MiningLogisticsSystem } from "./MiningLogisticsSystem";
 import { OutlineEffectContext } from "./OutlineEffectContext";
 import type { OutlineEffect } from "postprocessing";
 import MapOverlay from "./MapOverlay";
@@ -101,6 +102,7 @@ function World() {
             <MeteorShower />
             <BuildingConnections />
             <AlienInvasion />
+            <MiningLogisticsSystem />
             <MapOverlay />
             <ResourceDepositMarkers />
 

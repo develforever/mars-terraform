@@ -451,10 +451,10 @@
     border: 1px solid var(--hud-accent-dim);
     border-radius: 12px;
     padding: 14px 16px;
-    width: 220px;
+    width: 240px;
     color: var(--hud-text);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--hud-border);
-    pointer-events: none;
+    pointer-events: auto;
     animation: popover-fade-in 0.2s ease-out;
     font-size: 13px;
     transform: translateX(-50%);
@@ -465,15 +465,23 @@
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+.popover-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid var(--hud-border);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+}
+
 .popover-header h3 {
-    margin: 0 0 8px 0;
+    margin: 0;
     font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--hud-accent);
-    border-bottom: 1px solid var(--hud-border);
-    padding-bottom: 4px;
 }
 
 .popover-stat {

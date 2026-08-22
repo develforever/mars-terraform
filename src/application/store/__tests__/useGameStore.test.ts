@@ -134,6 +134,7 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
             definitionId: "ice",
             position: { x: iceDeposit.pos[0] * 1.8, y: 0, z: iceDeposit.pos[1] * 2.07 },
             condition: 100,
+            level: 1,
           },
         ],
         resources: { o2: 50, power: 50, water: 50, biomass: 50 },
@@ -147,4 +148,45 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
       expect(updatedDeposit?.amount).toBeLessThanOrEqual(initialAmount);
     }
   });
+
+  it("upgrades a placed building and deducts resources via upgradeBuilding", () => {
+    useGameStore.getState().startNewGame("Upgrade Colony", "normal", "exploration");
+
+    useGameStore.setState({
+      resources: { o2: 100, power: 100, water: 100, biomass: 100 },
+      placed: [
+        {
+          id: "placed-miner-1",
+          definitionId: "miner",
+          position: { x: 0, y: 0, z: 0 },
+          condition: 100,
+          level: 1,
+        },
+      ],
+    });
+
+    // Upgrade to Lvl 2
+    const successLvl2 = useGameStore.getState().upgradeBuilding("placed-miner-1");
+    expect(successLvl2).toBe(true);
+
+    let state = useGameStore.getState();
+    const minerLvl2 = state.placed.find((b) => b.id === "placed-miner-1");
+    expect(minerLvl2?.level).toBe(2);
+    // Cost of miner lvl 2: power: 6, water: 2, biomass: 2
+    expect(state.resources.power).toBe(94);
+    expect(state.resources.water).toBe(98);
+    expect(state.resources.biomass).toBe(98);
+
+    // Upgrade to Lvl 3
+    const successLvl3 = useGameStore.getState().upgradeBuilding("placed-miner-1");
+    expect(successLvl3).toBe(true);
+    state = useGameStore.getState();
+    const minerLvl3 = state.placed.find((b) => b.id === "placed-miner-1");
+    expect(minerLvl3?.level).toBe(3);
+
+    // Upgrade beyond Lvl 3 should fail
+    const successLvl4 = useGameStore.getState().upgradeBuilding("placed-miner-1");
+    expect(successLvl4).toBe(false);
+  });
 });
+

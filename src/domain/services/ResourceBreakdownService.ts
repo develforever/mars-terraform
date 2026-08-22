@@ -38,6 +38,7 @@ export class ResourceBreakdownService {
       const condFactor = BuildingService.conditionFactor(building.condition);
       const neighborMult = NeighborService.getProductionMultiplier(building, def, placed, definitions);
       const depositMult = BuildingService.getDepositMultiplier(building, def, resourceNodes);
+      const levelMult = BuildingService.getLevelMultiplier(building, def);
 
       if (def.production?.[resource] !== undefined) {
         let value = def.production[resource] ?? 0;
@@ -48,12 +49,12 @@ export class ResourceBreakdownService {
         value *= productionModifier;
 
         if (value > 0) {
-          value *= condFactor * neighborMult * depositMult;
+          value *= condFactor * neighborMult * depositMult * levelMult;
         }
 
         const contribution: BuildingContribution = {
           buildingId: building.id,
-          label: def.name,
+          label: (building.level ?? 1) > 1 ? `${def.name} (Lvl ${building.level})` : def.name,
           definitionId: def.id,
           value: parseFloat(value.toFixed(3)),
           condition: building.condition,
