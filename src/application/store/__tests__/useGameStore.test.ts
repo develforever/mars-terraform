@@ -188,5 +188,100 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     const successLvl4 = useGameStore.getState().upgradeBuilding("placed-miner-1");
     expect(successLvl4).toBe(false);
   });
+
+  it("places initial Colony Center (hab) at primary spawn with correct terrain elevation worldY", () => {
+    const customMapWithSpawn: MapExportJSON = {
+      meta: {
+        name: "Spawn Testing Site",
+        description: "Testing spawn and elevation",
+        version: "2.0",
+        gridType: "hex-flat-top",
+        hexSize: 1.2,
+        hexRadius: 10,
+        players: 2,
+        seed: 777,
+      },
+      hexes: [
+        { q: 3, r: -2, terrainType: "highland", userType: "spawn", decor: null },
+        { q: 0, r: 0, terrainType: "plains", userType: null, decor: null },
+      ],
+      buildNodes: [],
+      resourceNodes: [
+        { id: "res-ice-1", type: "ice", pos: [2, -1], amount: 2500, richness: "high", model: "ice_01" },
+      ],
+      spawnPoints: [
+        { player: 1, pos: [3, -2] },
+        { player: 2, pos: [-3, 2] },
+      ],
+      decor: [
+        { model: "crystal", pos: [1, 1], rot: 1.57, scale: 1.2 },
+      ],
+    };
+
+    useGameStore.getState().startNewGame("Spawn Colony", "hard", "exploration", customMapWithSpawn);
+
+    const state = useGameStore.getState();
+    expect(state.placed.length).toBe(1);
+    const hab = state.placed[0];
+    expect(hab).toBeDefined();
+    expect(hab.definitionId).toBe("hab");
+
+    // Spawn was at [3, -2] with terrainType "highland" (worldY = 2.0)
+    // hexToWorld(3, -2) for hexSize=1.2:
+    // x = 1.2 * 1.5 * 3 = 5.4
+    // z = 1.2 * sqrt(3) * (-2 + 3/2) = 1.2 * 1.73205 * (-0.5) = -1.03923
+    expect(hab.position.y).toBe(2.0);
+    expect(hab.position.x).toBeCloseTo(5.4, 2);
+    expect(hab.position.z).toBeCloseTo(-1.039, 2);
+
+    // Verify occupied key matches rounded coordinates
+    const key = `${Math.round(hab.position.x)},${Math.round(hab.position.z)}`;
+    expect(state.occupied[key]).toBe(hab.id);
+
+    // Verify resourceNodes & decor
+    expect(state.resourceNodes.length).toBe(1);
+    expect(state.resourceNodes[0].id).toBe("res-ice-1");
+    expect(state.resourceNodes[0].pos).toEqual([2, -1]);
+    expect(state.decorations.length).toBe(1);
+    expect(state.decorations[0].model).toBe("crystal");
+  });
+
+  it("handles legacy alias fields playerSpawns and decorations in mapData", () => {
+    const aliasMapData = {
+      meta: {
+        name: "Legacy Map",
+        description: "Legacy fields test",
+        version: "2.0",
+        gridType: "hex-flat-top",
+        hexSize: 1.2,
+        hexRadius: 10,
+        players: 1,
+        seed: 123,
+      },
+      hexes: [
+        { q: 2, r: 1, terrainType: "rocky", userType: null, decor: null },
+      ],
+      playerSpawns: [
+        { player: 1, pos: [2, 1] },
+      ],
+      decorations: [
+        { model: "wreck", pos: [0, 1], rot: 0.8, scale: 1.5 },
+      ],
+      resourceNodes: [],
+      buildNodes: [],
+    } as unknown as MapExportJSON;
+
+    useGameStore.getState().startNewGame("Legacy Colony", "normal", "adventure", aliasMapData);
+
+    const state = useGameStore.getState();
+    expect(state.placed.length).toBe(1);
+    const hab = state.placed[0];
+    expect(hab.definitionId).toBe("hab");
+    // Rocky terrain has worldY = 2.8
+    expect(hab.position.y).toBe(2.8);
+
+    expect(state.decorations.length).toBe(1);
+    expect(state.decorations[0].model).toBe("wreck");
+  });
 });
 

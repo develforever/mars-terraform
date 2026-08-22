@@ -19,8 +19,9 @@ import type { AlienState, AlienShip, AlienGroundUnit } from "../../domain/entiti
 import { authClient } from "../service/authService";
 import { HexGrid } from "../../presentation/generator/hex/HexGrid";
 import { applyProceduralTerrain } from "../../presentation/generator/terrain/ProceduralTerrain";
-import { generateResources } from "../../presentation/generator/terrain/ProceduralPlacement";
-import type { MapExportJSON, ResourceNode } from "../../domain/mapEditorTypes";
+import { generateResources, generateDecor, generateSpawns } from "../../presentation/generator/terrain/ProceduralPlacement";
+import { hexToWorld } from "../../presentation/generator/hex/HexMath";
+import type { MapExportJSON, ResourceNode, DecorItem } from "../../domain/mapEditorTypes";
 
 export interface GameState {
   // Resources and colony state
@@ -31,9 +32,11 @@ export interface GameState {
   alive: boolean;
   colonyName: string;
 
-  // Hex Grid Terrain & Resources
+  // Hex Grid Terrain, Resources & Decorations
   hexGrid: HexGrid;
   resourceNodes: ResourceNode[];
+  decorations: DecorItem[];
+  decor?: DecorItem[];
   currentMapData?: MapExportJSON | null;
 
   // Buildings
@@ -80,21 +83,83 @@ function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
     applyProceduralTerrain(defaultGrid, s);
   }
 
-  const resourceNodes: ResourceNode[] = mapData?.resourceNodes?.length
-    ? [...mapData.resourceNodes]
+  const rawResourceNodes = mapData?.resourceNodes ?? (mapData as unknown as { resources?: ResourceNode[] })?.resources;
+  const resourceNodes: ResourceNode[] = rawResourceNodes && rawResourceNodes.length > 0
+    ? rawResourceNodes.map((n: Partial<ResourceNode>, idx: number) => ({
+        id: n.id ?? `res-${idx}`,
+        type: n.type ?? "minerals",
+        pos: n.pos ? [n.pos[0], n.pos[1]] : [0, 0],
+        amount: n.amount ?? 1000,
+        richness: n.richness ?? "med",
+        model: n.model ?? (n.type === "minerals" ? "mineral_pile_01" : n.type === "ice" ? "ice_01" : n.type === "organics" ? "organics_01" : "energy_01"),
+      }))
     : generateResources(defaultGrid, s, 1);
+
+  const rawDecor = mapData?.decor ?? (mapData as unknown as { decorations?: DecorItem[] })?.decorations;
+  const decorations: DecorItem[] = rawDecor && rawDecor.length > 0
+    ? rawDecor.map((d: Partial<DecorItem>) => ({
+        model: d.model ?? "rock_01",
+        pos: d.pos ? [d.pos[0], d.pos[1]] : [0, 0],
+        rot: d.rot ?? 0,
+        scale: d.scale ?? 1,
+      }))
+    : generateDecor(defaultGrid, s);
+
+  // Initial Colony Center (hab) spawn placement
+  const rawSpawns = mapData?.spawnPoints ?? (mapData as unknown as { playerSpawns?: unknown[] })?.playerSpawns;
+  let spawnQ = 0;
+  let spawnR = 0;
+
+  if (rawSpawns && rawSpawns.length > 0) {
+    const firstSpawn = rawSpawns[0];
+    if (Array.isArray(firstSpawn) && typeof firstSpawn[0] === "number" && typeof firstSpawn[1] === "number") {
+      spawnQ = firstSpawn[0];
+      spawnR = firstSpawn[1];
+    } else if (typeof firstSpawn === "object" && firstSpawn !== null) {
+      const obj = firstSpawn as { pos?: [number, number]; q?: number; r?: number };
+      if (obj.pos && Array.isArray(obj.pos)) {
+        spawnQ = obj.pos[0];
+        spawnR = obj.pos[1];
+      } else if (typeof obj.q === "number" && typeof obj.r === "number") {
+        spawnQ = obj.q;
+        spawnR = obj.r;
+      }
+    }
+  } else if (!mapData) {
+    const procSpawns = generateSpawns(defaultGrid, s, 1);
+    if (procSpawns && procSpawns.length > 0) {
+      spawnQ = procSpawns[0].pos[0];
+      spawnR = procSpawns[0].pos[1];
+    }
+  }
+
+  const [spawnWx, spawnWz] = hexToWorld(spawnQ, spawnR);
+  const spawnCell = defaultGrid.getCell(spawnQ, spawnR);
+  const spawnWy = spawnCell ? spawnCell.worldY : 0;
+
+  const habBuilding: PlacedBuilding = {
+    id: "colony-center-hab",
+    definitionId: "hab",
+    position: { x: spawnWx, y: spawnWy, z: spawnWz },
+    condition: 100,
+    level: 1,
+  };
+
+  const habKey = `${Math.round(spawnWx)},${Math.round(spawnWz)}`;
 
   return {
     hexGrid: defaultGrid,
     resourceNodes,
+    decorations,
+    decor: decorations,
     currentMapData: mapData ?? null,
-    resources: INITIAL_COLONY_STATE.resources,
-    capacity: INITIAL_COLONY_STATE.capacity,
+    resources: { ...INITIAL_COLONY_STATE.resources },
+    capacity: { ...INITIAL_COLONY_STATE.capacity },
     sun: INITIAL_COLONY_STATE.sun,
     alive: INITIAL_COLONY_STATE.alive,
     colonyName: "",
-    placed: [] as PlacedBuilding[],
-    occupied: {} as Record<string, string>,
+    placed: [habBuilding],
+    occupied: { [habKey]: habBuilding.id },
     weather: { type: "clear" as const, intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
     terraforming: 0,
     o2Accumulated: 0,
@@ -419,6 +484,7 @@ export const useGameStore = create<GameState>()(
                 sun: state.sun,
                 alienState: state.alienState,
                 resourceNodes: state.resourceNodes,
+                decorations: state.decorations,
                 currentMapData: state.currentMapData ?? null,
               }
             })
@@ -452,10 +518,18 @@ export const useGameStore = create<GameState>()(
               : generateResources(loadedGrid, 42, 1)
           );
 
+          const loadedDecor: DecorItem[] = gameState.decorations ?? gameState.decor ?? (
+            gameState.currentMapData?.decor?.length
+              ? gameState.currentMapData.decor
+              : generateDecor(loadedGrid, 42)
+          );
+
           set({
             colonyName: data.name,
             hexGrid: loadedGrid,
             resourceNodes: loadedNodes,
+            decorations: loadedDecor,
+            decor: loadedDecor,
             currentMapData: gameState.currentMapData ?? null,
             resources: gameState.resources,
             capacity: gameState.capacity,

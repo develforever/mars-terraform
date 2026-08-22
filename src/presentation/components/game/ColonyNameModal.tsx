@@ -131,6 +131,16 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
         handleGenerate();
     }, [handleGenerate]);
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && !isLaunching) {
+                onCancel();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isLaunching, onCancel]);
+
     if (isLaunching) {
         return (
             <div className="colony-modal colony-modal--launching">

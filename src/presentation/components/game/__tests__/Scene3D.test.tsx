@@ -106,7 +106,18 @@ vi.mock("../../../../application/store/useGameStore", () => ({
     },
 }));
 
+vi.mock("../TerrainHexMesh", () => ({
+    TerrainHexMesh: () => <div data-testid="terrain-hex-mesh" />,
+    default: () => <div data-testid="terrain-hex-mesh" />,
+}));
+
+vi.mock("../Decorations", () => ({
+    Decorations: () => <div data-testid="decorations" />,
+    default: () => <div data-testid="decorations" />,
+}));
+
 vi.mock("../../../generator/components/viewport/SmoothTerrain", () => ({
+    SmoothTerrain: () => <div data-testid="smooth-terrain" />,
     default: () => <div data-testid="smooth-terrain" />,
 }));
 

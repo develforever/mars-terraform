@@ -6,7 +6,8 @@ import * as THREE from "three";
 import { usePlacement } from "../../../application/hooks/usePlacement";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { useGameStore } from "../../../application/store/useGameStore";
-import SmoothTerrain from "../../generator/components/viewport/SmoothTerrain";
+import { TerrainHexMesh } from "./TerrainHexMesh";
+import { Decorations } from "./Decorations";
 import { worldToHex } from "../../generator/hex/HexMath";
 import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 import { Buildings, DemolishGhost, HoverGhost } from "./Buildings";
@@ -92,10 +93,11 @@ function World() {
                 onDataMapCreated={setDataMap}
             />
 
-            <SmoothTerrain
+            <TerrainHexMesh
                 ref={terrainRef}
                 hexGrid={hexGrid}
             />
+            <Decorations />
             <Buildings />
             <HoverGhost />
             <DemolishGhost />
