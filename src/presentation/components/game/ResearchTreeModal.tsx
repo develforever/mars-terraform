@@ -1,8 +1,10 @@
 import { useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { TECHNOLOGY_LIST, TECH_CATEGORIES, TECHNOLOGIES } from "../../../domain/config/technologies";
 import type { TechCategory } from "../../../domain/config/technologies";
+import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 import { ResearchService } from "../../../domain/services/ResearchService";
 
 // props
@@ -57,7 +59,7 @@ export function ResearchTreeModal({ onClose }: ResearchTreeModalProps) {
   };
 
   // render logic
-  return (
+  return createPortal(
     <div
       ref={backdropRef}
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm"
@@ -134,12 +136,14 @@ export function ResearchTreeModal({ onClose }: ResearchTreeModalProps) {
                     return (
                       <TechNode
                         key={tech.id}
+                        id={tech.id}
                         name={tech.name}
                         description={tech.description}
                         costRP={tech.costRP}
                         status={status}
                         prereqNames={prereqNames}
                         unlockEffects={tech.unlockEffects}
+                        unlocksBuildings={tech.unlocksBuildings}
                         currentRP={researchPoints}
                         canBuy={canBuy}
                         onPurchase={() => handlePurchase(tech.id)}
@@ -153,19 +157,22 @@ export function ResearchTreeModal({ onClose }: ResearchTreeModalProps) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
 // ── TechNode sub-component ───────────────────────────────────────────────────
 
 interface TechNodeProps {
+  id: string;
   name: string;
   description: string;
   costRP: number;
   status: TechStatus;
   prereqNames: string[];
   unlockEffects?: string;
+  unlocksBuildings: string[];
   currentRP: number;
   canBuy: boolean;
   onPurchase: () => void;
@@ -185,7 +192,7 @@ const STATUS_DOT: Record<TechStatus, string> = {
 };
 
 function TechNode({
-  name, description, costRP, status, prereqNames, unlockEffects,
+  id, name, description, costRP, status, prereqNames, unlockEffects, unlocksBuildings,
   currentRP, canBuy, onPurchase, t,
 }: TechNodeProps) {
   const canAfford = currentRP >= costRP;
@@ -206,6 +213,51 @@ function TechNode({
       {/* Unlock effects */}
       {unlockEffects && (
         <p className="text-[10px] text-[#58a6ff] leading-snug">{unlockEffects}</p>
+      )}
+
+      {/* 3D Model thumbnails for unlocked buildings / units */}
+      {unlocksBuildings.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+          {unlocksBuildings.map((bId) => {
+            const bDef = BUILDING_DEFINITIONS[bId];
+            return (
+              <div
+                key={bId}
+                className="flex items-center gap-1 bg-[#161b22] border border-[#30363d] rounded px-1.5 py-0.5"
+                title={bDef?.name || bId}
+              >
+                <img
+                  src={`/icons/buildings/${bId}.webp`}
+                  alt={bDef?.name || bId}
+                  className="w-4 h-4 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = "none";
+                  }}
+                />
+                <span className="text-[10px] text-gray-300 font-medium">{bDef?.name || bId}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {id === "drone_logistics" && (
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+          <div
+            className="flex items-center gap-1 bg-[#161b22] border border-[#30363d] rounded px-1.5 py-0.5"
+            title="Dron Logistyczny"
+          >
+            <img
+              src="/icons/units/drone.webp"
+              alt="Dron"
+              className="w-4 h-4 object-contain"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = "none";
+              }}
+            />
+            <span className="text-[10px] text-gray-300 font-medium">Dron</span>
+          </div>
+        </div>
       )}
 
       {/* Prereqs */}

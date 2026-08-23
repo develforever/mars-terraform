@@ -97,7 +97,7 @@ const DepositMarker = ({ id, type, pos, amount, richness }: DepositMarkerProps) 
       </mesh>
 
       {/* Floating UI tag */}
-      <Html position={[0, isHighlighted ? 2.0 : 1.4, 0]} center distanceFactor={70} occlude={false}>
+      <Html position={[0, isHighlighted ? 2.0 : 1.4, 0]} center distanceFactor={70} occlude={false} zIndexRange={[0, 0]}>
         <div
           className={`px-1.5 py-0.5 rounded text-[11px] font-mono whitespace-nowrap pointer-events-none transition-all duration-200 select-none shadow-md ${
             isHighlighted

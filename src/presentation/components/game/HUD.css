@@ -244,9 +244,20 @@
 }
 
 .hud-dock__row--palette button {
-    padding: 6px 10px;
+    padding: 4px 10px;
     font-size: 10px;
     min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.palette-btn__icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+    flex-shrink: 0;
 }
 
 .tooltip-wrapper {

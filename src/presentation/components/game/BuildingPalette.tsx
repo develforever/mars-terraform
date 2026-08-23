@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BUILDING_DEFINITIONS, BUILDING_SEED } from "../../../domain/config/buildings";
 import { BuildingService } from "../../../domain/services/BuildingService";
@@ -9,6 +9,36 @@ import type { PlacedBuilding } from "../../../domain/entities/Building";
 import type { ResourceKey, Resources } from "../../../domain/entities/Resources";
 import { BuildingTooltip } from "./BuildingTooltip";
 import { useGameStore } from "../../../application/store/useGameStore";
+
+interface BuildingIconProps {
+    id: string;
+    name: string;
+    color?: string;
+}
+
+const BuildingIcon = ({ id, name, color }: BuildingIconProps) => {
+    const [hasError, setHasError] = useState(false);
+
+    if (hasError) {
+        return (
+            <span
+                className="inline-block w-3.5 h-3.5 rounded-full shrink-0"
+                style={{ backgroundColor: color }}
+                title={name}
+            />
+        );
+    }
+
+    return (
+        <img
+            src={`/icons/buildings/${id}.webp`}
+            alt={name}
+            className="palette-btn__icon"
+            onError={() => setHasError(true)}
+            loading="lazy"
+        />
+    );
+};
 
 const RESOURCE_LABELS: Record<ResourceKey, string> = {
     o2:      "O₂",
@@ -180,12 +210,13 @@ export function BuildingPalette({
                                 <BuildingTooltip key={def.id} content={tooltipContent}>
                                     <button
                                         type="button"
-                                        className={`${active ? "active" : ""} ${!reqsMet || !techOk ? "locked" : ""} ${isPlaced ? "placed" : ""}`}
+                                        className={`palette-btn ${active ? "active" : ""} ${!reqsMet || !techOk ? "locked" : ""} ${isPlaced ? "placed" : ""}`}
                                         disabled={!affordable || !reqsMet || !techOk || demolishActive}
                                         onClick={() => onSelect(def.id)}
                                     >
-                                        {isPlaced && <span style={{ color: "#4ade80", marginRight: 4 }}>●</span>}
-                                        {def.name}
+                                        <BuildingIcon id={def.id} name={def.name} color={def.color} />
+                                        {isPlaced && <span style={{ color: "#4ade80", marginRight: 2 }}>●</span>}
+                                        <span>{def.name}</span>
                                         {!techOk ? " 🔬" : !affordable && reqsMet ? ` · ${t("hud.shortage")}` : ""}
                                         {techOk && !reqsMet ? " 🔒" : ""}
                                     </button>
