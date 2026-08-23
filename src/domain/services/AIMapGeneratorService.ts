@@ -395,6 +395,37 @@ export class AIMapGeneratorService {
     // Generate Build Nodes & Decor
     const buildNodes = generateBuildNodes(grid, seed + 60, players, spawns)
     const decor = generateDecor(grid, seed + 70)
+
+    // Scatter POI prefabs if requested
+    const hasPoiRequest =
+      normalized.includes('laborator') || normalized.includes('lab') || normalized.includes('ruin') || normalized.includes('stacj') ||
+      normalized.includes('gniazd') || normalized.includes('hive') || normalized.includes('obcy') || normalized.includes('alien') ||
+      normalized.includes('wrak') || normalized.includes('freighter') || normalized.includes('rozbit') || normalized.includes('crashed') || normalized.includes('statek')
+
+    if (hasPoiRequest) {
+      if (normalized.includes('laborator') || normalized.includes('lab') || normalized.includes('ruin') || normalized.includes('stacj')) {
+        const candidate = grid.getAllCells().find(c => (c.terrainType === 'highland' || c.terrainType === 'rocky' || c.terrainType === 'plains') && !decor.some(d => d.pos[0] === c.q && d.pos[1] === c.r))
+        if (candidate) {
+          decor.push({ model: 'poi_abandoned_lab', pos: [candidate.q, candidate.r], rot: +(rng() * Math.PI * 2).toFixed(2), scale: 1.0 })
+          operations.push('Rozmieszczono prefab opuszczonego laboratorium (poi_abandoned_lab)')
+        }
+      }
+      if (normalized.includes('gniazd') || normalized.includes('hive') || normalized.includes('obcy') || normalized.includes('alien')) {
+        const candidate = grid.getAllCells().find(c => (c.terrainType === 'lowland' || c.terrainType === 'deep_crater' || c.terrainType === 'plains') && !decor.some(d => d.pos[0] === c.q && d.pos[1] === c.r))
+        if (candidate) {
+          decor.push({ model: 'poi_alien_hive', pos: [candidate.q, candidate.r], rot: +(rng() * Math.PI * 2).toFixed(2), scale: 1.0 })
+          operations.push('Rozmieszczono prefab gniazda obcych (poi_alien_hive)')
+        }
+      }
+      if (normalized.includes('wrak') || normalized.includes('freighter') || normalized.includes('rozbit') || normalized.includes('crashed') || normalized.includes('statek')) {
+        const candidate = grid.getAllCells().find(c => (c.terrainType === 'deep_crater' || c.terrainType === 'lowland' || c.terrainType === 'plains') && !decor.some(d => d.pos[0] === c.q && d.pos[1] === c.r))
+        if (candidate) {
+          decor.push({ model: 'poi_crashed_freighter', pos: [candidate.q, candidate.r], rot: +(rng() * Math.PI * 2).toFixed(2), scale: 1.0 })
+          operations.push('Rozmieszczono prefab wraku statku (poi_crashed_freighter)')
+        }
+      }
+    }
+
     operations.push(`Utworzono ${buildNodes.length} węzłów budowy i ${decor.length} elementów otoczenia`)
 
     const hexes: HexExportCell[] = grid.getAllCells().map(c => ({
@@ -562,7 +593,13 @@ export class AIMapGeneratorService {
     }
 
     // 3. Selective Resource Addition
-    if (normalized.includes('dodaj') || normalized.includes('add')) {
+    const isResourcePrompt =
+      normalized.includes('zloz') || normalized.includes('surow') || normalized.includes('resource') ||
+      normalized.includes('lod') || normalized.includes('ice') || normalized.includes('wod') ||
+      normalized.includes('mineral') || normalized.includes('organi') || normalized.includes('biomas') ||
+      normalized.includes('energi') || normalized.includes('power')
+
+    if ((normalized.includes('dodaj') || normalized.includes('add')) && isResourcePrompt) {
       let resType: ResourceType = 'minerals'
       let model = 'mineral_pile_01'
 
@@ -610,6 +647,68 @@ export class AIMapGeneratorService {
         added++
       }
       operations.push(`Dodano ${added} złóż (${resType}) na wskazanym terenie`)
+    }
+
+    // 3b. Selective POI Prefabs Placement (Ruins, Alien Base / Hive, Crashed Freighter)
+    const isPoiPrompt =
+      normalized.includes('laborator') || normalized.includes('lab') || normalized.includes('ruin') || normalized.includes('stacj') ||
+      normalized.includes('gniazd') || normalized.includes('hive') || normalized.includes('obcy') || normalized.includes('alien') ||
+      normalized.includes('wrak') || normalized.includes('freighter') || normalized.includes('rozbit') || normalized.includes('crashed') ||
+      normalized.includes('statek')
+
+    if (isPoiPrompt) {
+      let poiModel = 'poi_abandoned_lab'
+      let poiLabel = 'opuszczone laboratorium badawcze'
+      let targetTerrain: HexTerrainType[] = ['highland', 'rocky', 'plains']
+
+      if (normalized.includes('gniazd') || normalized.includes('hive') || normalized.includes('obcy') || normalized.includes('alien')) {
+        poiModel = 'poi_alien_hive'
+        poiLabel = 'gniazdo / bazę obcych'
+        targetTerrain = ['lowland', 'deep_crater', 'plains']
+      } else if (normalized.includes('wrak') || normalized.includes('freighter') || normalized.includes('rozbit') || normalized.includes('crashed') || normalized.includes('statek')) {
+        poiModel = 'poi_crashed_freighter'
+        poiLabel = 'wrak transportowca w kraterze'
+        targetTerrain = ['deep_crater', 'lowland', 'plains']
+      }
+
+      // Explicit terrain override if specified in prompt
+      if (normalized.includes('wyzyn') || normalized.includes('highland')) {
+        targetTerrain = ['highland', 'rocky']
+      } else if (normalized.includes('nizin') || normalized.includes('lowland')) {
+        targetTerrain = ['lowland', 'deep_crater']
+      } else if (normalized.includes('krater') || normalized.includes('crater')) {
+        targetTerrain = ['deep_crater', 'lowland']
+      } else if (normalized.includes('rownin') || normalized.includes('plains')) {
+        targetTerrain = ['plains']
+      }
+
+      const candidateCells = grid.getAllCells().filter(
+        c => targetTerrain.includes(c.terrainType) && !decor.some(d => d.pos[0] === c.q && d.pos[1] === c.r)
+      )
+
+      if (candidateCells.length > 0) {
+        const pickIdx = Math.floor(rng() * candidateCells.length)
+        const [picked] = candidateCells.splice(pickIdx, 1)
+        decor.push({
+          model: poiModel,
+          pos: [picked.q, picked.r],
+          rot: +(rng() * Math.PI * 2).toFixed(2),
+          scale: 1.0,
+        })
+        operations.push(`Rozmieszczono ${poiLabel} (${poiModel}) na terenie ${targetTerrain.join('/')}`)
+      } else {
+        const allCells = grid.getAllCells()
+        if (allCells.length > 0) {
+          const picked = allCells[Math.floor(rng() * allCells.length)]
+          decor.push({
+            model: poiModel,
+            pos: [picked.q, picked.r],
+            rot: +(rng() * Math.PI * 2).toFixed(2),
+            scale: 1.0,
+          })
+          operations.push(`Rozmieszczono ${poiLabel} (${poiModel})`)
+        }
+      }
     }
 
     // 4. Clear / Adjust Decor

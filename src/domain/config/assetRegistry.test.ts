@@ -41,6 +41,19 @@ describe('3D Asset Registry & Manifest Integrity', () => {
     }
   });
 
+  it('should contain manifest entries for POI ruin and alien base prefabs', () => {
+    const assetIds = new Set(assetManifest.assets.map(a => a.id));
+    const requiredPOIs = [
+      'poi_abandoned_lab',
+      'poi_alien_hive',
+      'poi_crashed_freighter',
+    ];
+
+    for (const id of requiredPOIs) {
+      expect(assetIds.has(id), `Required POI prefab ${id} is missing from assetManifest.json`).toBe(true);
+    }
+  });
+
   it('should have decor models cataloged or matchable', () => {
     expect(DECOR_MODELS.length).toBeGreaterThan(0);
   });

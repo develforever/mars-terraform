@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
 import type { ToolMode, BrushSize } from '../../../domain/mapEditorTypes'
 import type { HexTerrainType } from '../hex/HexGrid'
+import { DECOR_MODELS, type DecorModelDef } from './viewport/decorConstants'
 
 // ─── Tool definitions ─────────────────────────────────────────────────────────
 
@@ -19,13 +20,7 @@ const BRUSHES: BrushSize[] = [1, 3, 5]
 
 // ─── Terrain type definitions ─────────────────────────────────────────────────
 
-const DECOR_TYPES: { model: string; label: string }[] = [
-  { model: 'rock_01', label: 'Rock' },
-  { model: 'rocks',   label: 'Stones' },
-  { model: 'boulder', label: 'Boulder' },
-  { model: 'crystal', label: 'Crystal' },
-  { model: 'wreck',   label: 'Wreck' },
-]
+const DECOR_TYPES: DecorModelDef[] = DECOR_MODELS
 
 const TERRAIN_TYPES: { type: HexTerrainType; label: string; color: string }[] = [
   { type: 'deep_crater', label: 'Deep Crater', color: '#2e1710' },

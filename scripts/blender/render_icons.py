@@ -14,6 +14,13 @@ BLEND_FILE_DEFAULT = r"C:\Users\robert\Documents\mars-terraform.blend"
 PROJECT_ROOT = os.path.abspath(r"C:\Users\robert\code\mars-terraform")
 BUILDINGS_OUT_DIR = os.path.join(PROJECT_ROOT, "public", "icons", "buildings")
 UNITS_OUT_DIR = os.path.join(PROJECT_ROOT, "public", "icons", "units")
+POI_OUT_DIR = os.path.join(PROJECT_ROOT, "public", "icons", "poi")
+
+POI_MODELS = [
+    "poi_abandoned_lab",
+    "poi_alien_hive",
+    "poi_crashed_freighter",
+]
 
 # Mapping from game Building/Unit IDs to blend model names
 BUILDING_ID_MAP = {
@@ -250,6 +257,17 @@ def main():
         if os.path.exists(src_path) and src_path != dst_path:
             shutil.copy2(src_path, dst_path)
             print(f"[Renderer] Alias: {u_id}.webp <= {model_name}.webp")
+
+    # 5. Render POI icons
+    os.makedirs(POI_OUT_DIR, exist_ok=True)
+    print(f"[Renderer] Rendering {len(POI_MODELS)} POI models...")
+    for model_name in POI_MODELS:
+        poi_path = os.path.join(POI_OUT_DIR, f"{model_name}.webp")
+        rendered = render_collection(model_name, poi_path, cam_obj)
+        if rendered:
+            bld_path = os.path.join(BUILDINGS_OUT_DIR, f"{model_name}.webp")
+            shutil.copy2(poi_path, bld_path)
+            print(f"[Renderer] POI Icon saved: {poi_path} & {bld_path}")
 
     print("=== ICON RENDERING COMPLETED SUCCESSFULLY ===")
 

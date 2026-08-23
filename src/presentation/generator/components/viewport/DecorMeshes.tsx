@@ -7,6 +7,8 @@
 
 import { useMemo } from 'react'
 import * as THREE from 'three'
+import { useGLTF } from '@react-three/drei'
+import { POI_MODEL_PATHS } from './decorConstants'
 
 // Czysta, fasetowana skala (lekka nieregularnosc — bez kolcow)
 function makeRockGeo(detail: number, squash: number, seed: number): THREE.BufferGeometry {
@@ -101,7 +103,41 @@ const Wreck = ({ scale, rot }: { scale: number; rot: number }) => (
   </group>
 )
 
+// Preload POI models
+if (typeof window !== 'undefined') {
+  Object.values(POI_MODEL_PATHS).forEach((path) => {
+    useGLTF.preload(path)
+  })
+}
+
+const GLTFDecor = ({ path, scale, rot }: { path: string; scale: number; rot: number }) => {
+  const gltf = useGLTF(path) as { scene: THREE.Group }
+  const sceneClone = useMemo(() => {
+    const clone = gltf.scene.clone(true)
+    clone.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+      }
+    })
+    return clone
+  }, [gltf.scene])
+
+  return (
+    <group rotation={[0, rot, 0]} scale={scale}>
+      <primitive object={sceneClone} />
+    </group>
+  )
+}
+
 export const DecorMesh = ({ model, scale, rot }: { model: string; scale: number; rot: number }) => {
+  if (model in POI_MODEL_PATHS) {
+    return <GLTFDecor path={POI_MODEL_PATHS[model]} scale={scale} rot={rot} />
+  }
+  if (model.startsWith('/models/') || model.endsWith('.glb')) {
+    return <GLTFDecor path={model} scale={scale} rot={rot} />
+  }
+
   switch (model) {
     case 'rocks':   return <Stones  scale={scale} rot={rot} />
     case 'boulder': return <Boulder scale={scale} rot={rot} />

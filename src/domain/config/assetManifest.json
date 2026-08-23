@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "generatedAt": "2026-08-23T08:14:22Z",
-  "totalAssets": 156,
+  "totalAssets": 159,
   "assets": [
     {
       "id": "alien",
@@ -2186,6 +2186,48 @@
       },
       "triangles": 106,
       "vertices": 176
+    },
+    {
+      "id": "poi_abandoned_lab",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "POI",
+      "path": "/models/mars/poi_abandoned_lab.glb",
+      "fileSize": 92956,
+      "dimensions": {
+        "x": 3.399,
+        "y": 4.5,
+        "z": 2.371
+      },
+      "triangles": 1270,
+      "vertices": 2000
+    },
+    {
+      "id": "poi_alien_hive",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "POI",
+      "path": "/models/mars/poi_alien_hive.glb",
+      "fileSize": 65812,
+      "dimensions": {
+        "x": 5.206,
+        "y": 7.071,
+        "z": 0.66
+      },
+      "triangles": 952,
+      "vertices": 1542
+    },
+    {
+      "id": "poi_crashed_freighter",
+      "category": "05_ENVIRONMENT_DECOR",
+      "subCategory": "POI",
+      "path": "/models/mars/poi_crashed_freighter.glb",
+      "fileSize": 66960,
+      "dimensions": {
+        "x": 5.754,
+        "y": 4.406,
+        "z": 3.103
+      },
+      "triangles": 832,
+      "vertices": 1402
     }
   ]
 }

@@ -197,5 +197,80 @@ describe('AIMapGeneratorService', () => {
       const validation = parseMapJSON(result.mapData)
       expect(validation.ok).toBe(true)
     })
+
+    it('places abandoned lab POI on highlands when requested', async () => {
+      const mapWithHighlands: MapExportJSON = {
+        ...baseMap,
+        hexes: [
+          ...baseMap.hexes,
+          { q: 3, r: 0, terrainType: 'highland', userType: null, decor: null },
+          { q: 4, r: 0, terrainType: 'highland', userType: null, decor: null },
+        ],
+      }
+
+      const result = await AIMapGeneratorService.generateFromPrompt(
+        'Dodaj opuszczone laboratorium na wyżynach',
+        { currentMap: mapWithHighlands, seed: 500 }
+      )
+
+      const labDecor = result.mapData.decor.find(d => d.model === 'poi_abandoned_lab')
+      expect(labDecor).toBeDefined()
+      expect(result.operationsApplied.some(op => op.includes('poi_abandoned_lab'))).toBe(true)
+
+      const validation = parseMapJSON(result.mapData)
+      expect(validation.ok).toBe(true)
+    })
+
+    it('places alien hive POI on lowlands when requested', async () => {
+      const result = await AIMapGeneratorService.generateFromPrompt(
+        'Dodaj gniazdo obcych na nizinach',
+        { currentMap: baseMap, seed: 600 }
+      )
+
+      const hiveDecor = result.mapData.decor.find(d => d.model === 'poi_alien_hive')
+      expect(hiveDecor).toBeDefined()
+      expect(result.operationsApplied.some(op => op.includes('poi_alien_hive'))).toBe(true)
+
+      const validation = parseMapJSON(result.mapData)
+      expect(validation.ok).toBe(true)
+    })
+
+    it('places crashed freighter POI in crater when requested', async () => {
+      const mapWithCrater: MapExportJSON = {
+        ...baseMap,
+        hexes: [
+          ...baseMap.hexes,
+          { q: 0, r: 1, terrainType: 'deep_crater', userType: null, decor: null },
+        ],
+      }
+
+      const result = await AIMapGeneratorService.generateFromPrompt(
+        'Dodaj wrak statku w kraterze',
+        { currentMap: mapWithCrater, seed: 700 }
+      )
+
+      const freighterDecor = result.mapData.decor.find(d => d.model === 'poi_crashed_freighter')
+      expect(freighterDecor).toBeDefined()
+      expect(result.operationsApplied.some(op => op.includes('poi_crashed_freighter'))).toBe(true)
+
+      const validation = parseMapJSON(result.mapData)
+      expect(validation.ok).toBe(true)
+    })
+  })
+
+  describe('Full Generation with POI Prefabs', () => {
+    it('scatters POI prefabs when prompt requests ruins and alien bases', async () => {
+      const result = await AIMapGeneratorService.generateFromPrompt(
+        'Planeta z opuszczonym laboratorium badawczym i wrakiem statku w kraterze',
+        { radius: 15, seed: 800 }
+      )
+
+      const hasLab = result.mapData.decor.some(d => d.model === 'poi_abandoned_lab')
+      const hasFreighter = result.mapData.decor.some(d => d.model === 'poi_crashed_freighter')
+      expect(hasLab || hasFreighter).toBe(true)
+
+      const validation = parseMapJSON(result.mapData)
+      expect(validation.ok).toBe(true)
+    })
   })
 })
