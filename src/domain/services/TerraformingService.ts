@@ -23,6 +23,9 @@ export const DIFFICULTY_TARGETS: Record<DifficultyLevel, TerraformingTargets> = 
 };
 
 
+export const MIN_WATER_LEVEL = -0.5;
+export const MAX_WATER_LEVEL = 1.3;
+
 export class TerraformingService {
   static calculateProgress(
     o2Accumulated: number,
@@ -44,5 +47,28 @@ export class TerraformingService {
 
   static isComplete(progress: number): boolean {
     return progress >= 100;
+  }
+
+  /**
+   * Calculates global 3D water level Y based on current water resource and terraforming progress.
+   * Range: [MIN_WATER_LEVEL (-0.5), MAX_WATER_LEVEL (1.3)]
+   */
+  static calculateWaterLevel(
+    waterCurrent: number,
+    terraformingProgress: number,
+    difficulty: DifficultyLevel = "normal"
+  ): number {
+    const t = DIFFICULTY_TARGETS[difficulty];
+    const waterRatio = Math.max(0, Math.min(1, waterCurrent / t.water));
+    const tfRatio = Math.max(0, Math.min(1, terraformingProgress / 100));
+    const combined = waterRatio * 0.7 + tfRatio * 0.3;
+    return MIN_WATER_LEVEL + combined * (MAX_WATER_LEVEL - MIN_WATER_LEVEL);
+  }
+
+  /**
+   * Determines if a cell or height is submerged under the current water level.
+   */
+  static isSubmerged(worldY: number, waterLevel: number): boolean {
+    return worldY <= waterLevel + 1e-4;
   }
 }

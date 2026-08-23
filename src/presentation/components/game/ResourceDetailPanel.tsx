@@ -3,7 +3,7 @@ import type { ResourceKey } from "../../../domain/entities/Resources";
 import type { PlacedBuilding, BuildingDefinition } from "../../../domain/entities/Building";
 import type { ResourceDelta } from "../../../domain/entities/Resources";
 import type { DifficultyLevel } from "../../../domain/services/TerraformingService";
-import { DIFFICULTY_TARGETS } from "../../../domain/services/TerraformingService";
+import { DIFFICULTY_TARGETS, TerraformingService } from "../../../domain/services/TerraformingService";
 import { ResourceBreakdownService } from "../../../domain/services/ResourceBreakdownService";
 import { BuildingService } from "../../../domain/services/BuildingService";
 import type { ResourceNode } from "../../../domain/mapEditorTypes";
@@ -189,6 +189,12 @@ function TerraformingPanel({ terraforming, o2Accumulated, difficulty, resources,
         return ticksForO2 > 0 ? Math.ceil(ticksForO2) : null;
     })();
 
+    const waterLevel = TerraformingService.calculateWaterLevel(resources.water, terraforming, difficulty);
+    const waterStatusKey =
+        waterLevel <= -0.16 ? "dry" :
+        waterLevel <= 0.6 ? "craters" :
+        waterLevel <= 1.2 ? "lowlands" : "flooding";
+
     return (
         <div className="rdp">
             <div className="rdp__header">
@@ -238,6 +244,16 @@ function TerraformingPanel({ terraforming, o2Accumulated, difficulty, resources,
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <div style={{ marginTop: "8px", padding: "8px", background: "rgba(10, 30, 63, 0.5)", borderRadius: "4px", border: "1px solid rgba(27, 108, 168, 0.4)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", marginBottom: "4px" }}>
+                        <span style={{ color: "#38bdf8", fontWeight: 600 }}>💧 {t("rdp.terraforming.waterLevel")}</span>
+                        <span style={{ color: "#93c5fd", fontWeight: 700 }}>{t("rdp.terraforming.waterLevelValue", { level: waterLevel.toFixed(2) })}</span>
+                    </div>
+                    <div style={{ fontSize: "10px", color: "#94a3b8" }}>
+                        {t(`rdp.terraforming.waterStatus.${waterStatusKey}`)}
+                    </div>
                 </div>
 
                 {etaTicks !== null && (

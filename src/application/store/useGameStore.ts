@@ -51,6 +51,7 @@ export interface GameState {
   // Terraforming
   terraforming: number;
   o2Accumulated: number;
+  waterLevel: number;
   difficulty: DifficultyLevel;
   gameMode: GameMode;
   alienState: AlienState;
@@ -173,6 +174,7 @@ function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
     weather: { type: "clear" as const, intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
     terraforming: 0,
     o2Accumulated: 0,
+    waterLevel: TerraformingService.calculateWaterLevel(INITIAL_COLONY_STATE.resources.water, 0, "normal"),
     won: false,
     difficulty: "normal" as DifficultyLevel,
     gameMode: "exploration" as GameMode,
@@ -219,7 +221,9 @@ export const useGameStore = create<GameState>()(
       },
 
       setDifficulty: (level) => {
-        set({ difficulty: level });
+        const { resources, terraforming } = get();
+        const waterLevel = TerraformingService.calculateWaterLevel(resources.water, terraforming, level);
+        set({ difficulty: level, waterLevel });
       },
 
       setGameMode: (mode) => {
@@ -282,7 +286,8 @@ export const useGameStore = create<GameState>()(
           heightY,
           state.resources,
           state.occupied,
-          state.placed
+          state.placed,
+          state.waterLevel,
         );
 
         if (!result.success || !result.building) return false;
@@ -433,12 +438,17 @@ export const useGameStore = create<GameState>()(
         const newTerraforming = modeCfg.hasWinCondition
           ? TerraformingService.calculateProgress(newO2Accumulated, newResources, state.difficulty)
           : 0;
+        const newWaterLevel = TerraformingService.calculateWaterLevel(
+          newResources.water,
+          newTerraforming,
+          state.difficulty
+        );
 
         // Apply alien invasion tick in survival mode or when wave is active (debug)
         let finalPlaced = degradedPlaced;
         let newAlienState = state.alienState;
         if (state.gameMode === "survival" || state.alienState.wave > 0) {
-          const alienResult = AlienService.tick(state.alienState, degradedPlaced, newTerraforming, state.hexGrid);
+          const alienResult = AlienService.tick(state.alienState, degradedPlaced, newTerraforming, state.hexGrid, newWaterLevel);
           finalPlaced   = alienResult.damagedBuildings;
           newAlienState = alienResult.alienState;
         }
@@ -452,6 +462,7 @@ export const useGameStore = create<GameState>()(
           alive: !tickResult.gameOver,
           o2Accumulated: newO2Accumulated,
           terraforming: newTerraforming,
+          waterLevel: newWaterLevel,
           alienState: newAlienState,
           won: TerraformingService.isComplete(newTerraforming),
           researchPoints: state.researchPoints + tickResult.researchPointsDelta,
@@ -573,6 +584,11 @@ export const useGameStore = create<GameState>()(
             weather: gameState.weather ?? { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
             terraforming: gameState.terraforming ?? 0,
             o2Accumulated: gameState.o2Accumulated ?? 0,
+            waterLevel: TerraformingService.calculateWaterLevel(
+              gameState.resources?.water ?? 0,
+              gameState.terraforming ?? 0,
+              gameState.difficulty ?? "normal"
+            ),
             difficulty: gameState.difficulty ?? "normal",
             gameMode: gameState.gameMode ?? "exploration",
             sun: gameState.sun ?? INITIAL_COLONY_STATE.sun,
@@ -592,5 +608,10 @@ export const useGameStore = create<GameState>()(
     { name: "GameStore", enabled: true }
   )
 );
+
+if (typeof window !== "undefined") {
+  (window as unknown as { useGameStore: typeof useGameStore }).useGameStore = useGameStore;
+}
+
 
 

@@ -78,8 +78,13 @@ export class BuildingService {
     heightY: number,
     resources: Resources,
     occupied: Record<string, string>,
-    placedBuildings: PlacedBuilding[]
+    placedBuildings: PlacedBuilding[],
+    waterLevel?: number,
   ): BuildResult {
+    if (waterLevel !== undefined && heightY <= waterLevel + 1e-4) {
+      return { success: false, error: "Cannot build underwater" };
+    }
+
     const key = keyFromCell(cell.x, cell.z);
     
     if (occupied[key]) {

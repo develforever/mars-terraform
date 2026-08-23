@@ -77,6 +77,7 @@ function LogisticsRover({ building, depositNode }: LogisticsRoverProps) {
     const groupRef = useRef<THREE.Group>(null);
     const getTerrainY = useTerrainHeight();
     const hexGrid = useGameStore((state) => state.hexGrid);
+    const waterLevel = useGameStore((state) => state.waterLevel);
 
     // Compute A* path in world coordinates
     const waypoints = useMemo(() => {
@@ -85,7 +86,7 @@ function LogisticsRover({ building, depositNode }: LogisticsRoverProps) {
 
         let pathCoords: [number, number][] = [];
         if (hexGrid) {
-            const found = HexPathfindingService.findPath(hexGrid, [startQ, startR], [targetQ, targetR]);
+            const found = HexPathfindingService.findPath(hexGrid, [startQ, startR], [targetQ, targetR], { maxClimb: 0.85, waterLevel });
             if (found && found.length > 0) {
                 pathCoords = found;
             }
@@ -115,7 +116,7 @@ function LogisticsRover({ building, depositNode }: LogisticsRoverProps) {
         }
 
         return { points, dists, totalDistance: Math.max(0.1, total) };
-    }, [building.position.x, building.position.z, depositNode.pos, hexGrid]);
+    }, [building.position.x, building.position.z, depositNode.pos, hexGrid, waterLevel]);
 
     const stateRef = useRef({
         progress: 0,

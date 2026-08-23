@@ -42,6 +42,7 @@ export class AlienService {
     buildings: PlacedBuilding[],
     terraforming: number,
     hexGrid?: HexGrid,
+    waterLevel?: number,
   ): { alienState: AlienState; damagedBuildings: PlacedBuilding[] } {
     // Wave can only increase organically; never downgrade a debug-forced wave
     const wave = Math.max(this.resolveWave(terraforming), state.wave) as 0 | 1 | 2;
@@ -138,7 +139,7 @@ export class AlienService {
             currentPathIndex >= currentPath.length;
 
           if (needsNewPath) {
-            const calculatedPath = HexPathfindingService.findPath(hexGrid, unitHex, targetHex, { maxClimb: 0.85 });
+            const calculatedPath = HexPathfindingService.findPath(hexGrid, unitHex, targetHex, { maxClimb: 0.85, waterLevel });
             if (calculatedPath && calculatedPath.length > 0) {
               currentPath = calculatedPath;
               if (
@@ -151,7 +152,7 @@ export class AlienService {
                 currentPathIndex = 0;
               }
             } else {
-              // Try finding reachable building if closest is unreachable due to cliffs
+              // Try finding reachable building if closest is unreachable due to cliffs or water
               const sortedBuildings = [...damagedBuildings].sort((a, b) => {
                 const da = Math.hypot(a.position.x - unit.position.x, a.position.z - unit.position.z);
                 const db = Math.hypot(b.position.x - unit.position.x, b.position.z - unit.position.z);
@@ -164,7 +165,7 @@ export class AlienService {
               for (const candidate of sortedBuildings) {
                 if (candidate.id === target.id) continue;
                 const candidateHex = worldToHex(candidate.position.x, candidate.position.z);
-                const p = HexPathfindingService.findPath(hexGrid, unitHex, candidateHex, { maxClimb: 0.85 });
+                const p = HexPathfindingService.findPath(hexGrid, unitHex, candidateHex, { maxClimb: 0.85, waterLevel });
                 if (p && p.length > 0) {
                   altPath = p;
                   altTarget = candidate;

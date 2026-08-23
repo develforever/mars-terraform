@@ -90,4 +90,32 @@ describe("HexPathfindingService", () => {
 
     expect(path).toBeNull();
   });
+
+  it("should detour around submerged hexes when waterLevel is provided", () => {
+    // Set cell (0, 1) to deep_crater (worldY = 0.0). Plains are at worldY = 1.2.
+    grid.setTerrainType(0, 1, "deep_crater");
+
+    // With waterLevel = 0.5, (0, 1) is submerged (0.0 <= 0.5)
+    const path = HexPathfindingService.findPath(grid, [0, 0], [0, 2], {
+      maxClimb: 2.0,
+      waterLevel: 0.5,
+    });
+
+    expect(path).not.toBeNull();
+    const containsSubmerged = path?.some(([q, r]) => q === 0 && r === 1);
+    expect(containsSubmerged).toBe(false);
+    expect(path?.[0]).toEqual([0, 0]);
+    expect(path?.[path.length - 1]).toEqual([0, 2]);
+  });
+
+  it("should return null when start or target is submerged", () => {
+    grid.setTerrainType(0, 0, "deep_crater"); // worldY = 0.0
+
+    const path = HexPathfindingService.findPath(grid, [0, 0], [0, 2], {
+      waterLevel: 0.5,
+    });
+
+    expect(path).toBeNull();
+  });
 });
+

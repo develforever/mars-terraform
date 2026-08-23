@@ -160,12 +160,18 @@ vi.mock("../MiningLogisticsSystem", () => ({
     MiningLogisticsSystem: () => <div data-testid="mining-logistics-system" />,
 }));
 
+vi.mock("../WaterHexMesh", () => ({
+    WaterHexMesh: () => <div data-testid="water-hex-mesh" />,
+    default: () => <div data-testid="water-hex-mesh" />,
+}));
+
 describe("Scene3D", () => {
-    it("should render Canvas with post-processing Bloom", () => {
+    it("should render Canvas with post-processing Bloom and WaterHexMesh", () => {
         render(<Scene3D />);
 
         expect(screen.getByTestId("canvas")).toBeTruthy();
         expect(screen.getByTestId("post-processing-composer")).toBeTruthy();
+        expect(screen.getByTestId("water-hex-mesh")).toBeTruthy();
     });
 
     it("should configure Bloom for lasers and meteors with low luminance threshold", () => {

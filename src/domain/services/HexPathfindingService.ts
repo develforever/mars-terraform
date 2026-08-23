@@ -4,6 +4,7 @@ import { hexNeighbors, hexDistance, hexKey } from "../../presentation/generator/
 export interface PathfindingOptions {
   maxClimb?: number;
   blockedUserTypes?: string[];
+  waterLevel?: number;
 }
 
 interface PathNode {
@@ -69,7 +70,7 @@ class MinHeap {
 export class HexPathfindingService {
   /**
    * Evaluates if movement between two adjacent hex cells is passable.
-   * Checks for blocked user types and maximum climbable cliff height difference.
+   * Checks for blocked user types, water submersion, and maximum climbable cliff height difference.
    */
   static isPassable(
     fromCell: HexCell,
@@ -83,6 +84,12 @@ export class HexPathfindingService {
       return false;
     }
 
+    if (options?.waterLevel !== undefined) {
+      if (toCell.worldY <= options.waterLevel + 1e-4 || fromCell.worldY <= options.waterLevel + 1e-4) {
+        return false;
+      }
+    }
+
     const heightDiff = Math.abs(fromCell.worldY - toCell.worldY);
     if (heightDiff > maxClimb + 1e-5) {
       return false;
@@ -93,7 +100,7 @@ export class HexPathfindingService {
 
   /**
    * Deterministic A* pathfinding algorithm on axial hex grid.
-   * Considers cell existence, worldY cliff height difference (maxClimb), and blocked userTypes.
+   * Considers cell existence, water submersion, worldY cliff height difference (maxClimb), and blocked userTypes.
    */
   static findPath(
     grid: HexGrid,
@@ -115,7 +122,8 @@ export class HexPathfindingService {
 
     if (
       (startCell.userType && blockedUserTypes.includes(startCell.userType)) ||
-      (targetCell.userType && blockedUserTypes.includes(targetCell.userType))
+      (targetCell.userType && blockedUserTypes.includes(targetCell.userType)) ||
+      (options?.waterLevel !== undefined && (startCell.worldY <= options.waterLevel + 1e-4 || targetCell.worldY <= options.waterLevel + 1e-4))
     ) {
       return null;
     }
