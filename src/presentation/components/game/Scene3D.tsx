@@ -24,6 +24,7 @@ import type { OutlineEffect } from "postprocessing";
 import MapOverlay from "./MapOverlay";
 import { ResourceDepositMarkers } from "./ResourceDepositMarkers";
 import { WaterHexMesh } from "./WaterHexMesh";
+import { VegetationHexMesh } from "./VegetationHexMesh";
 
 export function Scene3D() {
     return (
@@ -99,6 +100,7 @@ function World() {
                 hexGrid={hexGrid}
             />
             <WaterHexMesh />
+            <VegetationHexMesh hexGrid={hexGrid} />
             <Decorations />
             <Buildings />
             <HoverGhost />

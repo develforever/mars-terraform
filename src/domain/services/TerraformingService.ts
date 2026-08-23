@@ -71,4 +71,111 @@ export class TerraformingService {
   static isSubmerged(worldY: number, waterLevel: number): boolean {
     return worldY <= waterLevel + 1e-4;
   }
+
+  /**
+   * Calculates global Mars surface temperature in °C based on terraforming progress.
+   * Progress 0% -> -60.0°C (barren Martian frost)
+   * Progress 100% -> +15.0°C (temperate climate)
+   */
+  static calculateTemperature(terraformingProgress: number): number {
+    const progressRatio = Math.max(0, Math.min(1, terraformingProgress / 100));
+    return -60 + progressRatio * 75;
+  }
+
+  /**
+   * Calculates plant growth suitability based on global temperature.
+   * Below -15°C: 0.0 (frozen tundra, no growth)
+   * Between -15°C and +5°C: linear interpolation (germination / lichen)
+   * Above +5°C: 1.0 (optimal plant growth)
+   */
+  static calculateTemperatureSuitability(temperature: number): number {
+    if (temperature <= -15) return 0;
+    if (temperature >= 5) return 1;
+    return (temperature - (-15)) / (5 - (-15));
+  }
+
+  /**
+   * Calculates plant growth suitability based on accumulated O2.
+   */
+  static calculateO2Suitability(
+    o2Accumulated: number,
+    difficulty: DifficultyLevel = "normal"
+  ): number {
+    const target = DIFFICULTY_TARGETS[difficulty].o2Accumulated;
+    return Math.max(0, Math.min(1, o2Accumulated / target));
+  }
+
+  /**
+   * Calculates global biosphere suitability index [0.0, 1.0] from temperature, O2, and progress.
+   */
+  static calculateGlobalBiosphereSuitability(
+    o2Accumulated: number,
+    terraformingProgress: number,
+    difficulty: DifficultyLevel = "normal"
+  ): number {
+    const temp = this.calculateTemperature(terraformingProgress);
+    const tempSuitability = this.calculateTemperatureSuitability(temp);
+    const o2Suitability = this.calculateO2Suitability(o2Accumulated, difficulty);
+    const progressSuitability = Math.max(0, Math.min(1, terraformingProgress / 100));
+
+    // Weighted suitability: temperature (40%), O2 atmosphere (40%), overall progress (20%)
+    const rawSuitability = tempSuitability * 0.4 + o2Suitability * 0.4 + progressSuitability * 0.2;
+    return Math.max(0, Math.min(1, rawSuitability));
+  }
+
+  /**
+   * Calculates local vegetation factor [0.0, 1.0] for a specific hex cell.
+   *
+   * @param cellWorldY Elevation of the hex top.
+   * @param waterLevel Current global 3D water level.
+   * @param globalSuitability Global biosphere index [0.0, 1.0].
+   * @param options Optional parameters for moisture distribution.
+   * @returns Vegetation factor in [0.0, 1.0] (0.0 = barren red dust, 1.0 = lush vegetation).
+   */
+  static calculateHexVegetationFactor(
+    cellWorldY: number,
+    waterLevel: number,
+    globalSuitability: number,
+    options: { maxMoistureHeight?: number } = {}
+  ): number {
+    // 1. Submerged cells cannot support surface land vegetation
+    if (this.isSubmerged(cellWorldY, waterLevel)) {
+      return 0.0;
+    }
+
+    if (globalSuitability <= 0.001) {
+      return 0.0;
+    }
+
+    // 2. Moisture calculation based on elevation distance above water table
+    const deltaHeight = Math.max(0, cellWorldY - waterLevel);
+    const maxMoistureHeight = options.maxMoistureHeight ?? 3.5;
+
+    // Exponential decay of moisture with distance from shoreline + baseline ambient humidity
+    const shorelineMoisture = Math.exp(-deltaHeight * 1.2);
+    const altitudeFactor = Math.max(0, 1 - deltaHeight / maxMoistureHeight);
+    const localMoisture = Math.min(1, shorelineMoisture * 0.75 + altitudeFactor * 0.25);
+
+    // 3. Combined local vegetation factor
+    const vegFactor = globalSuitability * localMoisture;
+    return Math.max(0, Math.min(1, vegFactor));
+  }
+
+  /**
+   * Convenience method to calculate hex vegetation directly from colony parameters.
+   */
+  static calculateHexVegetation(
+    cellWorldY: number,
+    waterLevel: number,
+    o2Accumulated: number,
+    terraformingProgress: number,
+    difficulty: DifficultyLevel = "normal"
+  ): number {
+    const suitability = this.calculateGlobalBiosphereSuitability(
+      o2Accumulated,
+      terraformingProgress,
+      difficulty
+    );
+    return this.calculateHexVegetationFactor(cellWorldY, waterLevel, suitability);
+  }
 }

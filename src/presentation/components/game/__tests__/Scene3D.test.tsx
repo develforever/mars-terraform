@@ -165,6 +165,11 @@ vi.mock("../WaterHexMesh", () => ({
     default: () => <div data-testid="water-hex-mesh" />,
 }));
 
+vi.mock("../VegetationHexMesh", () => ({
+    VegetationHexMesh: () => <div data-testid="vegetation-hex-mesh" />,
+    default: () => <div data-testid="vegetation-hex-mesh" />,
+}));
+
 describe("Scene3D", () => {
     it("should render Canvas with post-processing Bloom and WaterHexMesh", () => {
         render(<Scene3D />);
