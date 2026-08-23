@@ -183,19 +183,17 @@ Zrobione:
 - Nowe Klasy Jednostek via Blender MCP (`rover_combat.glb`, `drone_repair.glb`, `craft_hauler.glb` + encje i konfiguracja).
 - Prefaby Ruin i Baz Obcych jako POI na Mapie via Blender MCP (`poi_abandoned_lab.glb`, `poi_alien_hive.glb`, `poi_crashed_freighter.glb` + integracja w edytorze i asystencie AI).
 - Optymalizacja Polycount i Generowanie Siatek LOD via Blender MCP (`scripts/blender/generate_lods.py`, 26 modeli `{asset}_lod1.glb` o redukcji ~65% trójkątów, `assetManifest.json` z metadanymi LOD, integracja distance-based LOD `<Detailed distances={[0, 45]}>` w `DecorMeshes.tsx` i `Decorations.tsx`).
+- Dynamiczne Zbiorniki Wodne i Lustro Wody w Kraterach (`TerraformingService.ts`, `WaterHexMesh.tsx`, shader `WaterMaterial.ts`, adaptacja A* dla zalanych komórek).
 
 ---
 
 ## Nowa Roadmapa Projektu (Next-Gen Milestones)
 
 ### Faza 5: Dynamiczna Terraformacja Środowiska i Shadery Planetarne
-1. **Dynamiczne Jeziora i Lustro Wody w Kraterach (`feat/dynamic-water-bodies`)**:
-   - Płynny wzrost poziomu wody w zależności od globalnego wskaźnika H₂O.
-   - Płynny shader wody w Three.js (Gerstner waves, normal map flow, piana przy brzegach heksów i refleksy HDR).
-2. **Proceduralne Zielenienie Biomów i Wegetacja (`feat/biosphere-vegetation-growth`)**:
+1. **Proceduralne Zielenienie Biomów i Wegetacja (`feat/biosphere-vegetation-growth`)**:
    - Rozprzestrzenianie się mchów, porostów i trawy w zasięgu zbiorników wodnych w miarę wzrostu temperatury i O₂.
    - Płynna zmiana barw terenu w `SlopeMaterial.ts` (modulacja koloru gruntu z rdzawej na żyzną zieleń).
-3. **Ewolucja Atmosfery i Dynamiczne Niebo (`feat/atmospheric-sky-evolution`)**:
+2. **Ewolucja Atmosfery i Dynamiczne Niebo (`feat/atmospheric-sky-evolution`)**:
    - Dynamiczne przejście koloru nieba i mgły z rdzawego/ciemnego na ziemski błękit przy wzroście ciśnienia atmosferycznego i O₂.
    - Zjawiska pogodowe: burze pyłowe (spadek wydajności solarnych), deszcze meteorów (aktywacja obrony przeciwlotniczej).
 
