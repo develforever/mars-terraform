@@ -57,4 +57,53 @@ describe('3D Asset Registry & Manifest Integrity', () => {
   it('should have decor models cataloged or matchable', () => {
     expect(DECOR_MODELS.length).toBeGreaterThan(0);
   });
+
+  it('should contain valid LOD1 entries with > 50% triangle reduction for heavy assets', () => {
+    interface ManifestAssetEntry {
+      id: string;
+      triangles: number;
+      lodPath?: string;
+      lodTriangles?: number;
+      lodVertices?: number;
+      lodReductionRatio?: number;
+    }
+
+    interface ManifestData {
+      totalAssets: number;
+      totalLods?: number;
+      assets: ManifestAssetEntry[];
+    }
+
+    const manifest = assetManifest as unknown as ManifestData;
+    expect(manifest.totalLods).toBeGreaterThanOrEqual(10);
+
+    const keyLodAssets = [
+      'poi_abandoned_lab',
+      'poi_alien_hive',
+      'poi_crashed_freighter',
+      'turret_double',
+      'hangar_largeA',
+      'satelliteDish_detailed',
+      'rock_crystalsLargeA',
+      'craft_hauler',
+      'drone_repair',
+      'rover_combat',
+    ];
+
+    const assetMap = new Map<string, ManifestAssetEntry>(manifest.assets.map(a => [a.id, a]));
+
+    for (const id of keyLodAssets) {
+      const asset = assetMap.get(id);
+      expect(asset, `Asset ${id} should exist in manifest`).toBeDefined();
+      expect(asset?.lodPath, `Asset ${id} should have lodPath defined`).toBeDefined();
+      expect(asset?.lodPath).toContain(`${id}_lod1.glb`);
+      expect(asset?.lodTriangles, `Asset ${id} should have lodTriangles`).toBeGreaterThan(0);
+      if (asset && asset.lodTriangles !== undefined) {
+        expect(
+          asset.lodTriangles,
+          `Asset ${id} lodTriangles (${asset.lodTriangles}) should be <= 50% of original (${asset.triangles})`
+        ).toBeLessThanOrEqual(asset.triangles * 0.5);
+      }
+    }
+  });
 });

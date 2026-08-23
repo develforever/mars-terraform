@@ -182,12 +182,5 @@ Zrobione:
 - Zautomatyzowany Renderer Ikon 3D (`scripts/blender/render_icons.py`, 51 miniatur WebP).
 - Nowe Klasy Jednostek via Blender MCP (`rover_combat.glb`, `drone_repair.glb`, `craft_hauler.glb` + encje i konfiguracja).
 - Prefaby Ruin i Baz Obcych jako POI na Mapie via Blender MCP (`poi_abandoned_lab.glb`, `poi_alien_hive.glb`, `poi_crashed_freighter.glb` + integracja w edytorze i asystencie AI).
-
-Do zrobienia:
-
-### Faza 4 — Asety 3D via Blender MCP
-1. **Optymalizacja Polycount i Generowanie Siatek LOD** (`feat/blender-lod-optimization`):
-   - Audyt gęstości siatek (trójkąty per obiekt) dla kluczowych assetów.
-   - Automatyczne nałożenie modyfikatora `Decimate` (-60% wierzchołków) dla obiektów tła.
-   - Eksport `{asset}_lod1.glb` z obsługą distance-based LOD w R3F.
+- Optymalizacja Polycount i Generowanie Siatek LOD via Blender MCP (`scripts/blender/generate_lods.py`, 26 modeli `{asset}_lod1.glb` o redukcji ~65% trójkątów, `assetManifest.json` z metadanymi LOD, integracja distance-based LOD `<Detailed distances={[0, 45]}>` w `DecorMeshes.tsx` i `Decorations.tsx`).
 

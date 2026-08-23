@@ -85,7 +85,11 @@
         "z": 0.35
       },
       "triangles": 428,
-      "vertices": 704
+      "vertices": 704,
+      "lodPath": "/models/mars/barrels_rail_lod1.glb",
+      "lodTriangles": 147,
+      "lodVertices": 447,
+      "lodReductionRatio": 0.657
     },
     {
       "id": "bones",
@@ -169,7 +173,11 @@
         "z": 1.0
       },
       "triangles": 414,
-      "vertices": 678
+      "vertices": 678,
+      "lodPath": "/models/mars/corridor_cornerRound_lod1.glb",
+      "lodTriangles": 144,
+      "lodVertices": 408,
+      "lodReductionRatio": 0.652
     },
     {
       "id": "corridor_cornerRoundWindow",
@@ -183,7 +191,11 @@
         "z": 1.0
       },
       "triangles": 484,
-      "vertices": 788
+      "vertices": 788,
+      "lodPath": "/models/mars/corridor_cornerRoundWindow_lod1.glb",
+      "lodTriangles": 169,
+      "lodVertices": 475,
+      "lodReductionRatio": 0.651
     },
     {
       "id": "corridor_cross",
@@ -351,7 +363,11 @@
         "z": 0.9
       },
       "triangles": 380,
-      "vertices": 602
+      "vertices": 602,
+      "lodPath": "/models/mars/craft_cargoB_lod1.glb",
+      "lodTriangles": 133,
+      "lodVertices": 379,
+      "lodReductionRatio": 0.65
     },
     {
       "id": "craft_hauler",
@@ -365,7 +381,11 @@
         "z": 0.8
       },
       "triangles": 900,
-      "vertices": 1430
+      "vertices": 1430,
+      "lodPath": "/models/mars/craft_hauler_lod1.glb",
+      "lodTriangles": 315,
+      "lodVertices": 903,
+      "lodReductionRatio": 0.65
     },
     {
       "id": "craft_miner",
@@ -379,7 +399,11 @@
         "z": 0.7
       },
       "triangles": 384,
-      "vertices": 640
+      "vertices": 640,
+      "lodPath": "/models/mars/craft_miner_lod1.glb",
+      "lodTriangles": 134,
+      "lodVertices": 404,
+      "lodReductionRatio": 0.651
     },
     {
       "id": "craft_racer",
@@ -575,7 +599,11 @@
         "z": 0.98
       },
       "triangles": 782,
-      "vertices": 1142
+      "vertices": 1142,
+      "lodPath": "/models/mars/drone_repair_lod1.glb",
+      "lodTriangles": 273,
+      "lodVertices": 688,
+      "lodReductionRatio": 0.651
     },
     {
       "id": "gate_complex",
@@ -589,7 +617,11 @@
         "z": 1.013
       },
       "triangles": 460,
-      "vertices": 720
+      "vertices": 720,
+      "lodPath": "/models/mars/gate_complex_lod1.glb",
+      "lodTriangles": 161,
+      "lodVertices": 430,
+      "lodReductionRatio": 0.65
     },
     {
       "id": "gate_simple",
@@ -617,7 +649,11 @@
         "z": 1.0
       },
       "triangles": 412,
-      "vertices": 572
+      "vertices": 572,
+      "lodPath": "/models/mars/hangar_largeA_lod1.glb",
+      "lodTriangles": 141,
+      "lodVertices": 341,
+      "lodReductionRatio": 0.658
     },
     {
       "id": "hangar_largeB",
@@ -631,7 +667,11 @@
         "z": 1.1
       },
       "triangles": 360,
-      "vertices": 524
+      "vertices": 524,
+      "lodPath": "/models/mars/hangar_largeB_lod1.glb",
+      "lodTriangles": 123,
+      "lodVertices": 312,
+      "lodReductionRatio": 0.658
     },
     {
       "id": "hangar_roundA",
@@ -743,7 +783,11 @@
         "z": 0.4
       },
       "triangles": 406,
-      "vertices": 624
+      "vertices": 624,
+      "lodPath": "/models/mars/machine_generator_lod1.glb",
+      "lodTriangles": 141,
+      "lodVertices": 372,
+      "lodReductionRatio": 0.653
     },
     {
       "id": "machine_generatorLarge",
@@ -855,7 +899,11 @@
         "z": 0.13
       },
       "triangles": 408,
-      "vertices": 624
+      "vertices": 624,
+      "lodPath": "/models/mars/monorail_trackCornerSmall_lod1.glb",
+      "lodTriangles": 142,
+      "lodVertices": 358,
+      "lodReductionRatio": 0.652
     },
     {
       "id": "monorail_trackSlope",
@@ -939,7 +987,11 @@
         "z": 0.64
       },
       "triangles": 816,
-      "vertices": 1220
+      "vertices": 1220,
+      "lodPath": "/models/mars/monorail_trainCargo_lod1.glb",
+      "lodTriangles": 283,
+      "lodVertices": 694,
+      "lodReductionRatio": 0.653
     },
     {
       "id": "monorail_trainEnd",
@@ -1037,7 +1089,11 @@
         "z": 0.6
       },
       "triangles": 352,
-      "vertices": 522
+      "vertices": 522,
+      "lodPath": "/models/mars/pipe_cornerRound_lod1.glb",
+      "lodTriangles": 123,
+      "lodVertices": 293,
+      "lodReductionRatio": 0.651
     },
     {
       "id": "pipe_cornerRoundLarge",
@@ -1051,7 +1107,11 @@
         "z": 0.6
       },
       "triangles": 356,
-      "vertices": 534
+      "vertices": 534,
+      "lodPath": "/models/mars/pipe_cornerRoundLarge_lod1.glb",
+      "lodTriangles": 124,
+      "lodVertices": 313,
+      "lodReductionRatio": 0.652
     },
     {
       "id": "pipe_cross",
@@ -1303,7 +1363,11 @@
         "z": 0.1
       },
       "triangles": 356,
-      "vertices": 464
+      "vertices": 464,
+      "lodPath": "/models/mars/platform_cornerRound_lod1.glb",
+      "lodTriangles": 124,
+      "lodVertices": 232,
+      "lodReductionRatio": 0.652
     },
     {
       "id": "platform_end",
@@ -1513,7 +1577,11 @@
         "z": 0.337
       },
       "triangles": 364,
-      "vertices": 576
+      "vertices": 576,
+      "lodPath": "/models/mars/rock_crystals_lod1.glb",
+      "lodTriangles": 126,
+      "lodVertices": 346,
+      "lodReductionRatio": 0.654
     },
     {
       "id": "rock_crystalsLargeA",
@@ -1527,7 +1595,11 @@
         "z": 0.541
       },
       "triangles": 384,
-      "vertices": 600
+      "vertices": 600,
+      "lodPath": "/models/mars/rock_crystalsLargeA_lod1.glb",
+      "lodTriangles": 133,
+      "lodVertices": 361,
+      "lodReductionRatio": 0.654
     },
     {
       "id": "rock_crystalsLargeB",
@@ -1541,7 +1613,11 @@
         "z": 0.55
       },
       "triangles": 380,
-      "vertices": 594
+      "vertices": 594,
+      "lodPath": "/models/mars/rock_crystalsLargeB_lod1.glb",
+      "lodTriangles": 133,
+      "lodVertices": 363,
+      "lodReductionRatio": 0.65
     },
     {
       "id": "rock_largeA",
@@ -1765,7 +1841,11 @@
         "z": 0.58
       },
       "triangles": 756,
-      "vertices": 1118
+      "vertices": 1118,
+      "lodPath": "/models/mars/rover_combat_lod1.glb",
+      "lodTriangles": 264,
+      "lodVertices": 681,
+      "lodReductionRatio": 0.651
     },
     {
       "id": "satelliteDish",
@@ -1793,7 +1873,11 @@
         "z": 0.616
       },
       "triangles": 390,
-      "vertices": 584
+      "vertices": 584,
+      "lodPath": "/models/mars/satelliteDish_detailed_lod1.glb",
+      "lodTriangles": 136,
+      "lodVertices": 362,
+      "lodReductionRatio": 0.651
     },
     {
       "id": "satelliteDish_large",
@@ -2143,7 +2227,11 @@
         "z": 0.7
       },
       "triangles": 876,
-      "vertices": 1228
+      "vertices": 1228,
+      "lodPath": "/models/mars/turret_double_lod1.glb",
+      "lodTriangles": 306,
+      "lodVertices": 658,
+      "lodReductionRatio": 0.651
     },
     {
       "id": "turret_single",
@@ -2157,7 +2245,11 @@
         "z": 0.9
       },
       "triangles": 576,
-      "vertices": 854
+      "vertices": 854,
+      "lodPath": "/models/mars/turret_single_lod1.glb",
+      "lodTriangles": 201,
+      "lodVertices": 485,
+      "lodReductionRatio": 0.651
     },
     {
       "id": "weapon_gun",
@@ -2199,7 +2291,11 @@
         "z": 2.371
       },
       "triangles": 1270,
-      "vertices": 2000
+      "vertices": 2000,
+      "lodPath": "/models/mars/poi_abandoned_lab_lod1.glb",
+      "lodTriangles": 440,
+      "lodVertices": 1259,
+      "lodReductionRatio": 0.654
     },
     {
       "id": "poi_alien_hive",
@@ -2213,7 +2309,11 @@
         "z": 0.66
       },
       "triangles": 952,
-      "vertices": 1542
+      "vertices": 1542,
+      "lodPath": "/models/mars/poi_alien_hive_lod1.glb",
+      "lodTriangles": 331,
+      "lodVertices": 955,
+      "lodReductionRatio": 0.652
     },
     {
       "id": "poi_crashed_freighter",
@@ -2227,7 +2327,13 @@
         "z": 3.103
       },
       "triangles": 832,
-      "vertices": 1402
+      "vertices": 1402,
+      "lodPath": "/models/mars/poi_crashed_freighter_lod1.glb",
+      "lodTriangles": 288,
+      "lodVertices": 893,
+      "lodReductionRatio": 0.654
     }
-  ]
+  ],
+  "lodGeneratedAt": "2026-08-23T17:13:39Z",
+  "totalLods": 26
 }

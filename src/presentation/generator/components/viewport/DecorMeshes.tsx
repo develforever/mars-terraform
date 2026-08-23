@@ -5,10 +5,10 @@
  * Docelowo mozna podmienic na modele .glb z Blendera (ten sam klucz `model`).
  */
 
-import { useMemo } from 'react'
+import { Suspense, useMemo } from 'react'
 import * as THREE from 'three'
-import { useGLTF } from '@react-three/drei'
-import { POI_MODEL_PATHS } from './decorConstants'
+import { Detailed, useGLTF } from '@react-three/drei'
+import { POI_MODEL_PATHS, POI_LOD_MODEL_PATHS, getLOD1Path } from './decorConstants'
 
 // Czysta, fasetowana skala (lekka nieregularnosc — bez kolcow)
 function makeRockGeo(detail: number, squash: number, seed: number): THREE.BufferGeometry {
@@ -103,14 +103,17 @@ const Wreck = ({ scale, rot }: { scale: number; rot: number }) => (
   </group>
 )
 
-// Preload POI models
+// Preload POI models (LOD0 & LOD1)
 if (typeof window !== 'undefined') {
   Object.values(POI_MODEL_PATHS).forEach((path) => {
     useGLTF.preload(path)
   })
+  Object.values(POI_LOD_MODEL_PATHS).forEach((path) => {
+    useGLTF.preload(path)
+  })
 }
 
-const GLTFDecor = ({ path, scale, rot }: { path: string; scale: number; rot: number }) => {
+const GLTFMeshLevel = ({ path }: { path: string }) => {
   const gltf = useGLTF(path) as { scene: THREE.Group }
   const sceneClone = useMemo(() => {
     const clone = gltf.scene.clone(true)
@@ -123,19 +126,35 @@ const GLTFDecor = ({ path, scale, rot }: { path: string; scale: number; rot: num
     return clone
   }, [gltf.scene])
 
+  return <primitive object={sceneClone} />
+}
+
+export const GLTFDecor = ({ path, lodPath, scale, rot }: { path: string; lodPath?: string | null; scale: number; rot: number }) => {
   return (
     <group rotation={[0, rot, 0]} scale={scale}>
-      <primitive object={sceneClone} />
+      <Suspense fallback={null}>
+        {lodPath ? (
+          <Detailed distances={[0, 45]}>
+            <GLTFMeshLevel path={path} />
+            <GLTFMeshLevel path={lodPath} />
+          </Detailed>
+        ) : (
+          <GLTFMeshLevel path={path} />
+        )}
+      </Suspense>
     </group>
   )
 }
 
 export const DecorMesh = ({ model, scale, rot }: { model: string; scale: number; rot: number }) => {
   if (model in POI_MODEL_PATHS) {
-    return <GLTFDecor path={POI_MODEL_PATHS[model]} scale={scale} rot={rot} />
+    const path = POI_MODEL_PATHS[model]
+    const lodPath = getLOD1Path(model)
+    return <GLTFDecor path={path} lodPath={lodPath} scale={scale} rot={rot} />
   }
   if (model.startsWith('/models/') || model.endsWith('.glb')) {
-    return <GLTFDecor path={model} scale={scale} rot={rot} />
+    const lodPath = getLOD1Path(model)
+    return <GLTFDecor path={model} lodPath={lodPath} scale={scale} rot={rot} />
   }
 
   switch (model) {
@@ -147,3 +166,4 @@ export const DecorMesh = ({ model, scale, rot }: { model: string; scale: number;
     default:        return <Rock    scale={scale} rot={rot} />
   }
 }
+

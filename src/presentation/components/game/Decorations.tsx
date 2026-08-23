@@ -1,10 +1,10 @@
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { hexToWorld } from "../../generator/hex/HexMath";
 import { useTerrainHeight } from "./TerrainHeightContext";
 import { DecorMesh } from "../../generator/components/viewport/DecorMeshes";
 
-export function Decorations() {
+export const Decorations = () => {
   const decorations = useGameStore((state) => state.decorations ?? state.decor ?? []);
   const getTerrainY = useTerrainHeight();
 
@@ -27,13 +27,15 @@ export function Decorations() {
 
   return (
     <group name="gameplay-decorations">
-      {items.map((it) => (
-        <group key={it.key} position={it.pos}>
-          <DecorMesh model={it.model} scale={it.scale} rot={it.rot} />
-        </group>
-      ))}
+      <Suspense fallback={null}>
+        {items.map((it) => (
+          <group key={it.key} position={it.pos}>
+            <DecorMesh model={it.model} scale={it.scale} rot={it.rot} />
+          </group>
+        ))}
+      </Suspense>
     </group>
   );
-}
+};
 
 export default Decorations;
