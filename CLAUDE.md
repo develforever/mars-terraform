@@ -181,15 +181,12 @@ Zrobione:
 - Warianty Wizualne Modeli Budynków dla Poziomów 2 i 3 via Blender MCP (`{building}_lvl2.glb`, `{building}_lvl3.glb`).
 - Zautomatyzowany Renderer Ikon 3D (`scripts/blender/render_icons.py`, 51 miniatur WebP).
 - Nowe Klasy Jednostek via Blender MCP (`rover_combat.glb`, `drone_repair.glb`, `craft_hauler.glb` + encje i konfiguracja).
+- Prefaby Ruin i Baz Obcych jako POI na Mapie via Blender MCP (`poi_abandoned_lab.glb`, `poi_alien_hive.glb`, `poi_crashed_freighter.glb` + integracja w edytorze i asystencie AI).
 
 Do zrobienia:
 
 ### Faza 4 — Asety 3D via Blender MCP
-1. **Prefaby Ruin i Baz Obcych jako POI na Mapie** (`feat/blender-alien-poi-prefabs`):
-   - Łączenie modułów korytarzy, kopuł i krat w gotowe kompozycje: "Opuszczona stacja badawcza", "Wrak statku w kraterze".
-   - Eksport jako pojedyncze `.glb` do `public/models/mars/poi_*.glb`, wczytywanie jako specjalne złoża/punkty na mapie.
-
-2. **Optymalizacja Polycount i Generowanie Siatek LOD** (`feat/blender-lod-optimization`):
+1. **Optymalizacja Polycount i Generowanie Siatek LOD** (`feat/blender-lod-optimization`):
    - Audyt gęstości siatek (trójkąty per obiekt) dla kluczowych assetów.
    - Automatyczne nałożenie modyfikatora `Decimate` (-60% wierzchołków) dla obiektów tła.
    - Eksport `{asset}_lod1.glb` z obsługą distance-based LOD w R3F.
