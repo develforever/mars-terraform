@@ -15,15 +15,7 @@ import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 import { WeatherService } from "../../../domain/services/WeatherService";
 import { NeighborService } from "../../../domain/services/NeighborService";
 import { useOutlineEffect } from "./OutlineEffectContext";
-
-/** Unique model paths from building definitions for pre-loading. */
-const MODEL_PATHS = Array.from(
-  new Set(
-    Object.values(BUILDING_DEFINITIONS)
-      .map((d) => d.modelPath)
-      .filter((p): p is string => !!p)
-  )
-);
+import { getBuildingModel, MODEL_PATHS } from "./buildingModels";
 
 interface ModelProps {
     path: string;
@@ -80,17 +72,19 @@ function Model({ path, scale = 1, ghost = false }: ModelProps) {
 
 interface BuildingMeshProps {
     defId: string;
+    level?: number;
     ghost?: boolean;
 }
 
-function BuildingMesh({ defId, ghost = false }: BuildingMeshProps) {
+function BuildingMesh({ defId, level = 1, ghost = false }: BuildingMeshProps) {
     const def = BUILDING_DEFINITIONS[defId];
     const scale = def?.modelScale ?? 2.5;
+    const modelPath = getBuildingModel(defId, level) ?? def?.modelPath;
 
-    if (def?.modelPath) {
+    if (modelPath) {
         return (
             <Suspense fallback={null}>
-                <Model path={def.modelPath} scale={scale} ghost={ghost} />
+                <Model path={modelPath} scale={scale} ghost={ghost} />
             </Suspense>
         );
     }
@@ -173,7 +167,7 @@ function BuildingGroup({ b, isSelected, debugOverlayVisible, onClick, baseY }: B
             )}
             {/* Rendered higher to be clearly on top of the foundation */}
             <group position={[0, -0.1, 0]} userData={{ isModelGroup: true }}>
-                <BuildingMesh defId={b.definitionId} />
+                <BuildingMesh defId={b.definitionId} level={b.level ?? 1} />
             </group>
 
             {/* Visual foundation base */}
