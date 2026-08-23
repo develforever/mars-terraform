@@ -1,220 +1,110 @@
-# Mars Terraform
+# Mars Terraform 🚀🔴
 
-**Mars Terraform** is a browser-based 3D strategy game and fullstack portfolio project built with React, TypeScript, Three.js and Node.js.
+**Mars Terraform** to zaawansowana, przeglądarkowa gra strategiczna czasu rzeczywistego (RTS / Colony Sim) w pełnym 3D oraz demonstrator architektury fullstack, zbudowany w oparciu o **React 19**, **TypeScript**, **Three.js / React Three Fiber**, **Node.js (TSOA + Drizzle ORM)** oraz integrację z **Blenderem 5.1.1** poprzez protokół **MCP (Model Context Protocol)**.
 
-The player starts a Mars colony, manages resources, builds terraforming infrastructure and tries to keep the settlement alive while the planet slowly becomes more habitable.
+Gracz zakłada bazę na Czerwonej Planecie, zarządza surowcami, buduje infrastrukturę przesyłową, rozwija drzewo technologiczne, zarządza łazikami i dronami logistycznymi, odpiera inwazje obcych i prowadzi proces terraformacji Marsa.
 
-## Why this project exists
+---
 
-This project is designed as a portfolio showcase of:
+## 🌟 Kluczowe Podsystemy i Architektura
 
-- React application architecture
-- TypeScript-first frontend and backend development
-- Three.js / React Three Fiber 3D rendering
-- game state management with Zustand
-- fullstack authentication with JWT and OAuth
-- REST API design with tsoa
-- database schema management with Drizzle ORM
-- automated tests with Vitest
+### 1. 🪐 Schodkowy Silnik Terenu Heksagonalnego (Hex Grid Engine)
+- **Układ osiowy (Axial Coordinates)**: Płaska siatka `(q, r)` o zmiennym promieniu ($R=20$, promień heksa `1.2`).
+- **Watertight Step-Mesh z Fazowaniem (Bevel/Chamfer)**: Dedykowane generatory geometrii (`TerrainMeshBuilder.ts` + `CliffBuilder.ts`) eliminujące szczeliny między różnymi poziomami wysokości (`worldY: 0.0` do `4.0`).
+- **Triplanarny Shader Terenu (`SlopeMaterial.ts`)**: Modulacja teksturą Marsa 2K w przestrzeni triplanarnej, detekcja nachylenia ścian skalnych, szron na szczytach i zgodność z oświetleniem PBR.
+- **Wielopoziomowy Pathfinding A\* (`HexPathfindingService.ts`)**: Nawigacja po siatce heksagonalnej uwzględniająca profile wysokościowe, z automatycznym omijaniem nieprzekraczalnych klifów.
 
-## Features
+### 2. 🗺️ Edytor Map & Asystent AI (`/generate`)
+- **Pełny zestaw narzędzi edytorskich**: Malowanie biomów, kładzenie punktów startowych, węzłów budowy, złóż surowców i obiektów dekoracyjnych.
+- **Asystent AI (NLP Prompt-to-Map)**: `AIMapGeneratorService.ts` przekształcający polecenia w języku naturalnym (PL/EN) na kontrakt `MapExportJSON v2.0` (np. *"Stwórz lodowy krater w centrum, otoczony górami z 2 bazami"*).
+- **Deterministyczny Generator Proceduralny**: 4-oktawowy szum fBm (fractal Brownian motion), generowanie kraterów i łańcuchów górskich ze stałym seedem.
+- **Chmura Map**: Pełny backend persistence (`/api/maps`) z walidacją schematów Zod.
 
-- 3D Mars start scene
-- playable anonymous mode
-- optional account system
-- Google and GitHub OAuth login when configured
-- colony naming flow
-- terrain grid for building structures
-- resource economy tick
-- game over and new game flow
-- weather alert UI
-- REST backend with authentication, users and groups
+### 3. ⚡ Pętla Rozgrywki, Logistyka i Obrona (`/mars`)
+- **Infrastruktura Przesyłowa (MSF / DSU)**: Graf linii energetycznych (HDR Bloom) i rurociągów wodnych wyznaczany algorytmem *Minimum Spanning Forest* o zasięgu $R \le 4$.
+- **Drzewo Ulepszeń Budynków (Poziomy 1 → 2 → 3)**:
+  - *Poziom 1*: Wydobycie stacjonarne.
+  - *Poziom 2*: Zautomatyzowany łazik naziemny (`rover_combat.glb` / `rover.glb`) poruszający się po ścieżkach A\*.
+  - *Poziom 3*: Dron logistyczny (`craft_miner.glb` / `drone_repair.glb`) latający ponad klifami po krzywych Béziera.
+- **Pętla Ekonomii i Złoża**: Złoża minerałów i lodu z premią sąsiedztwa (+50% per złoże) i dynamicznym ubytkiem surowców.
+- **System Inwazji Obcych**: Ataki jednostek obcych omijających klify w drodze do Centrum Kolonii, odpierane przez wieżyczki obronne.
+- **Drzewo Technologii (Tech Tree)**: 12 technologii w 6 kategoriach odblokowywanych za Punkty Badań (RP) wytwarzane w Laboratoriach.
 
-## Tech stack
+### 4. 🎨 Asset Pipeline via Blender 5.1.1 MCP
+- **Centralna Biblioteka 3D**: `C:\Users\robert\Documents\mars-terraform.blend` (504 obiekty, 153 uporządkowane assety).
+- **Zautomatyzowany Kitbashing**: Proceduralne generowanie wariantów budynków (`_lvl2.glb`, `_lvl3.glb`) oraz jednostek bojowych i transportowych.
+- **Proceduralne Prefaby POI**: Złożone formacje (`poi_abandoned_lab.glb`, `poi_alien_hive.glb`, `poi_crashed_freighter.glb`).
+- **Optymalizacja LOD**: 26 modeli `{asset}_lod1.glb` o redukcji ~65% trójkątów zintegrowanych z komponentem `<Detailed distances={[0, 45]}>`.
+- **Batch Renderer Ikon 3D**: Skrypt generujący miniatury WebP (128×128 px) w rzucie izometrycznym z przezroczystym tłem do `public/icons/`.
+
+---
+
+## 🛠️ Stack Technologiczny
 
 ### Frontend
-
-- React
-- TypeScript
-- Vite
-- Three.js / React Three Fiber
-- Zustand
-- TailwindCSS
-- Vitest
-- React Testing Library
+- **Framework**: React 19, TypeScript
+- **3D & Shaders**: Three.js, React Three Fiber (`@react-three/fiber`), `@react-three/drei`, `@react-three/postprocessing`
+- **State Management**: Zustand (z selektorami i pełną niemutowalnością)
+- **Styling**: TailwindCSS 4, customowy postprocessing (HDR Bloom, Screen-Space Dithering, Mie Scattering Atmosphere)
+- **Testy**: Vitest, React Testing Library (352 testy frontendu)
 
 ### Backend
+- **Środowisko**: Node.js, Express, TypeScript
+- **API Architecture**: TSOA (kontrolery z dekoratorami `@Route`, `@Get`, `@Post`, automatyczny OpenAPI spec)
+- **Baza Danych**: Drizzle ORM, Drizzle Kit, SQLite / PostgreSQL
+- **Autentykacja**: JWT, OAuth2 (Google, GitHub), bezpieczna obsługa haseł
+- **Testy**: Vitest Backend Suite (33 testy backendu)
 
-- Node.js
-- TypeScript
-- Express
-- tsoa
-- JWT authentication
-- Drizzle ORM
-- drizzle-kit
-- Vitest
+---
 
-## Gameplay
+## 🎮 Dostępne Trasy (Routes)
 
-The game can be played anonymously. Authentication is optional and is used for account-related features.
+| Trasa | Opis |
+|---|---|
+| `/` | Ekran startowy z interaktywnym globem Marsa w 3D, atmosferą Mie i wyborem trybu gry |
+| `/mars` | Główny widok rozgrywki strategicznej na wybranej/wygenerowanej mapie |
+| `/generate` | Edytor map heksagonalnych z asystentem AI, podglądem 3D i eksportem JSON v2.0 |
+| `/api/docs` | Dokumentacja Swagger / OpenAPI generowana automatycznie przez TSOA |
 
-Main routes:
+---
 
-- `/` - start scene with interactive Mars
-- `/mars` - terraform gameplay view
-- `/reset-password` - password reset callback
-- `/verify-email` - email verification callback
+## 🚀 Uruchomienie Projektu
 
-## Authentication
+### Wymagania wstępne
+- Node.js 20+
+- npm 10+
+- *(Opcjonalnie dla Asset Pipeline)*: Blender 5.1.1 z zainstalowanym dodatkiem `blender-mcp`
 
-The application supports:
-
-- local email/password registration
-- email verification
-- password reset
-- JWT sessions
-- optional Google OAuth
-- optional GitHub OAuth
-
-Social login buttons are displayed only when the backend reports that the provider is configured.
-
-Provider status endpoint:
-
-```http
-GET /api/auth/providers
-```
-
-Example response:
-
-```json
-{
-  "google": true,
-  "github": false
-}
-```
-
-## Running locally
-
-Install dependencies:
-
+### 1. Instalacja zależności
 ```bash
 npm install
 ```
 
-Run frontend:
-
-```bash
-npm run dev:front
-```
-
-Run backend:
-
-```bash
-npm run dev:back
-```
-
-Run both:
-
+### 2. Uruchomienie deweloperskie (Frontend + Backend)
 ```bash
 npm run dev
 ```
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:3000/api`
 
-Default frontend URL:
-
-```txt
-http://localhost:5173
-```
-
-Backend API is available under:
-
-```txt
-/api
-```
-
-## Environment configuration
-
-Backend configuration is loaded through the project config class.
-
-Common variables:
-
-```env
-jwt_secret=change-me
-frontend_url=http://localhost:5173
-
-google_client_id=
-google_client_secret=
-
-github_client_id=
-github_client_secret=
-```
-
-When Google or GitHub credentials are empty, the corresponding login button is hidden.
-
-## Database
-
-The backend uses Drizzle ORM and drizzle-kit.
-
-Useful command:
-
+### 3. Uruchomienie osobno
 ```bash
-npm run db:push
+npm run dev:front  # Frontend Vite
+npm run dev:back   # Backend Express + TSOA
 ```
 
-Database schema:
-
-```txt
-src_backend/db/schema.ts
-```
-
-## API generation
-
-The backend uses tsoa for typed REST controller generation.
-
+### 4. Testy i Walidacja
 ```bash
-npm run tsoa:gen
+npm run test       # Uruchamia 385 testów jednostkowych (Frontend + Backend)
+npm run lint       # Sprawdza linter ESLint (0 błędów)
+npm run build      # Pełna kompilacja produkcyjna (SSR Backend + Client Vite)
 ```
 
-Controllers are located in:
+---
 
-```txt
-src_backend/controller
-```
+## 📊 Jakość Kodu i Standardy Inżynieryjne
 
-## Tests and verification
-
-Run tests:
-
-```bash
-npm run test
-```
-
-Build project:
-
-```bash
-npm run build
-```
-
-## Project structure
-
-```txt
-src/
-  app/
-  application/
-  domain/
-  presentation/
-  ui/
-
-src_backend/
-  controller/
-  service/
-  db/
-  middleware/
-  model/
-  tsoa/
-```
-
-## Portfolio highlights
-
-This project demonstrates the ability to build a complete interactive product, not just isolated UI components.
-
-It combines real-time 3D rendering, frontend state management, backend authentication, API design and database modeling in one coherent fullstack application.
+- **385 / 385 testów zaliczonych (100% PASS)**
+- **0 błędów i 0 ostrzeżeń ESLint**
+- **Modal & Popover Dismiss Rule**: Każdy modal, popover i panel inspekcji w projekcie posiada przycisk `✕`, zamyka się po kliknięciu w tło oraz reaguje na klawisz `Escape`.
+- **Strict Typing**: Całkowity zakaz typu `any`. Scentralizowana konfiguracja zmiennych środowiskowych przez `Config.ts`.
