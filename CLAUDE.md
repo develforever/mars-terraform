@@ -186,17 +186,16 @@ Zrobione:
 - Dynamiczne Zbiorniki Wodne i Lustro Wody w Kraterach (`TerraformingService.ts`, `WaterHexMesh.tsx`, shader `WaterMaterial.ts`, adaptacja A* dla zalanych komórek).
 - Proceduralne Zielenienie Biomów i Wegetacja (`TerraformingService.ts`, dynamiczny shader `SlopeMaterial.ts`, `VegetationHexMesh.tsx` z instancjonowaną geometrią kępek mchów i traw).
 - Ewolucja Atmosfery, Dynamiczne Niebo i Zjawiska Pogodowe (`WeatherService.ts`, `AtmosphereSky.tsx` z rozpraszaniem Rayleigh/Mie, `WeatherEffects.tsx` z burzą pyłową i zorzą polarną, `MeteorShower.tsx`).
+- Silnik Zadań i Celów Misji (`QuestService.ts`, `QuestTrackerWidget.tsx`, `QuestLogModal.tsx` z 10 zadaniami kampanii, automatyczną ewaluacją w pętli ekonomii i odbiorem nagród).
 
 ---
 
 ## Nowa Roadmapa Projektu (Next-Gen Milestones)
 
 ### Faza 6: Kampania Fabularna, Scenariusze i Warunki Zwycięstwa
-1. **Silnik Zadań i Celów Misji (`feat/campaign-quest-engine`)**:
-   - Rejestr celów etapowych (`QuestService.ts`): zadania wprowadzające, militarne, naukowe i terraformacyjne z nagrodami surowcowymi.
-2. **Predefiniowane Scenariusze Fabularne (`feat/campaign-scenarios`)**:
+1. **Predefiniowane Scenariusze Fabularne (`feat/campaign-scenarios`)**:
    - 5 unikalnych map/misji: "Lądowanie w Kraterze Gale", "Ratunek Odciętej Placówki Olympus", "Skażenie Ksenobiologiczne", "Równiny Cydonia", "Wielki Kanion Valles Marineris".
-3. **Ekran Zwycięstwa / Porażki i Podsumowanie Statystyk (`feat/victory-defeat-summary`)**:
+2. **Ekran Zwycięstwa / Porażki i Podsumowanie Statystyk (`feat/victory-defeat-summary`)**:
    - Wykresy ewolucji kolonii, analiza czasu terraformacji, scoreboard i system ocen (od Brązowej do Platynowej Kolonii).
 
 ### Faza 7: Zarządzanie Populacją Kolonistów i Zaawansowane Łańcuchy Produkcji
