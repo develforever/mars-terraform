@@ -17,6 +17,9 @@ import { GameOverOverlay } from "./GameOverOverlay";
 import { WinOverlay } from "./WinOverlay";
 import { BuildingDependencyModal } from "./BuildingDependencyModal";
 import { ResearchTreeModal } from "./ResearchTreeModal";
+import { QuestTrackerWidget } from "./QuestTrackerWidget";
+import { QuestLogModal } from "./QuestLogModal";
+import { QuestService } from "../../../domain/services/QuestService";
 import "./HUD.css";
 
 export function HUD() {
@@ -50,14 +53,17 @@ export function HUD() {
     const placedBuildings = useGameStore((state) => state.placed);
     const resourceNodes  = useGameStore((state) => state.resourceNodes);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const activeQuests   = useGameStore((state) => state.activeQuests);
 
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
     const [activePanel, setActivePanel] = useState<ResourceKey | "terraforming" | null>(null);
     const [showDepTree, setShowDepTree] = useState(false);
     const [showResearchTree, setShowResearchTree] = useState(false);
+    const [showQuestLog, setShowQuestLog] = useState(false);
 
     const researchPoints = useGameStore((state) => state.researchPoints);
     const unlockedTechs  = useGameStore((state) => state.unlockedTechs);
+    const hasUnclaimedQuests = QuestService.hasUnclaimedRewards(activeQuests);
 
     const productionModifier = WeatherService.getProductionModifier(weather);
 
@@ -89,10 +95,12 @@ export function HUD() {
             if (e.key === "b" || e.key === "B") toggleBuildMode();
             if (e.key === "x" || e.key === "X") toggleDemolishMode();
             if (e.key === "r" || e.key === "R") setShowResearchTree((v) => !v);
+            if (e.key === "q" || e.key === "Q") setShowQuestLog((v) => !v);
             if (e.key === "Escape") {
                 cancelBuild();
                 setActivePanel(null);
                 setShowResearchTree(false);
+                setShowQuestLog(false);
             }
         }
         window.addEventListener("keydown", onKey);
@@ -205,6 +213,30 @@ export function HUD() {
                             </span>
                         )}
                     </button>
+                    <button
+                        type="button"
+                        className={`relative ${showQuestLog ? "active" : ""}`}
+                        onClick={() => setShowQuestLog((v) => !v)}
+                        title={`${t("quests.openLog")} (Q)`}
+                    >
+                        📜 {t("quests.questsBtn")}
+                        {hasUnclaimedQuests && (
+                            <span
+                                style={{
+                                    marginLeft: 6,
+                                    padding: "1px 5px",
+                                    borderRadius: "9999px",
+                                    backgroundColor: "#238636",
+                                    color: "#ffffff",
+                                    fontSize: "10px",
+                                    fontWeight: "bold",
+                                    animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                                }}
+                            >
+                                !
+                            </span>
+                        )}
+                    </button>
                     {isAuthenticated && (
                         <>
                             <button
@@ -252,6 +284,16 @@ export function HUD() {
                     onClose={() => setShowResearchTree(false)}
                 />
             )}
+
+            {showQuestLog && (
+                <QuestLogModal
+                    onClose={() => setShowQuestLog(false)}
+                />
+            )}
+
+            <QuestTrackerWidget
+                onOpenLog={() => setShowQuestLog(true)}
+            />
 
             {won && (
                 <WinOverlay difficulty={difficulty} onPlayAgain={handleNewGame} />

@@ -24,6 +24,8 @@ import { hexToWorld } from "../../presentation/generator/hex/HexMath";
 import type { MapExportJSON, ResourceNode, DecorItem } from "../../domain/mapEditorTypes";
 import { ResearchService } from "../../domain/services/ResearchService";
 import { TECH_IDS } from "../../domain/config/technologies";
+import type { QuestState } from "../../domain/entities/Quest";
+import { QuestService } from "../../domain/services/QuestService";
 
 export interface GameState {
   // Resources and colony state
@@ -61,6 +63,9 @@ export interface GameState {
   researchPoints: number;
   unlockedTechs: string[];
 
+  // Campaign Quest Engine
+  activeQuests: QuestState[];
+
   // Actions
   setSun: (factor: number) => void;
   setColonyName: (name: string) => void;
@@ -81,6 +86,8 @@ export interface GameState {
   purchaseTech: (techId: string) => boolean;
   /** Instantly unlock a technology (debug / cheat). */
   unlockTech: (techId: string) => void;
+  /** Claim reward for a completed quest. Returns true if successful. */
+  claimQuestReward: (questId: string) => boolean;
 }
 
 function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
@@ -182,6 +189,7 @@ function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
     lastDelta: {} as ResourceDelta,
     researchPoints: 0,
     unlockedTechs: [TECH_IDS.BASIC_STRUCTURES],
+    activeQuests: QuestService.getInitialQuestStates(),
   };
 }
 
@@ -456,6 +464,21 @@ export const useGameStore = create<GameState>()(
           newAlienState = alienResult.alienState;
         }
 
+        const newRP = state.researchPoints + tickResult.researchPointsDelta;
+
+        const evaluatedQuests = QuestService.evaluateQuests(
+          {
+            placed: finalPlaced,
+            resources: newResources,
+            unlockedTechs: state.unlockedTechs,
+            terraforming: newTerraforming,
+            o2Accumulated: newO2Accumulated,
+            waterLevel: newWaterLevel,
+            alienWave: newAlienState.wave,
+          },
+          state.activeQuests
+        );
+
         set({
           weather: newWeather,
           placed: finalPlaced,
@@ -468,7 +491,8 @@ export const useGameStore = create<GameState>()(
           waterLevel: newWaterLevel,
           alienState: newAlienState,
           won: TerraformingService.isComplete(newTerraforming),
-          researchPoints: state.researchPoints + tickResult.researchPointsDelta,
+          researchPoints: newRP,
+          activeQuests: evaluatedQuests,
         });
       },
 
@@ -476,9 +500,25 @@ export const useGameStore = create<GameState>()(
         const state = get();
         const result = ResearchService.startResearch(techId, state.researchPoints, state.unlockedTechs);
         if (!result.success) return false;
+
+        // Re-evaluate quests on tech purchase
+        const evaluatedQuests = QuestService.evaluateQuests(
+          {
+            placed: state.placed,
+            resources: state.resources,
+            unlockedTechs: result.newUnlockedTechs,
+            terraforming: state.terraforming,
+            o2Accumulated: state.o2Accumulated,
+            waterLevel: state.waterLevel,
+            alienWave: state.alienState.wave,
+          },
+          state.activeQuests
+        );
+
         set({
           researchPoints: result.newResearchPoints,
           unlockedTechs: result.newUnlockedTechs,
+          activeQuests: evaluatedQuests,
         });
         return true;
       },
@@ -486,7 +526,52 @@ export const useGameStore = create<GameState>()(
       unlockTech: (techId: string): void => {
         const state = get();
         if (state.unlockedTechs.includes(techId)) return;
-        set({ unlockedTechs: [...state.unlockedTechs, techId] });
+        const newTechs = [...state.unlockedTechs, techId];
+        const evaluatedQuests = QuestService.evaluateQuests(
+          {
+            placed: state.placed,
+            resources: state.resources,
+            unlockedTechs: newTechs,
+            terraforming: state.terraforming,
+            o2Accumulated: state.o2Accumulated,
+            waterLevel: state.waterLevel,
+            alienWave: state.alienState.wave,
+          },
+          state.activeQuests
+        );
+        set({ unlockedTechs: newTechs, activeQuests: evaluatedQuests });
+      },
+
+      claimQuestReward: (questId: string): boolean => {
+        const state = get();
+        const result = QuestService.claimQuestReward(
+          questId,
+          state.activeQuests,
+          state.resources,
+          state.researchPoints
+        );
+        if (!result.success) return false;
+
+        // Re-evaluate to unlock newly available quests immediately
+        const evaluatedQuests = QuestService.evaluateQuests(
+          {
+            placed: state.placed,
+            resources: result.newResources,
+            unlockedTechs: state.unlockedTechs,
+            terraforming: state.terraforming,
+            o2Accumulated: state.o2Accumulated,
+            waterLevel: state.waterLevel,
+            alienWave: state.alienState.wave,
+          },
+          result.newQuests
+        );
+
+        set({
+          activeQuests: evaluatedQuests,
+          resources: result.newResources,
+          researchPoints: result.newRP,
+        });
+        return true;
       },
 
       resetGame: () => {
@@ -532,6 +617,7 @@ export const useGameStore = create<GameState>()(
                 currentMapData: state.currentMapData ?? null,
                 researchPoints: state.researchPoints,
                 unlockedTechs: state.unlockedTechs,
+                activeQuests: state.activeQuests,
               }
             })
           });
@@ -570,6 +656,37 @@ export const useGameStore = create<GameState>()(
               : generateDecor(loadedGrid, 42)
           );
 
+          const loadedPlaced = (gameState.placed ?? []).map((b: PlacedBuilding) => ({
+            ...b,
+            level: b.level ?? 1,
+          }));
+
+          const loadedResources = gameState.resources ?? INITIAL_COLONY_STATE.resources;
+          const loadedTechs = gameState.unlockedTechs ?? [TECH_IDS.BASIC_STRUCTURES];
+          const loadedTerraforming = gameState.terraforming ?? 0;
+          const loadedO2Accumulated = gameState.o2Accumulated ?? 0;
+          const loadedDiff = gameState.difficulty ?? "normal";
+          const loadedAlienState = gameState.alienState ?? INITIAL_ALIEN_STATE;
+          const loadedWaterLevel = TerraformingService.calculateWaterLevel(
+            loadedResources.water ?? 0,
+            loadedTerraforming,
+            loadedDiff
+          );
+
+          const initialOrSavedQuests = gameState.activeQuests ?? QuestService.getInitialQuestStates();
+          const loadedEvaluatedQuests = QuestService.evaluateQuests(
+            {
+              placed: loadedPlaced,
+              resources: loadedResources,
+              unlockedTechs: loadedTechs,
+              terraforming: loadedTerraforming,
+              o2Accumulated: loadedO2Accumulated,
+              waterLevel: loadedWaterLevel,
+              alienWave: loadedAlienState.wave,
+            },
+            initialOrSavedQuests
+          );
+
           set({
             colonyName: data.name,
             hexGrid: loadedGrid,
@@ -577,29 +694,23 @@ export const useGameStore = create<GameState>()(
             decorations: loadedDecor,
             decor: loadedDecor,
             currentMapData: gameState.currentMapData ?? null,
-            resources: gameState.resources,
+            resources: loadedResources,
             capacity: gameState.capacity,
-            placed: (gameState.placed ?? []).map((b: PlacedBuilding) => ({
-              ...b,
-              level: b.level ?? 1,
-            })),
+            placed: loadedPlaced,
             occupied: gameState.occupied,
             weather: gameState.weather ?? { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
-            terraforming: gameState.terraforming ?? 0,
-            o2Accumulated: gameState.o2Accumulated ?? 0,
-            waterLevel: TerraformingService.calculateWaterLevel(
-              gameState.resources?.water ?? 0,
-              gameState.terraforming ?? 0,
-              gameState.difficulty ?? "normal"
-            ),
-            difficulty: gameState.difficulty ?? "normal",
+            terraforming: loadedTerraforming,
+            o2Accumulated: loadedO2Accumulated,
+            waterLevel: loadedWaterLevel,
+            difficulty: loadedDiff,
             gameMode: gameState.gameMode ?? "exploration",
             sun: gameState.sun ?? INITIAL_COLONY_STATE.sun,
-            alienState: gameState.alienState ?? INITIAL_ALIEN_STATE,
-            won: TerraformingService.isComplete(gameState.terraforming ?? 0),
+            alienState: loadedAlienState,
+            won: TerraformingService.isComplete(loadedTerraforming),
             alive: true,
             researchPoints: gameState.researchPoints ?? 0,
-            unlockedTechs: gameState.unlockedTechs ?? [TECH_IDS.BASIC_STRUCTURES],
+            unlockedTechs: loadedTechs,
+            activeQuests: loadedEvaluatedQuests,
           });
           return true;
         } catch (error) {

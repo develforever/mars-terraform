@@ -283,5 +283,42 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     expect(state.decorations.length).toBe(1);
     expect(state.decorations[0].model).toBe("wreck");
   });
+
+  it("initializes activeQuests in game state and evaluates on economy tick", () => {
+    useGameStore.getState().startNewGame("Quest Colony", "normal", "exploration");
+
+    const stateBefore = useGameStore.getState();
+    expect(stateBefore.activeQuests).toBeDefined();
+    expect(stateBefore.activeQuests.length).toBeGreaterThan(0);
+
+    const solarQuest = stateBefore.activeQuests.find((q) => q.id === "quest_solar_power");
+    expect(solarQuest?.status).toBe("active");
+
+    // Place a solar generator
+    useGameStore.getState().placeBuilding({ x: 5, z: 5 }, 1.2, "solar");
+
+    // Run economy tick
+    useGameStore.getState().applyEconomyTick();
+
+    const stateAfter = useGameStore.getState();
+    const updatedSolarQuest = stateAfter.activeQuests.find((q) => q.id === "quest_solar_power");
+    expect(updatedSolarQuest?.status).toBe("completed");
+
+    // Claim reward
+    const initialPower = stateAfter.resources.power;
+    const initialBiomass = stateAfter.resources.biomass;
+    const initialRP = stateAfter.researchPoints;
+
+    const claimed = useGameStore.getState().claimQuestReward("quest_solar_power");
+    expect(claimed).toBe(true);
+
+    const stateClaimed = useGameStore.getState();
+    expect(stateClaimed.resources.power).toBe(initialPower + 15);
+    expect(stateClaimed.resources.biomass).toBe(initialBiomass + 5);
+    expect(stateClaimed.researchPoints).toBe(initialRP + 5);
+
+    const claimedQuest = stateClaimed.activeQuests.find((q) => q.id === "quest_solar_power");
+    expect(claimedQuest?.status).toBe("claimed");
+  });
 });
 
