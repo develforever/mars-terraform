@@ -172,24 +172,42 @@ Zrobione:
 - Algorytm ścieżek `HexPathfindingService` (A* z detekcją i omijaniem klifów) + płynny ruch 3D jednostek inwazji obcych.
 - Kinowe słońce proceduralne (analityczny billboard korony `exp(-dist * k)` z ditherem) + kierunkowy rim light atmosfery (Mie scattering) + kalibracja Bloom HDR.
 - Eksport/import map JSON v2.0 + walidacja Zod, minimapa, undo/redo, skróty klawiszowe.
-- Mechanika wydobycia złóż surowców (Ice/Mineral Deposits) i premia sąsiedztwa heksów (`+50%` per złoże) + tempo wyczerpywania.
-- System poziomów budynków (Lvl 1 -> 2 -> 3) i pętla logistyczna 3D: łaziki naziemne A* (`rover.glb`) i drony powietrzne Béziera (`craft_miner.glb`).
-- Połączenia energetyczne i rurociągi wodne na siatce heksów z algorytmem Minimum Spanning Forest (`BuildingConnections.tsx`).
-- Asystent AI w Generatorze Map (`AIMapGeneratorService.ts` z NLP i generowaniem/edycją map kontraktu v2.0).
-- Pełna integracja wygenerowanych map (`MapExportJSON v2.0`) w silniku gry `/mars` (`TerrainHexMesh.tsx`, `Decorations.tsx`, `useGameStore.ts`).
-- Globalna reguła UX *Modal & Popover Dismiss Rule* (`✕`, click-outside backdrop, Escape) we wszystkich oknach i popoverach.
-- Połączenie i weryfikacja środowiska Blender 5.1.1 MCP live (`localhost:9876`, 504 obiekty, `mars-terraform.blend`).
+- Mechanika wydobycia złóż surowców + premia sąsiedztwa heksów (`BuildingService`, `EconomyService`, deplecja złóż).
+- System poziomów budynków (1→3) + jednostki logistyczne (Rover A*, Dron Bézier) + UI ulepszeń.
+- Połączenia energetyczne i rurociągi na siatce heksagonalnej (MSF / DSU, `BuildingConnectionService`).
+- Asystent AI w Generatorze Map (`AIMapGeneratorService`, archetypy terenu, modyfikatory selektywne, offline fallback).
+- Pełna integracja Map Heksagonalnych (MapExportJSON v2.0) w silniku rozgrywki `/mars` (`TerrainHexMesh`, `Decorations`, spawn hab).
 
 Do zrobienia:
-1. **Warianty Modeli 3D dla Poziomów Rozbudowy (Blender MCP Kitbashing Pipeline)**:
-   - Wygenerowanie przez Blender MCP dedykowanych wariantów wizualnych dla budynków Lvl 2 i Lvl 3 (np. `generator_lvl2.glb`, `generator_lvl3.glb` z platformą lądowania drona) z biblioteki `mars-terraform.blend`.
-   - Nowe wyspecjalizowane klasy jednostek (np. opancerzony łazik bojowy z wieżyczką, ciężki transporter zasobów).
-2. **Zautomatyzowany Renderer Ikon 3D dla HUD (Blender MCP Icon Pipeline)**:
-   - Skrypt w Blenderze renderujący spójne miniatury 128x128 `.webp` dla wszystkich assetów z kamery izometrycznej w `00_STUDIO_ENV` do `public/icons/` dla palety budowy i HUD-u.
-3. **System Badań Naukowych (Tech Tree / Research System) i Wskaźniki Terraformacji**:
-   - Produkcja Punktów Badań (RP) przez Laboratorium (`lab`), interaktywne drzewo technologii (`ResearchTreeModal.tsx`) odblokowujące zaawansowane budynki i technologie planetarne.
-   - Wskaźniki postępu terraformacji (O₂, Temperatura, Ciśnienie, Woda) z progami sukcesu misji.
-4. **Proceduralne Prefaby Ruin i Baz Obcych (Map POI) przez Blender MCP**:
-   - Kompozycja modułów korytarzy, platform i wraków statków w zoptymalizowane prefaby `.glb` do umieszczania jako unikalne obiekty na mapach.
-5. **Optymalizacja Polycount i Siatki LOD (Level of Detail)**:
-   - Zautomatyzowany audyt gęstości siatek w Blenderze i generowanie wariantów `_lod1.glb` modyfikatorem Decimate dla obiektów tła i dalekiego planu.
+
+### Faza 3 — Postęp i Kampania
+1. **System Badań Naukowych (Tech Tree) i Wskaźniki Terraformacji** (`feat/tech-tree-and-terraforming-milestones`):
+   - Produkcja Punktów Badań (RP) przez Laboratorium. Drzewo technologii (prereqs, unlocksBuildings).
+   - Wskaźniki O₂ / Temperatura / Woda — postęp terraformacji powiązany z progami zwycięstwa.
+   - Modal drzewa technologicznego w HUD (przycisk 🔬).
+
+### Faza 4 — Asety 3D via Blender MCP
+2. **Warianty Wizualne Modeli Budynków dla Poziomów 2 i 3** (`feat/blender-building-level-variants`):
+   - Kitbashing w Blenderze: poziom 2 (moduły chłodzące + akumulatory), poziom 3 (nadbudowa reaktora + antena).
+   - Agent dołącza podzespoły z istniejących 153 assetów i eksportuje `{building}_lvl2.glb`, `{building}_lvl3.glb`.
+   - Priorytety: `ice_extractor`, `miner`, `lab`, `solar`.
+
+3. **Nowe Klasy Jednostek Modelowane w Blenderze** (`feat/blender-new-unit-classes`):
+   - Łazik Bojowy (Combat Rover): `rover.glb` + opancerzenie + wieżyczka `turret_single.glb`.
+   - Dron Naprawczo-Budowlany: `craft_speederA.glb` + ramię manipulacyjne.
+   - Transporter Ciężki (Heavy Hauler): kabina `craft_cargoA.glb` + kontenery `machine_barrelLarge.glb`.
+
+4. **Zautomatyzowany Renderer Ikon 3D dla HUD i Palety Budynków** (`feat/blender-icon-renderer`):
+   - Kamera izometryczna w kolekcji `00_STUDIO_ENV`, tło przezroczyste, renderowanie batch all 153 assetów.
+   - Output: miniatury `.webp` 128×128 px do `public/icons/buildings/` i `public/icons/units/`.
+   - Zastąpienie emoji/SVG prawdziwymi renderami 3D w UI.
+
+5. **Prefaby Ruin i Baz Obcych jako POI na Mapie** (`feat/blender-alien-poi-prefabs`):
+   - Łączenie modułów korytarzy, kopuł i krat w gotowe kompozycje: "Opuszczona stacja badawcza", "Wrak statku w kraterze".
+   - Eksport jako pojedyncze `.glb` do `public/models/mars/poi_*.glb`, wczytywanie jako specjalne złoża na mapie.
+
+6. **Optymalizacja Polycount i Generowanie Siatek LOD** (`feat/blender-lod-optimization`):
+   - Audyt gęstości siatek (trójkąty per obiekt) dla kluczowych assetów.
+   - Automatyczne nałożenie modyfikatora `Decimate` (-60% wierzchołków) dla obiektów tła.
+   - Eksport `{asset}_lod1.glb` z obsługą distance-based LOD w R3F.
+
