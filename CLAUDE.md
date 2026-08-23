@@ -185,15 +185,11 @@ Zrobione:
 - Optymalizacja Polycount i Generowanie Siatek LOD via Blender MCP (`scripts/blender/generate_lods.py`, 26 modeli `{asset}_lod1.glb` o redukcji ~65% trójkątów, `assetManifest.json` z metadanymi LOD, integracja distance-based LOD `<Detailed distances={[0, 45]}>` w `DecorMeshes.tsx` i `Decorations.tsx`).
 - Dynamiczne Zbiorniki Wodne i Lustro Wody w Kraterach (`TerraformingService.ts`, `WaterHexMesh.tsx`, shader `WaterMaterial.ts`, adaptacja A* dla zalanych komórek).
 - Proceduralne Zielenienie Biomów i Wegetacja (`TerraformingService.ts`, dynamiczny shader `SlopeMaterial.ts`, `VegetationHexMesh.tsx` z instancjonowaną geometrią kępek mchów i traw).
+- Ewolucja Atmosfery, Dynamiczne Niebo i Zjawiska Pogodowe (`WeatherService.ts`, `AtmosphereSky.tsx` z rozpraszaniem Rayleigh/Mie, `WeatherEffects.tsx` z burzą pyłową i zorzą polarną, `MeteorShower.tsx`).
 
 ---
 
 ## Nowa Roadmapa Projektu (Next-Gen Milestones)
-
-### Faza 5: Dynamiczna Terraformacja Środowiska i Shadery Planetarne
-1. **Ewolucja Atmosfery i Dynamiczne Niebo (`feat/atmospheric-sky-evolution`)**:
-   - Dynamiczne przejście koloru nieba i mgły z rdzawego/ciemnego na ziemski błękit przy wzroście ciśnienia atmosferycznego i O₂.
-   - Zjawiska pogodowe: burze pyłowe (spadek wydajności solarnych), deszcze meteorów (aktywacja obrony przeciwlotniczej).
 
 ### Faza 6: Kampania Fabularna, Scenariusze i Warunki Zwycięstwa
 1. **Silnik Zadań i Celów Misji (`feat/campaign-quest-engine`)**:
