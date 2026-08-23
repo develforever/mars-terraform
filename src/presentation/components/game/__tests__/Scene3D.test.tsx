@@ -132,6 +132,14 @@ vi.mock("../TerrainHeightContext", () => ({
     useTerrainHeight: () => () => 0,
 }));
 
+vi.mock("../AtmosphereSky", () => ({
+    AtmosphereSky: () => <div data-testid="atmosphere-sky" />,
+}));
+
+vi.mock("../WeatherEffects", () => ({
+    WeatherEffects: () => <div data-testid="weather-effects" />,
+}));
+
 vi.mock("../MarsEnvironment", () => ({
     MarsEnvironment: () => <div data-testid="mars-environment" />,
 }));

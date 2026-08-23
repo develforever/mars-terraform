@@ -5,6 +5,7 @@ import type { ResourceNode } from "../mapEditorTypes";
 import { BuildingService } from "./BuildingService";
 import { NeighborService } from "./NeighborService";
 import { ResearchService } from "./ResearchService";
+import { WeatherService, type WeatherType } from "./WeatherService";
 
 export const O2_CONSUMPTION_PER_TICK = 0.05;
 
@@ -22,9 +23,11 @@ export class EconomyService {
     definitions: Record<string, BuildingDefinition>,
     sunFactor: number,
     productionModifier: number = 1,
-    resourceNodes: ResourceNode[] = []
+    resourceNodes: ResourceNode[] = [],
+    weatherType: WeatherType = "clear"
   ): ResourceProduction {
     const production: ResourceProduction = {};
+    const isDustStorm = WeatherService.isDustStorm(weatherType);
 
     for (const building of buildings) {
       const def = definitions[building.definitionId];
@@ -38,9 +41,13 @@ export class EconomyService {
       for (const [resourceKey, value] of Object.entries(def.production)) {
         let adjustedValue = value ?? 0;
 
-        // Solar panels produce less at night
+        // Solar panels produce less at night and lose 50% efficiency during dust/sand storm
         if (def.tags?.includes("dayScaled") && resourceKey === "power") {
-          adjustedValue *= sunFactor;
+          let solarFactor = sunFactor;
+          if (isDustStorm) {
+            solarFactor *= 0.5;
+          }
+          adjustedValue *= solarFactor;
         }
 
         adjustedValue *= productionModifier;
@@ -163,14 +170,16 @@ export class EconomyService {
     definitions: Record<string, BuildingDefinition>,
     productionModifier: number = 1,
     resourceNodes: ResourceNode[] = [],
-    depletionRate: number = 0
+    depletionRate: number = 0,
+    weatherType: WeatherType = "clear"
   ): EconomyTickResult {
     const production = this.calculateProduction(
       buildings,
       definitions,
       colony.sun,
       productionModifier,
-      resourceNodes
+      resourceNodes,
+      weatherType
     );
     const consumption = this.calculateConsumption(buildings.length);
     const updatedResourceNodes = this.depleteDeposits(

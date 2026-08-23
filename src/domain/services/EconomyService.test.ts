@@ -121,4 +121,32 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
     expect(result.delta.water).toBeCloseTo(0.60, 4); // 0.40 * 1.5
     expect(result.resourceNodes?.[0].amount).toBe(49.9);
   });
+
+  it("should reduce solar power generation by 50% during dust_storm or sandstorm", () => {
+    const placed: PlacedBuilding[] = [
+      { id: "sol-1", definitionId: "solar", position: { x: wx, y: 0, z: wz }, condition: 100 },
+    ];
+
+    // Clear weather: solar gives 0.50 * 1.0 = 0.50
+    const clearProd = EconomyService.calculateProduction(
+      placed,
+      BUILDING_DEFINITIONS,
+      1.0,
+      1.0,
+      [],
+      "clear"
+    );
+    expect(clearProd.power).toBeCloseTo(0.50, 4);
+
+    // Dust storm: solar gives 0.50 * 1.0 * 0.5 = 0.25 (and productionModifier defaults to 1 unless specified)
+    const stormProd = EconomyService.calculateProduction(
+      placed,
+      BUILDING_DEFINITIONS,
+      1.0,
+      1.0,
+      [],
+      "dust_storm"
+    );
+    expect(stormProd.power).toBeCloseTo(0.25, 4);
+  });
 });

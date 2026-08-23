@@ -116,15 +116,23 @@ const en = {
             },
         },
         weather: {
-            warning:        "WARNING: SANDSTORM APPROACHING",
-            sandstorm:      "ALERT: SANDSTORM IN PROGRESS",
+            warning:        "WARNING: DUST STORM APPROACHING",
+            sandstorm:      "ALERT: DUST STORM IN PROGRESS",
+            dust_storm:     "ALERT: DUST STORM IN PROGRESS",
             meteor_warning: "WARNING: METEOR SHOWER INCOMING",
             meteor_shower:  "METEOR IMPACT!",
+            polar_aurora:   "ATMOSPHERIC EVENT: POLAR AURORA",
             subtitle: {
                 meteor_warning: "{{count}} impact zones — {{ticks}}s to impact",
                 meteor_shower:  "Buildings in impact zones are being damaged!",
                 warning:        "Impact in: {{ticks}}s",
                 sandstorm:      "Ends in: {{ticks}}s",
+                dust_storm:     "Ends in: {{ticks}}s",
+                polar_aurora:   "Visible for: {{ticks}}s",
+            },
+            effects: {
+                solar_penalty: "Solar generator efficiency: -50%",
+                aurora_active: "Atmospheric luminescence & ionization active",
             },
         },
         modal: {

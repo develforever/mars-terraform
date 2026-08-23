@@ -8,7 +8,7 @@ import "./DebugOverlay.css";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 
-const WEATHER_OPTIONS: WeatherType[] = ["clear", "warning", "sandstorm", "meteor_warning", "meteor_shower"];
+const WEATHER_OPTIONS: WeatherType[] = ["clear", "warning", "dust_storm", "sandstorm", "meteor_warning", "meteor_shower", "polar_aurora"];
 
 export function DebugOverlay() {
     const { t } = useTranslation();
@@ -136,13 +136,23 @@ export function DebugOverlay() {
                                 setWeather({ type: "warning", intensity: 0, remainingTicks: 60, cooldownTicks: 0 });
                                 break;
                             case "sandstorm":
-                                setWeather({ type: "sandstorm", intensity: 0.7, remainingTicks: 30, cooldownTicks: 0 });
+                            case "dust_storm":
+                                setWeather({ type: "dust_storm", intensity: 0.75, remainingTicks: 30, cooldownTicks: 0 });
                                 break;
-                            case "meteor_warning":
-                                setWeather({ type: "meteor_warning", intensity: 0, remainingTicks: 15, impactZones: WeatherService.generateImpactZones(), cooldownTicks: 0 });
+                            case "meteor_warning": {
+                                const zones = WeatherService.generateImpactZones();
+                                const trajectories = WeatherService.generateTrajectories(zones);
+                                setWeather({ type: "meteor_warning", intensity: 0, remainingTicks: 15, impactZones: zones, trajectories, cooldownTicks: 0 });
                                 break;
-                            case "meteor_shower":
-                                setWeather({ type: "meteor_shower", intensity: 1, remainingTicks: 5, impactZones: WeatherService.generateImpactZones(3), cooldownTicks: 0 });
+                            }
+                            case "meteor_shower": {
+                                const zones = WeatherService.generateImpactZones(3);
+                                const trajectories = WeatherService.generateTrajectories(zones);
+                                setWeather({ type: "meteor_shower", intensity: 1, remainingTicks: 5, impactZones: zones, trajectories, cooldownTicks: 0 });
+                                break;
+                            }
+                            case "polar_aurora":
+                                setWeather({ type: "polar_aurora", intensity: 0.85, remainingTicks: 45, cooldownTicks: 0 });
                                 break;
                         }
                     }}

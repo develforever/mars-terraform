@@ -12,7 +12,8 @@ import { worldToHex } from "../../generator/hex/HexMath";
 import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 import { Buildings, DemolishGhost, HoverGhost } from "./Buildings";
 import { TerrainHeightContext } from "./TerrainHeightContext";
-import { MarsEnvironment } from "./MarsEnvironment";
+import { AtmosphereSky } from "./AtmosphereSky";
+import { WeatherEffects } from "./WeatherEffects";
 import { VisibilitySystem } from "./VisibilitySystem";
 import { TerrainDataSystem } from "./TerrainDataSystem";
 import { MeteorShower } from "./MeteorShower";
@@ -83,7 +84,8 @@ function World() {
         <OutlineEffectContext.Provider value={outlineEffect}>
         <TerrainHeightContext.Provider value={getTerrainY}>
 
-            <MarsEnvironment />
+            <AtmosphereSky />
+            <WeatherEffects />
 
             <VisibilitySystem
                 terrainSize={terrainSize}

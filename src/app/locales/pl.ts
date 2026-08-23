@@ -116,15 +116,23 @@ const pl = {
             },
         },
         weather: {
-            warning:        "OSTRZEŻENIE: BURZA PIASKOWA",
+            warning:        "OSTRZEŻENIE: BURZA PYŁOWA",
             sandstorm:      "STAN ALARMOWY: BURZA W TOKU",
+            dust_storm:     "STAN ALARMOWY: BURZA PYŁOWA W TOKU",
             meteor_warning: "OSTRZEŻENIE: DESZCZ METEORYTÓW",
             meteor_shower:  "UDERZENIE METEORYTÓW!",
+            polar_aurora:   "ZJAWISKO ATMOSFERYCZNE: ZORZA POLARNA",
             subtitle: {
                 meteor_warning: "{{count}} stref uderzenia — {{ticks}}s do uderzenia",
                 meteor_shower:  "Budynki w strefach uderzenia są uszkadzane!",
                 warning:        "Uderzenie za: {{ticks}}s",
                 sandstorm:      "Koniec za: {{ticks}}s",
+                dust_storm:     "Koniec za: {{ticks}}s",
+                polar_aurora:   "Aktywna jeszcze: {{ticks}}s",
+            },
+            effects: {
+                solar_penalty: "Sprawność paneli słonecznych: -50%",
+                aurora_active: "Aktywna luminescencja atmosferyczna i jonizacja",
             },
         },
         modal: {

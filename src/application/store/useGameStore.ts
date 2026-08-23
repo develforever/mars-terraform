@@ -234,12 +234,14 @@ export const useGameStore = create<GameState>()(
 
       forceMeteorShower: (count) => {
         const zones = WeatherService.generateImpactZones(count);
+        const trajectories = WeatherService.generateTrajectories(zones);
         set({
           weather: {
             type: "meteor_shower",
             intensity: 1,
             remainingTicks: 5,
             impactZones: zones,
+            trajectories,
             cooldownTicks: 0,
           },
         });
@@ -397,11 +399,11 @@ export const useGameStore = create<GameState>()(
         const { forcedWeather } = useDebugStore.getState();
         const newWeather = forcedWeather
           ? { ...state.weather, type: forcedWeather }
-          : WeatherService.tick(state.weather, modeCfg.sandstormChanceMultiplier, modeCfg.meteorChanceMultiplier, modeCfg.hazardsEnabled);
+          : WeatherService.tick(state.weather, modeCfg.sandstormChanceMultiplier, modeCfg.meteorChanceMultiplier, modeCfg.hazardsEnabled, state.terraforming);
         const productionModifier = WeatherService.getProductionModifier(newWeather);
 
-        // Degrade buildings during sandstorm (scaled by game mode)
-        let degradedPlaced = newWeather.type === "sandstorm"
+        // Degrade buildings during sandstorm or dust storm (scaled by game mode)
+        let degradedPlaced = WeatherService.isDustStorm(newWeather.type)
           ? BuildingService.degradeBuildings(state.placed, newWeather.intensity * modeCfg.conditionDamageMultiplier)
           : state.placed;
 
@@ -425,7 +427,8 @@ export const useGameStore = create<GameState>()(
           BUILDING_DEFINITIONS,
           productionModifier,
           state.resourceNodes,
-          modeCfg.depositDepletionRate
+          modeCfg.depositDepletionRate,
+          newWeather.type
         );
 
         const newO2Accumulated = TerraformingService.accumulateO2(state.o2Accumulated, tickResult.delta);
