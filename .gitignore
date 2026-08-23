@@ -31,3 +31,6 @@ repomix-output.md
 .claude-flow
 .agents
 .windsurf
+__pycache__/
+*.pyc
+*.blend1

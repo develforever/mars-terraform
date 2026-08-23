@@ -34,6 +34,9 @@ BUILDING_ID_MAP = {
 UNIT_ID_MAP = {
     "rover": "rover",
     "drone": "craft_speederA",
+    "rover_combat": "rover_combat",
+    "drone_repair": "drone_repair",
+    "craft_hauler": "craft_hauler",
 }
 
 

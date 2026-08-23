@@ -25,7 +25,10 @@ describe('3D Asset Registry & Manifest Integrity', () => {
     const assetIds = new Set(assetManifest.assets.map(a => a.id));
     const required = [
       'rover',
+      'rover_combat',
       'craft_miner',
+      'drone_repair',
+      'craft_hauler',
       'craft_cargoA',
       'craft_speederA',
       'craft_racer',

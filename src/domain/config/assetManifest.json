@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-08-22T09:29:24Z",
-  "totalAssets": 153,
+  "generatedAt": "2026-08-23T08:14:22Z",
+  "totalAssets": 156,
   "assets": [
     {
       "id": "alien",
@@ -354,6 +354,20 @@
       "vertices": 602
     },
     {
+      "id": "craft_hauler",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/craft_hauler.glb",
+      "fileSize": 47240,
+      "dimensions": {
+        "x": 1.6,
+        "y": 2.45,
+        "z": 0.8
+      },
+      "triangles": 900,
+      "vertices": 1430
+    },
+    {
       "id": "craft_miner",
       "category": "02_UNITS_LOGISTICS",
       "subCategory": "Air",
@@ -548,6 +562,20 @@
       },
       "triangles": 108,
       "vertices": 154
+    },
+    {
+      "id": "drone_repair",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Air",
+      "path": "/models/mars/drone_repair.glb",
+      "fileSize": 45732,
+      "dimensions": {
+        "x": 2.0,
+        "y": 2.41,
+        "z": 0.98
+      },
+      "triangles": 782,
+      "vertices": 1142
     },
     {
       "id": "gate_complex",
@@ -1724,6 +1752,20 @@
       },
       "triangles": 172,
       "vertices": 288
+    },
+    {
+      "id": "rover_combat",
+      "category": "02_UNITS_LOGISTICS",
+      "subCategory": "Ground",
+      "path": "/models/mars/rover_combat.glb",
+      "fileSize": 39556,
+      "dimensions": {
+        "x": 0.43,
+        "y": 0.39,
+        "z": 0.58
+      },
+      "triangles": 756,
+      "vertices": 1118
     },
     {
       "id": "satelliteDish",
