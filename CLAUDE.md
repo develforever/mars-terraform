@@ -210,3 +210,11 @@ Zrobione:
 2. **Zaawansowane Struktury Przemysłowe (`feat/advanced-megastructures`)**:
    - Kopuła Biosfery (zaawansowane habitaty), Fabryka Atmosfery (zwiększanie ciśnienia), Reaktor Termojądrowy (stabilna energia jądrowa).
 
+### Faza 8: Infrastruktura Produkcyjna i Hosting (Vercel Edge + API Backend)
+1. **Wdrożenie Frontendu na Vercel Edge CDN (`feat/vercel-edge-deployment`)**:
+   - Konfiguracja `vercel.json` ze wsparciem SPA rewrites (`/* -> /index.html`) i nagłówków cache dla assetów statycznych (`/models/*`, `/textures/*`, `/icons/*`).
+   - Zero cold startu, globalna dystrybucja assetów 3D.
+2. **Niezależny Serwis API Backend (`feat/api-backend-hosting`)**:
+   - Konteneryzacja samego backendu Node.js/TSOA na dedykowanej platformie (Render / Railway / Supabase DB) z trwałym wolumenem bazy danych.
+   - Konfiguracja CORS i zmiennych środowiskowych `VITE_API_URL` / `API_URL`.
+
