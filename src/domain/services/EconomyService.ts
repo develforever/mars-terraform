@@ -4,6 +4,7 @@ import type { ColonyState } from "../entities/Colony";
 import type { ResourceNode } from "../mapEditorTypes";
 import { BuildingService } from "./BuildingService";
 import { NeighborService } from "./NeighborService";
+import { ResearchService } from "./ResearchService";
 
 export const O2_CONSUMPTION_PER_TICK = 0.05;
 
@@ -11,6 +12,8 @@ export interface EconomyTickResult {
   delta: ResourceDelta;
   gameOver: boolean;
   resourceNodes?: ResourceNode[];
+  /** Research Points produced this tick (from Lab buildings) */
+  researchPointsDelta: number;
 }
 
 export class EconomyService {
@@ -176,6 +179,9 @@ export class EconomyService {
       resourceNodes,
       depletionRate
     );
+
+    // Research Points from Lab buildings
+    const researchPointsDelta = ResearchService.calculateRPProduction(buildings, definitions);
     
     // Merge production and consumption
     const totalDelta: ResourceDelta = { ...production };
@@ -209,6 +215,7 @@ export class EconomyService {
       },
       gameOver,
       resourceNodes: updatedResourceNodes,
+      researchPointsDelta,
     };
   }
 }

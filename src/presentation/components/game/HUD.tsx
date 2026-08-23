@@ -16,6 +16,7 @@ import { BuildingPalette } from "./BuildingPalette";
 import { GameOverOverlay } from "./GameOverOverlay";
 import { WinOverlay } from "./WinOverlay";
 import { BuildingDependencyModal } from "./BuildingDependencyModal";
+import { ResearchTreeModal } from "./ResearchTreeModal";
 import "./HUD.css";
 
 export function HUD() {
@@ -53,6 +54,10 @@ export function HUD() {
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
     const [activePanel, setActivePanel] = useState<ResourceKey | "terraforming" | null>(null);
     const [showDepTree, setShowDepTree] = useState(false);
+    const [showResearchTree, setShowResearchTree] = useState(false);
+
+    const researchPoints = useGameStore((state) => state.researchPoints);
+    const unlockedTechs  = useGameStore((state) => state.unlockedTechs);
 
     const productionModifier = WeatherService.getProductionModifier(weather);
 
@@ -83,9 +88,11 @@ export function HUD() {
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
             if (e.key === "b" || e.key === "B") toggleBuildMode();
             if (e.key === "x" || e.key === "X") toggleDemolishMode();
+            if (e.key === "r" || e.key === "R") setShowResearchTree((v) => !v);
             if (e.key === "Escape") {
                 cancelBuild();
                 setActivePanel(null);
+                setShowResearchTree(false);
             }
         }
         window.addEventListener("keydown", onKey);
@@ -180,6 +187,24 @@ export function HUD() {
                     <button type="button" onClick={() => setShowDepTree(true)}>
                         {t("hud.depTree")}
                     </button>
+                    <button
+                        type="button"
+                        className={showResearchTree ? "active" : ""}
+                        onClick={() => setShowResearchTree((v) => !v)}
+                        title={`${t("research.title")} (R)`}
+                    >
+                        🔬 {t("research.title")}
+                        {researchPoints > 0 && (
+                            <span style={{ marginLeft: 4, color: "#58a6ff", fontSize: "11px" }}>
+                                {researchPoints.toFixed(0)} RP
+                            </span>
+                        )}
+                        {unlockedTechs.length > 1 && (
+                            <span style={{ marginLeft: 4, color: "#3fb950", fontSize: "11px" }}>
+                                ✓{unlockedTechs.length}
+                            </span>
+                        )}
+                    </button>
                     {isAuthenticated && (
                         <>
                             <button
@@ -219,6 +244,12 @@ export function HUD() {
                 <BuildingDependencyModal
                     placedBuildings={placedBuildings}
                     onClose={() => setShowDepTree(false)}
+                />
+            )}
+
+            {showResearchTree && (
+                <ResearchTreeModal
+                    onClose={() => setShowResearchTree(false)}
                 />
             )}
 

@@ -22,6 +22,8 @@ import { applyProceduralTerrain } from "../../presentation/generator/terrain/Pro
 import { generateResources, generateDecor, generateSpawns } from "../../presentation/generator/terrain/ProceduralPlacement";
 import { hexToWorld } from "../../presentation/generator/hex/HexMath";
 import type { MapExportJSON, ResourceNode, DecorItem } from "../../domain/mapEditorTypes";
+import { ResearchService } from "../../domain/services/ResearchService";
+import { TECH_IDS } from "../../domain/config/technologies";
 
 export interface GameState {
   // Resources and colony state
@@ -54,6 +56,10 @@ export interface GameState {
   alienState: AlienState;
   won: boolean;
 
+  // Research System
+  researchPoints: number;
+  unlockedTechs: string[];
+
   // Actions
   setSun: (factor: number) => void;
   setColonyName: (name: string) => void;
@@ -70,6 +76,10 @@ export interface GameState {
   triggerAlienWave: (wave: 0 | 1 | 2, count?: number) => void;
   forceMeteorShower: (count: number) => void;
   setWeather: (weather: WeatherState) => void;
+  /** Attempt to purchase a technology. Returns true if successful. */
+  purchaseTech: (techId: string) => boolean;
+  /** Instantly unlock a technology (debug / cheat). */
+  unlockTech: (techId: string) => void;
 }
 
 function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
@@ -168,6 +178,8 @@ function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
     gameMode: "exploration" as GameMode,
     alienState: INITIAL_ALIEN_STATE,
     lastDelta: {} as ResourceDelta,
+    researchPoints: 0,
+    unlockedTechs: [TECH_IDS.BASIC_STRUCTURES],
   };
 }
 
@@ -442,7 +454,25 @@ export const useGameStore = create<GameState>()(
           terraforming: newTerraforming,
           alienState: newAlienState,
           won: TerraformingService.isComplete(newTerraforming),
+          researchPoints: state.researchPoints + tickResult.researchPointsDelta,
         });
+      },
+
+      purchaseTech: (techId: string): boolean => {
+        const state = get();
+        const result = ResearchService.startResearch(techId, state.researchPoints, state.unlockedTechs);
+        if (!result.success) return false;
+        set({
+          researchPoints: result.newResearchPoints,
+          unlockedTechs: result.newUnlockedTechs,
+        });
+        return true;
+      },
+
+      unlockTech: (techId: string): void => {
+        const state = get();
+        if (state.unlockedTechs.includes(techId)) return;
+        set({ unlockedTechs: [...state.unlockedTechs, techId] });
       },
 
       resetGame: () => {
@@ -486,6 +516,8 @@ export const useGameStore = create<GameState>()(
                 resourceNodes: state.resourceNodes,
                 decorations: state.decorations,
                 currentMapData: state.currentMapData ?? null,
+                researchPoints: state.researchPoints,
+                unlockedTechs: state.unlockedTechs,
               }
             })
           });
@@ -547,6 +579,8 @@ export const useGameStore = create<GameState>()(
             alienState: gameState.alienState ?? INITIAL_ALIEN_STATE,
             won: TerraformingService.isComplete(gameState.terraforming ?? 0),
             alive: true,
+            researchPoints: gameState.researchPoints ?? 0,
+            unlockedTechs: gameState.unlockedTechs ?? [TECH_IDS.BASIC_STRUCTURES],
           });
           return true;
         } catch (error) {

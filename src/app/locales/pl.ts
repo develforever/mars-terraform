@@ -314,6 +314,31 @@ const pl = {
         lang: {
             toggle: "EN",
         },
+        research: {
+            title: "Badania",
+            points: "Punkty Badań",
+            rp: "RP",
+            status: {
+                researched: "Zbadane",
+                inProgress: "W trakcie",
+                available: "Dostępne",
+                locked: "Zablokowane",
+            },
+            category: {
+                foundations:  "Podstawy",
+                biology:      "Biologia",
+                energy:       "Energia",
+                defense:      "Obrona",
+                terraforming: "Terraformacja",
+                mining:       "Wydobycie",
+            },
+            cost: "Koszt",
+            prereqs: "Wymaga",
+            unlocks: "Odblokuje",
+            researchBtn: "Zbadaj",
+            insufficientRP: "Za mało RP",
+            noPrereqs: "Brak wymagań",
+        },
     },
 } as const;
 

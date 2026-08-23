@@ -34,6 +34,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/hangar_roundGlass.glb",
     modelScale: 2.5,
     dependsOn: ["hab"],
+    requiredTech: "advanced_hab",
     connectionType: "water" as const,
     bonusNeighbors: [
       { neighborId: "o2-gen", bonusPercent: 20, description: "+20% O₂ obok Generatora" },
@@ -67,6 +68,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_generator.glb",
     modelScale: 2.5,
     dependsOn: ["hab"],
+    requiredTech: "o2_synthesis",
     connectionType: "power" as const,
     influenceRadius: 3,
     upgrades: [
@@ -124,6 +126,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_generatorLarge.glb",
     modelScale: 3.0,
     dependsOn: ["solar"],
+    requiredTech: "nuclear_power",
     influenceRadius: 2.5,
     upgrades: [
       {
@@ -181,6 +184,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/craft_miner.glb",
     modelScale: 3.0,
     dependsOn: ["ice"],
+    requiredTech: "deep_mining",
     extractsDeposit: "minerals",
     connectionType: "biomass" as const,
     bonusNeighbors: [
@@ -218,6 +222,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_wireless.glb",
     modelScale: 2.5,
     dependsOn: ["solar"],
+    requiredTech: "solar_array",
     influenceRadius: 2,
   },
   {
@@ -230,6 +235,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_barrel.glb",
     modelScale: 2.5,
     dependsOn: ["ice"],
+    requiredTech: "deep_mining",
     influenceRadius: 2.5,
   },
   {
@@ -242,6 +248,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_barrelLarge.glb",
     modelScale: 2.5,
     dependsOn: ["miner"],
+    requiredTech: "deep_mining",
     influenceRadius: 2.5,
   },
 
@@ -256,6 +263,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/machine_wireless.glb",
     modelScale: 2.5,
     dependsOn: ["hab", "rtg"],
+    requiredTech: "nuclear_power",
     connectionType: "data" as const,
     bonusNeighbors: [
       { neighborId: "hab",  bonusPercent: 25, description: "+25% Biomasa obok Kolonii" },
@@ -288,6 +296,7 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     modelPath: "/models/mars/turret_single.glb",
     modelScale: 3.0,
     dependsOn: ["hab", "solar"],
+    requiredTech: "perimeter_defense",
     influenceRadius: 4,
   },
 ];

@@ -3,10 +3,12 @@ import { useTranslation } from "react-i18next";
 import { BUILDING_DEFINITIONS, BUILDING_SEED } from "../../../domain/config/buildings";
 import { BuildingService } from "../../../domain/services/BuildingService";
 import { NeighborService } from "../../../domain/services/NeighborService";
+import { ResearchService } from "../../../domain/services/ResearchService";
 import type { BuildingDefinition } from "../../../domain/entities/Building";
 import type { PlacedBuilding } from "../../../domain/entities/Building";
 import type { ResourceKey, Resources } from "../../../domain/entities/Resources";
 import { BuildingTooltip } from "./BuildingTooltip";
+import { useGameStore } from "../../../application/store/useGameStore";
 
 const RESOURCE_LABELS: Record<ResourceKey, string> = {
     o2:      "O₂",
@@ -54,6 +56,8 @@ export function BuildingPalette({
         [placedBuildings],
     );
 
+    const unlockedTechs = useGameStore((state) => state.unlockedTechs);
+
     const canAfford = (defId: string) => {
         const def = BUILDING_DEFINITIONS[defId];
         return def ? BuildingService.canAfford(def.cost, resources) : false;
@@ -61,6 +65,9 @@ export function BuildingPalette({
 
     const checkRequirements = (def: BuildingDefinition) =>
         BuildingService.hasRequirements(def, placedBuildings);
+
+    const isTechUnlocked = (def: BuildingDefinition): boolean =>
+        ResearchService.isBuildingUnlocked(def.id, BUILDING_DEFINITIONS, unlockedTechs);
 
     const placedIds = useMemo(
         () => new Set(placedBuildings.map((b) => b.definitionId)),
@@ -77,6 +84,7 @@ export function BuildingPalette({
                             const active    = selectedBuildingId === def.id;
                             const affordable = canAfford(def.id);
                             const reqsMet   = checkRequirements(def);
+                            const techOk    = isTechUnlocked(def);
                             const isPlaced  = placedIds.has(def.id);
                             const costEntries = (Object.entries(def.cost) as [ResourceKey, number][])
                                 .filter(([, v]) => v !== undefined && v > 0);
@@ -88,7 +96,15 @@ export function BuildingPalette({
                             const tooltipContent = (
                                 <>
                                     <div className="tooltip-title">{def.name}</div>
-                                    {!reqsMet && (
+                                    {!techOk && (
+                                        <div className="tooltip-section requirements-section">
+                                            <div className="tooltip-subtitle">🔬 {t("research.prereqs")}</div>
+                                            <div className="deficit">
+                                                {t("research.status.locked")}: {t("research.prereqs")} «{def.requiredTech}»
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!reqsMet && techOk && (
                                         <div className="tooltip-section requirements-section">
                                             <div className="tooltip-subtitle">{t("hud.requirements")}</div>
                                             <div className="deficit">
@@ -164,14 +180,14 @@ export function BuildingPalette({
                                 <BuildingTooltip key={def.id} content={tooltipContent}>
                                     <button
                                         type="button"
-                                        className={`${active ? "active" : ""} ${!reqsMet ? "locked" : ""} ${isPlaced ? "placed" : ""}`}
-                                        disabled={!affordable || !reqsMet || demolishActive}
+                                        className={`${active ? "active" : ""} ${!reqsMet || !techOk ? "locked" : ""} ${isPlaced ? "placed" : ""}`}
+                                        disabled={!affordable || !reqsMet || !techOk || demolishActive}
                                         onClick={() => onSelect(def.id)}
                                     >
                                         {isPlaced && <span style={{ color: "#4ade80", marginRight: 4 }}>●</span>}
                                         {def.name}
-                                        {!affordable && reqsMet ? ` · ${t("hud.shortage")}` : ""}
-                                        {!reqsMet ? " 🔒" : ""}
+                                        {!techOk ? " 🔬" : !affordable && reqsMet ? ` · ${t("hud.shortage")}` : ""}
+                                        {techOk && !reqsMet ? " 🔒" : ""}
                                     </button>
                                 </BuildingTooltip>
                             );

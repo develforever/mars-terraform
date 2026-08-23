@@ -310,6 +310,31 @@ const en = {
         lang: {
             toggle: "PL",
         },
+        research: {
+            title: "Research",
+            points: "Research Points",
+            rp: "RP",
+            status: {
+                researched: "Researched",
+                inProgress: "In Progress",
+                available: "Available",
+                locked: "Locked",
+            },
+            category: {
+                foundations:  "Foundations",
+                biology:      "Biology",
+                energy:       "Energy",
+                defense:      "Defense",
+                terraforming: "Terraforming",
+                mining:       "Mining",
+            },
+            cost: "Cost",
+            prereqs: "Requires",
+            unlocks: "Unlocks",
+            researchBtn: "Research",
+            insufficientRP: "Insufficient RP",
+            noPrereqs: "No prerequisites",
+        },
     },
 } as const;
 
