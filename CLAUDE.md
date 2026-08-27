@@ -190,14 +190,11 @@ Zrobione:
 - Predefiniowane Scenariusze Fabularne (`ScenarioService.ts`, `ScenarioSelectModal.tsx` z 5 zbalansowanymi misjami fabularnymi, unikalnymi modyfikatorami i rozmieszczeniem POI).
 - Ekran Zwycięstwa / Porażki i Ewaluacja Kolonii (`GameAnalyticsService.ts`, `VictorySummaryModal.tsx` z wykresami analitycznymi SVG time-series, punktacją i 4 rangami kolonii).
 - Mieszkańcy Kolonii, Zawody i Morale (`ColonistService.ts`, `ColonistManagerModal.tsx`, dynamiczne zużycie O₂/wody/żywności, przylot promów, wpływ morale na produkcję).
+- Zaawansowane Struktury Przemysłowe i Megastruktury (`buildings.ts`, `technologies.ts`, `TerraformingService.ts`, megastruktury `biosphere_dome`, `atmosphere_factory`, `fusion_reactor`).
 
 ---
 
 ## Nowa Roadmapa Projektu (Next-Gen Milestones)
-
-### Faza 7: Zarządzanie Populacją Kolonistów i Zaawansowane Łańcuchy Produkcji
-1. **Zaawansowane Struktury Przemysłowe (`feat/advanced-megastructures`)**:
-   - Kopuła Biosfery (zaawansowane habitaty), Fabryka Atmosfery (zwiększanie ciśnienia), Reaktor Termojądrowy (stabilna energia jądrowa).
 
 ### Faza 8: Infrastruktura Produkcyjna i Hosting (Vercel Edge + API Backend)
 1. **Wdrożenie Frontendu na Vercel Edge CDN (`feat/vercel-edge-deployment`)**:
