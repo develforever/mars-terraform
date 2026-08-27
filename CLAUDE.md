@@ -188,14 +188,11 @@ Zrobione:
 - Ewolucja Atmosfery, Dynamiczne Niebo i Zjawiska Pogodowe (`WeatherService.ts`, `AtmosphereSky.tsx` z rozpraszaniem Rayleigh/Mie, `WeatherEffects.tsx` z burzą pyłową i zorzą polarną, `MeteorShower.tsx`).
 - Silnik Zadań i Celów Misji (`QuestService.ts`, `QuestTrackerWidget.tsx`, `QuestLogModal.tsx` z 10 zadaniami kampanii, automatyczną ewaluacją w pętli ekonomii i odbiorem nagród).
 - Predefiniowane Scenariusze Fabularne (`ScenarioService.ts`, `ScenarioSelectModal.tsx` z 5 zbalansowanymi misjami fabularnymi, unikalnymi modyfikatorami i rozmieszczeniem POI).
+- Ekran Zwycięstwa / Porażki i Ewaluacja Kolonii (`GameAnalyticsService.ts`, `VictorySummaryModal.tsx` z wykresami analitycznymi SVG time-series, punktacją i 4 rangami kolonii).
 
 ---
 
 ## Nowa Roadmapa Projektu (Next-Gen Milestones)
-
-### Faza 6: Kampania Fabularna, Scenariusze i Warunki Zwycięstwa
-1. **Ekran Zwycięstwa / Porażki i Podsumowanie Statystyk (`feat/victory-defeat-summary`)**:
-   - Wykresy ewolucji kolonii, analiza czasu terraformacji, scoreboard i system ocen (od Brązowej do Platynowej Kolonii).
 
 ### Faza 7: Zarządzanie Populacją Kolonistów i Zaawansowane Łańcuchy Produkcji
 1. **Mieszkańcy Kolonii, Zawody i Morale (`feat/colonists-and-morale`)**:
