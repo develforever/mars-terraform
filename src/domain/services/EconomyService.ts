@@ -33,6 +33,7 @@ export class EconomyService {
     const isDustStorm = WeatherService.isDustStorm(weatherType);
 
     for (const building of buildings) {
+      if (building.disabled) continue;
       const def = definitions[building.definitionId];
       if (!def?.production) continue;
 
@@ -165,6 +166,7 @@ export class EconomyService {
 
     const extractedNodeIds = new Set<string>();
     for (const building of buildings) {
+      if (building.disabled) continue;
       const def = definitions[building.definitionId];
       if (!def?.extractsDeposit) continue;
 

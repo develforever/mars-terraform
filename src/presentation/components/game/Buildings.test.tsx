@@ -14,6 +14,7 @@ vi.mock("react-i18next", () => ({
       if (key === "popover.levelBadge") return `POZ. ${options?.level ?? 1}`;
       if (key === "popover.upgradeTo") return `Ulepsz do Poz. ${options?.level ?? 2}`;
       if (key === "popover.maxLevel") return `Maksymalny poziom (POZ. ${options?.level ?? 3})`;
+      if (key === "popover.close") return "Zamknij";
       return key;
     },
   }),

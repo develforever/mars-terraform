@@ -29,6 +29,7 @@ export class ResearchService {
     void definitions; // intentionally unused — reserved for future per-building RP bonuses
     let total = 0;
     for (const b of buildings) {
+      if (b.disabled) continue;
       const condFactor = Math.max(0, (b.condition ?? 100) / 100);
       if (b.definitionId === "hab") {
         total += RP_PER_HAB * condFactor;

@@ -5,6 +5,7 @@ import { useUIStore } from "../store/useUIStore";
 import { useGameStore } from "../store/useGameStore";
 import { TERRAIN_BOUNDS } from "../../presentation/utils/terrainBounds";
 import { worldToHex, hexToWorld } from "../../presentation/generator/hex/HexMath";
+import { BuildingService } from "../../domain/services/BuildingService";
 
 const RAY = new THREE.Raycaster();
 const MOUSE = new THREE.Vector2();
@@ -60,11 +61,6 @@ export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacemen
 
       if (wasDragging) return;
 
-      if (!buildMode) {
-        useUIStore.getState().setInspectedInstance(null);
-        return;
-      }
-
       // Recalculate raycaster synchronously from the latest mouse position
       // to avoid reading a stale hoverCell that may not have been updated
       // by useFrame yet (race between DOM events and the render loop).
@@ -80,6 +76,34 @@ export function usePlacement({ grid = 1, getHeightAt, terrainMesh }: UsePlacemen
         if (RAY.ray.intersectPlane(GROUND_PLANE, HIT)) {
           hitPoint = HIT;
         }
+      }
+
+      if (!buildMode) {
+        // Dismiss inspection ONLY if clicking empty space/void or empty terrain cell
+        if (!hitPoint) {
+          useUIStore.getState().setInspectedInstance(null);
+          return;
+        }
+
+        const [q, r] = worldToHex(hitPoint.x, hitPoint.z);
+        const [x, z] = hexToWorld(q, r);
+
+        if (x < -TERRAIN_BOUNDS.halfX || x > TERRAIN_BOUNDS.halfX || z < -TERRAIN_BOUNDS.halfZ || z > TERRAIN_BOUNDS.halfZ) {
+          useUIStore.getState().setInspectedInstance(null);
+          return;
+        }
+
+        const game = useGameStore.getState();
+        const key = `${Math.round(x)},${Math.round(z)}`;
+        const hasBuilding = Boolean(
+          game.occupied[key] ||
+          BuildingService.findBuildingAtCell({ x, z }, game.placed, game.occupied)
+        );
+
+        if (!hasBuilding) {
+          useUIStore.getState().setInspectedInstance(null);
+        }
+        return;
       }
 
       if (!hitPoint) return;

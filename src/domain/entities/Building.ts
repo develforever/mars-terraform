@@ -50,5 +50,6 @@ export interface PlacedBuilding {
   position: { x: number; y: number; z: number };
   condition: number; // 0-100%
   level?: number; // 1-3 (default 1)
+  disabled?: boolean;
 }
 

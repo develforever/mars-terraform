@@ -95,6 +95,7 @@ export interface GameState {
   placeBuilding: (cell: { x: number; z: number }, heightY: number, definitionId: string) => boolean;
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
   upgradeBuilding: (buildingId: string) => boolean;
+  toggleBuildingPower: (buildingId: string) => boolean;
   assignColonistRole: (role: ColonistRole, delta: number) => void;
   applyEconomyTick: () => void;
   resetGame: () => void;
@@ -468,6 +469,19 @@ export const useGameStore = create<GameState>()(
           population: newPopulation,
         });
 
+        return true;
+      },
+
+      toggleBuildingPower: (buildingId) => {
+        const state = get();
+        const building = state.placed.find((b) => b.id === buildingId);
+        if (!building) return false;
+
+        const newPlaced = state.placed.map((b) =>
+          b.id === buildingId ? { ...b, disabled: !b.disabled } : b
+        );
+
+        set({ placed: newPlaced });
         return true;
       },
 
