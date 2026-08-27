@@ -320,5 +320,49 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     const claimedQuest = stateClaimed.activeQuests.find((q) => q.id === "quest_solar_power");
     expect(claimedQuest?.status).toBe("claimed");
   });
+
+  it("advances tick, sol, and records analytics snapshots every 10 ticks", () => {
+    useGameStore.getState().startNewGame("Analytics Colony", "normal", "exploration");
+    const stateInit = useGameStore.getState();
+    expect(stateInit.tick).toBe(0);
+    expect(stateInit.sol).toBe(1);
+    expect(stateInit.analyticsSnapshots.length).toBe(1);
+
+    // Run 10 ticks
+    for (let i = 0; i < 10; i++) {
+      useGameStore.getState().applyEconomyTick();
+    }
+
+    const state10 = useGameStore.getState();
+    expect(state10.tick).toBe(10);
+    expect(state10.sol).toBe(1);
+    expect(state10.analyticsSnapshots.length).toBe(2);
+    expect(state10.analyticsSnapshots[1].tick).toBe(10);
+
+    // Run up to 60 ticks (Sol 2)
+    for (let i = 0; i < 50; i++) {
+      useGameStore.getState().applyEconomyTick();
+    }
+
+    const state60 = useGameStore.getState();
+    expect(state60.tick).toBe(60);
+    expect(state60.sol).toBe(2);
+    expect(state60.analyticsSnapshots.length).toBe(7);
+  });
+
+  it("handles continueEndless and modal dismissals", () => {
+    useGameStore.getState().startNewGame("Endless Colony", "normal", "exploration");
+
+    expect(useGameStore.getState().isEndless).toBe(false);
+    expect(useGameStore.getState().victoryModalDismissed).toBe(false);
+    expect(useGameStore.getState().defeatModalDismissed).toBe(false);
+
+    useGameStore.getState().continueEndless();
+    expect(useGameStore.getState().isEndless).toBe(true);
+    expect(useGameStore.getState().victoryModalDismissed).toBe(true);
+
+    useGameStore.getState().dismissDefeatModal();
+    expect(useGameStore.getState().defeatModalDismissed).toBe(true);
+  });
 });
 

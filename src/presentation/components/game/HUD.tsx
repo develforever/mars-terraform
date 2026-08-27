@@ -4,6 +4,7 @@ import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { useAuthStore } from "../../../application/store/useAuthStore";
 import { useMapConfigStore } from "../../../application/store/useMapConfigStore";
+import { useModalStore } from "../../../ui/ModalManager/store";
 import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 import type { ResourceKey } from "../../../domain/entities/Resources";
 import { HintService } from "../../../domain/services/HintService";
@@ -54,6 +55,12 @@ export function HUD() {
     const resourceNodes  = useGameStore((state) => state.resourceNodes);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const activeQuests   = useGameStore((state) => state.activeQuests);
+    const victoryModalDismissed = useGameStore((state) => state.victoryModalDismissed);
+    const defeatModalDismissed  = useGameStore((state) => state.defeatModalDismissed);
+    const continueEndless       = useGameStore((state) => state.continueEndless);
+    const dismissVictoryModal   = useGameStore((state) => state.dismissVictoryModal);
+    const dismissDefeatModal    = useGameStore((state) => state.dismissDefeatModal);
+    const openModal             = useModalStore((state) => state.open);
 
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
     const [activePanel, setActivePanel] = useState<ResourceKey | "terraforming" | null>(null);
@@ -295,11 +302,21 @@ export function HUD() {
                 onOpenLog={() => setShowQuestLog(true)}
             />
 
-            {won && (
-                <WinOverlay difficulty={difficulty} onPlayAgain={handleNewGame} />
+            {won && !victoryModalDismissed && (
+                <WinOverlay
+                    difficulty={difficulty}
+                    onPlayAgain={handleNewGame}
+                    onSelectScenario={() => openModal("scenario-select")}
+                    onContinueEndless={continueEndless}
+                    onClose={dismissVictoryModal}
+                />
             )}
-            {!alive && !won && (
-                <GameOverOverlay onNewGame={handleNewGame} />
+            {!alive && !won && !defeatModalDismissed && (
+                <GameOverOverlay
+                    onNewGame={handleNewGame}
+                    onSelectScenario={() => openModal("scenario-select")}
+                    onClose={dismissDefeatModal}
+                />
             )}
         </div>
     );

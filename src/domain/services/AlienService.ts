@@ -43,11 +43,12 @@ export class AlienService {
     terraforming: number,
     hexGrid?: HexGrid,
     waterLevel?: number,
-  ): { alienState: AlienState; damagedBuildings: PlacedBuilding[] } {
+  ): { alienState: AlienState; damagedBuildings: PlacedBuilding[]; eliminatedUnits?: number } {
     // Wave can only increase organically; never downgrade a debug-forced wave
     const wave = Math.max(this.resolveWave(terraforming), state.wave) as 0 | 1 | 2;
     let { ships, groundUnits, nextShipSpawnIn, nextGroundSpawnIn } = state;
     let damagedBuildings = [...buildings];
+    let eliminatedUnits = 0;
 
     const FIRST_SPAWN_DELAY = 10;
 
@@ -251,6 +252,7 @@ export class AlienService {
 
       // Turrets eliminate nearby ground units
       const turrets = damagedBuildings.filter((b) => b.definitionId === "turret");
+      const beforeCount = groundUnits.length;
       groundUnits = groundUnits.filter((unit) =>
         !turrets.some((t) => {
           const dx = t.position.x - unit.position.x;
@@ -258,11 +260,13 @@ export class AlienService {
           return Math.sqrt(dx * dx + dz * dz) <= TURRET_RANGE;
         }),
       );
+      eliminatedUnits = Math.max(0, beforeCount - groundUnits.length);
     }
 
     return {
       alienState: { wave, ships, groundUnits, nextShipSpawnIn, nextGroundSpawnIn },
       damagedBuildings,
+      eliminatedUnits,
     };
   }
 

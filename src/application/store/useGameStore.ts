@@ -28,6 +28,8 @@ import type { QuestState } from "../../domain/entities/Quest";
 import { QuestService } from "../../domain/services/QuestService";
 import type { Scenario } from "../../domain/entities/Scenario";
 import { ScenarioService } from "../../domain/services/ScenarioService";
+import type { GameAnalyticsSnapshot } from "../../domain/entities/GameStats";
+import { GameAnalyticsService } from "../../domain/services/GameAnalyticsService";
 
 export interface GameState {
   // Resources and colony state
@@ -38,6 +40,15 @@ export interface GameState {
   alive: boolean;
   colonyName: string;
   currentScenarioId?: string | null;
+
+  // Time & Analytics
+  tick: number;
+  sol: number;
+  aliensDefeated: number;
+  analyticsSnapshots: GameAnalyticsSnapshot[];
+  isEndless: boolean;
+  victoryModalDismissed: boolean;
+  defeatModalDismissed: boolean;
 
   // Hex Grid Terrain, Resources & Decorations
   hexGrid: HexGrid;
@@ -92,6 +103,12 @@ export interface GameState {
   unlockTech: (techId: string) => void;
   /** Claim reward for a completed quest. Returns true if successful. */
   claimQuestReward: (questId: string) => boolean;
+  /** Continue playing in endless mode after victory */
+  continueEndless: () => void;
+  /** Dismiss the victory modal */
+  dismissVictoryModal: () => void;
+  /** Dismiss the defeat modal */
+  dismissDefeatModal: () => void;
 }
 
 function getInitialGameState(
@@ -174,28 +191,48 @@ function getInitialGameState(
 
   const habKey = `${Math.round(spawnWx)},${Math.round(spawnWz)}`;
 
+  const initialResources = { ...INITIAL_COLONY_STATE.resources, ...(startingResources ?? {}) };
+  const initialWaterLevel = TerraformingService.calculateWaterLevel(
+    initialResources.water,
+    0,
+    "normal"
+  );
+  const initialSnapshot = GameAnalyticsService.createSnapshot({
+    tick: 0,
+    resources: initialResources,
+    mineralsCount: resourceNodes.filter((n) => n.type === "minerals").length,
+    terraforming: 0,
+    o2Accumulated: 0,
+    waterLevel: initialWaterLevel,
+    buildingsCount: 1,
+    aliensDefeated: 0,
+  });
+
   return {
     hexGrid: defaultGrid,
     resourceNodes,
     decorations,
     decor: decorations,
     currentMapData: mapData ?? null,
-    resources: { ...INITIAL_COLONY_STATE.resources, ...(startingResources ?? {}) },
+    resources: initialResources,
     capacity: { ...INITIAL_COLONY_STATE.capacity, ...(startingCapacity ?? {}) },
     sun: INITIAL_COLONY_STATE.sun,
     alive: INITIAL_COLONY_STATE.alive,
     colonyName: "",
     currentScenarioId: null,
+    tick: 0,
+    sol: 1,
+    aliensDefeated: 0,
+    analyticsSnapshots: [initialSnapshot],
+    isEndless: false,
+    victoryModalDismissed: false,
+    defeatModalDismissed: false,
     placed: [habBuilding],
     occupied: { [habKey]: habBuilding.id },
     weather: { type: "clear" as const, intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
     terraforming: 0,
     o2Accumulated: 0,
-    waterLevel: TerraformingService.calculateWaterLevel(
-      (startingResources?.water ?? INITIAL_COLONY_STATE.resources.water),
-      0,
-      "normal"
-    ),
+    waterLevel: initialWaterLevel,
     won: false,
     difficulty: "normal" as DifficultyLevel,
     gameMode: "exploration" as GameMode,
@@ -469,13 +506,18 @@ export const useGameStore = create<GameState>()(
           state.difficulty
         );
 
+        const currentTick = state.tick + 1;
+        const currentSol = GameAnalyticsService.tickToSol(currentTick);
+
         // Apply alien invasion tick in survival mode or when wave is active (debug)
         let finalPlaced = degradedPlaced;
         let newAlienState = state.alienState;
+        let newAliensDefeated = state.aliensDefeated;
         if (state.gameMode === "survival" || state.alienState.wave > 0) {
           const alienResult = AlienService.tick(state.alienState, degradedPlaced, newTerraforming, state.hexGrid, newWaterLevel);
           finalPlaced   = alienResult.damagedBuildings;
           newAlienState = alienResult.alienState;
+          newAliensDefeated += alienResult.eliminatedUnits ?? 0;
         }
 
         const newRP = state.researchPoints + tickResult.researchPointsDelta;
@@ -493,6 +535,26 @@ export const useGameStore = create<GameState>()(
           state.activeQuests
         );
 
+        // Record analytics snapshot every 10 ticks (sliding buffer up to 500)
+        let updatedSnapshots = state.analyticsSnapshots;
+        if (currentTick % 10 === 0) {
+          const remainingMinerals = (tickResult.resourceNodes ?? state.resourceNodes).filter((n) => n.type === "minerals").length;
+          const newSnapshot = GameAnalyticsService.createSnapshot({
+            tick: currentTick,
+            resources: newResources,
+            mineralsCount: remainingMinerals,
+            terraforming: newTerraforming,
+            o2Accumulated: newO2Accumulated,
+            waterLevel: newWaterLevel,
+            buildingsCount: finalPlaced.length,
+            aliensDefeated: newAliensDefeated,
+          });
+          updatedSnapshots = GameAnalyticsService.recordSnapshot(state.analyticsSnapshots, newSnapshot);
+        }
+
+        const isWin = modeCfg.hasWinCondition ? TerraformingService.isComplete(newTerraforming) : false;
+        const won = state.won || (!state.isEndless && isWin);
+
         set({
           weather: newWeather,
           placed: finalPlaced,
@@ -500,11 +562,15 @@ export const useGameStore = create<GameState>()(
           resources: newResources,
           resourceNodes: tickResult.resourceNodes ?? state.resourceNodes,
           alive: !tickResult.gameOver,
+          tick: currentTick,
+          sol: currentSol,
+          aliensDefeated: newAliensDefeated,
+          analyticsSnapshots: updatedSnapshots,
           o2Accumulated: newO2Accumulated,
           terraforming: newTerraforming,
           waterLevel: newWaterLevel,
           alienState: newAlienState,
-          won: TerraformingService.isComplete(newTerraforming),
+          won,
           researchPoints: newRP,
           activeQuests: evaluatedQuests,
         });
@@ -588,6 +654,18 @@ export const useGameStore = create<GameState>()(
         return true;
       },
 
+      continueEndless: () => {
+        set({ isEndless: true, victoryModalDismissed: true });
+      },
+
+      dismissVictoryModal: () => {
+        set({ victoryModalDismissed: true });
+      },
+
+      dismissDefeatModal: () => {
+        set({ defeatModalDismissed: true });
+      },
+
       resetGame: () => {
         set(getInitialGameState());
       },
@@ -659,6 +737,11 @@ export const useGameStore = create<GameState>()(
                 researchPoints: state.researchPoints,
                 unlockedTechs: state.unlockedTechs,
                 activeQuests: state.activeQuests,
+                tick: state.tick,
+                sol: state.sol,
+                aliensDefeated: state.aliensDefeated,
+                analyticsSnapshots: state.analyticsSnapshots,
+                isEndless: state.isEndless,
               }
             })
           });
@@ -728,6 +811,22 @@ export const useGameStore = create<GameState>()(
             initialOrSavedQuests
           );
 
+          const loadedTick = gameState.tick ?? 0;
+          const loadedSol = gameState.sol ?? GameAnalyticsService.tickToSol(loadedTick);
+          const loadedAliensDefeated = gameState.aliensDefeated ?? 0;
+          const loadedSnapshots = gameState.analyticsSnapshots ?? [
+            GameAnalyticsService.createSnapshot({
+              tick: loadedTick,
+              resources: loadedResources,
+              mineralsCount: loadedNodes.filter((n) => n.type === "minerals").length,
+              terraforming: loadedTerraforming,
+              o2Accumulated: loadedO2Accumulated,
+              waterLevel: loadedWaterLevel,
+              buildingsCount: loadedPlaced.length,
+              aliensDefeated: loadedAliensDefeated,
+            })
+          ];
+
           set({
             colonyName: data.name,
             hexGrid: loadedGrid,
@@ -749,6 +848,13 @@ export const useGameStore = create<GameState>()(
             alienState: loadedAlienState,
             won: TerraformingService.isComplete(loadedTerraforming),
             alive: true,
+            tick: loadedTick,
+            sol: loadedSol,
+            aliensDefeated: loadedAliensDefeated,
+            analyticsSnapshots: loadedSnapshots,
+            isEndless: gameState.isEndless ?? false,
+            victoryModalDismissed: false,
+            defeatModalDismissed: false,
             researchPoints: gameState.researchPoints ?? 0,
             unlockedTechs: loadedTechs,
             activeQuests: loadedEvaluatedQuests,
