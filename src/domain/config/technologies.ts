@@ -23,18 +23,20 @@ export interface Technology {
 
 // constants
 export const TECH_IDS = {
-  BASIC_STRUCTURES:  "basic_structures",
-  ADVANCED_HAB:      "advanced_hab",
-  GREENHOUSE_TECH:   "greenhouse_tech",
-  BIODOME:           "biodome",
-  SOLAR_ARRAY:       "solar_array",
-  NUCLEAR_POWER:     "nuclear_power",
-  DEEP_MINING:       "deep_mining",
-  DRONE_LOGISTICS:   "drone_logistics",
-  O2_SYNTHESIS:      "o2_synthesis",
-  WATER_CYCLE:       "water_cycle",
-  PERIMETER_DEFENSE: "perimeter_defense",
-  SHIELD_GRID:       "shield_grid",
+  BASIC_STRUCTURES:        "basic_structures",
+  ADVANCED_HAB:            "advanced_hab",
+  GREENHOUSE_TECH:         "greenhouse_tech",
+  BIODOME:                 "biodome",
+  SOLAR_ARRAY:             "solar_array",
+  NUCLEAR_POWER:           "nuclear_power",
+  FUSION_POWER:            "fusion_power",
+  DEEP_MINING:             "deep_mining",
+  DRONE_LOGISTICS:         "drone_logistics",
+  O2_SYNTHESIS:            "o2_synthesis",
+  ATMOSPHERE_TERRAFORMING: "atmosphere_terraforming",
+  WATER_CYCLE:             "water_cycle",
+  PERIMETER_DEFENSE:       "perimeter_defense",
+  SHIELD_GRID:             "shield_grid",
 } as const;
 
 export type TechId = typeof TECH_IDS[keyof typeof TECH_IDS];
@@ -80,8 +82,8 @@ export const TECHNOLOGY_LIST: Technology[] = [
     costRP: 120,
     category: "biology",
     prereqs: [TECH_IDS.GREENHOUSE_TECH],
-    unlocksBuildings: [],
-    unlockEffects: "Szklarnia produkuje dwukrotnie więcej biomasy",
+    unlocksBuildings: ["biosphere_dome"],
+    unlockEffects: "Odblokowanie: Kopuła Biosfery. Szklarnia produkuje dwukrotnie więcej biomasy",
   },
 
   // ── ENERGY ───────────────────────────────────────────────────────────────
@@ -104,6 +106,16 @@ export const TECHNOLOGY_LIST: Technology[] = [
     prereqs: [TECH_IDS.SOLAR_ARRAY],
     unlocksBuildings: ["rtg", "lab"],
     unlockEffects: "Odblokowanie: Blok RTG, Laboratorium",
+  },
+  {
+    id: TECH_IDS.FUSION_POWER,
+    name: "Fuzja Termojądrowa",
+    description: "Czysta i potężna energia z kontrolowanej reakcji termojądrowej.",
+    costRP: 160,
+    category: "energy",
+    prereqs: [TECH_IDS.NUCLEAR_POWER],
+    unlocksBuildings: ["fusion_reactor"],
+    unlockEffects: "Odblokowanie: Reaktor Fuzyjny (+150 kW energii)",
   },
 
   // ── MINING ───────────────────────────────────────────────────────────────
@@ -138,6 +150,16 @@ export const TECHNOLOGY_LIST: Technology[] = [
     prereqs: [TECH_IDS.NUCLEAR_POWER],
     unlocksBuildings: ["o2-gen"],
     unlockEffects: "Odblokowanie: Generator Tlenu. +20% akumulacji O₂",
+  },
+  {
+    id: TECH_IDS.ATMOSPHERE_TERRAFORMING,
+    name: "Inżynieria Atmosferyczna",
+    description: "Przemysłowe generatory gazów cieplarnianych do masowej regulacji ciśnienia i temperatury.",
+    costRP: 140,
+    category: "terraforming",
+    prereqs: [TECH_IDS.O2_SYNTHESIS],
+    unlocksBuildings: ["atmosphere_factory"],
+    unlockEffects: "Odblokowanie: Fabryka Atmosfery. Przyspiesza ogrzewanie Marsa i wzrost ciśnienia",
   },
   {
     id: TECH_IDS.WATER_CYCLE,

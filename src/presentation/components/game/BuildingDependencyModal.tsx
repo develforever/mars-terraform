@@ -476,10 +476,18 @@ interface NodePopoverProps {
     onClose: () => void;
 }
 
-function NodePopover({ def, x, y, placed, available }: NodePopoverProps) {
+function NodePopover({ def, x, y, placed, available, onClose }: NodePopoverProps) {
     const { t } = useTranslation();
     const ref = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({ x, y });
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [onClose]);
 
     useEffect(() => {
         const el = ref.current;
@@ -532,7 +540,25 @@ function NodePopover({ def, x, y, placed, available }: NodePopoverProps) {
         >
             <div style={{ fontWeight: 700, fontSize: "13px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>{def.name}</span>
-                <span style={{ fontSize: "10px", color: statusColor, fontWeight: 600 }}>● {statusLabel}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "10px", color: statusColor, fontWeight: 600 }}>● {statusLabel}</span>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "#9ca3af",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            padding: "0 2px",
+                            lineHeight: 1,
+                        }}
+                        aria-label="Zamknij"
+                    >
+                        ✕
+                    </button>
+                </div>
             </div>
 
             {def.dependsOn && def.dependsOn.length > 0 && (

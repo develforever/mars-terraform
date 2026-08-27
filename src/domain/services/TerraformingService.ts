@@ -73,13 +73,35 @@ export class TerraformingService {
   }
 
   /**
-   * Calculates global Mars surface temperature in °C based on terraforming progress.
+   * Calculates global Mars surface temperature in °C based on terraforming progress and active Atmosphere Factories.
    * Progress 0% -> -60.0°C (barren Martian frost)
    * Progress 100% -> +15.0°C (temperate climate)
+   * Each active Atmosphere Factory adds +2.5°C thermal greenhouse acceleration.
    */
-  static calculateTemperature(terraformingProgress: number): number {
+  static calculateTemperature(
+    terraformingProgress: number,
+    atmosphereFactoriesCount: number = 0
+  ): number {
     const progressRatio = Math.max(0, Math.min(1, terraformingProgress / 100));
-    return -60 + progressRatio * 75;
+    const baseTemp = -60 + progressRatio * 75;
+    const factoryBoost = atmosphereFactoriesCount * 2.5;
+    return Math.min(25.0, baseTemp + factoryBoost);
+  }
+
+  /**
+   * Calculates global atmospheric pressure in kPa based on terraforming progress and active Atmosphere Factories.
+   * Base Mars pressure: 0.6 kPa (barren vacuum-like atmosphere)
+   * Target Earth-like pressure: 101.3 kPa
+   * Each active Atmosphere Factory adds +3.0 kPa pressure acceleration.
+   */
+  static calculateAtmosphericPressure(
+    terraformingProgress: number,
+    atmosphereFactoriesCount: number = 0
+  ): number {
+    const progressRatio = Math.max(0, Math.min(1, terraformingProgress / 100));
+    const basePressure = 0.6 + progressRatio * (101.3 - 0.6);
+    const factoryBoost = atmosphereFactoriesCount * 3.0;
+    return Math.min(120.0, basePressure + factoryBoost);
   }
 
   /**
@@ -111,9 +133,10 @@ export class TerraformingService {
   static calculateGlobalBiosphereSuitability(
     o2Accumulated: number,
     terraformingProgress: number,
-    difficulty: DifficultyLevel = "normal"
+    difficulty: DifficultyLevel = "normal",
+    atmosphereFactoriesCount: number = 0
   ): number {
-    const temp = this.calculateTemperature(terraformingProgress);
+    const temp = this.calculateTemperature(terraformingProgress, atmosphereFactoriesCount);
     const tempSuitability = this.calculateTemperatureSuitability(temp);
     const o2Suitability = this.calculateO2Suitability(o2Accumulated, difficulty);
     const progressSuitability = Math.max(0, Math.min(1, terraformingProgress / 100));

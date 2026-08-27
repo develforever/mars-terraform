@@ -313,6 +313,93 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     requiredTech: "perimeter_defense",
     influenceRadius: 4,
   },
+
+  // MEGASTRUCTURES
+  {
+    id: "biosphere_dome",
+    name: "Kopuła Biosfery",
+    category: BuildingCategory.LIVING,
+    color: "#34d399",
+    cost: { biomass: 200, water: 100 },
+    production: { o2: 2.0, biomass: 1.5, power: -20 },
+    colonistCapacity: 50,
+    modelPath: "/models/mars/hangar_roundGlass.glb",
+    modelScale: 3.8,
+    dependsOn: ["greenhouse"],
+    requiredTech: "biodome",
+    connectionType: "water" as const,
+    influenceRadius: 5.0,
+    upgrades: [
+      {
+        level: 2,
+        cost: { biomass: 150, water: 80, power: 30 },
+        productionMultiplier: 1.5,
+        description: "+25 Miejsc dla Kolonistów i +50% Produkcji",
+      },
+      {
+        level: 3,
+        cost: { biomass: 300, water: 150, power: 60 },
+        productionMultiplier: 2.0,
+        description: "+50 Miejsc dla Kolonistów i +100% Produkcji",
+      },
+    ],
+  },
+  {
+    id: "atmosphere_factory",
+    name: "Fabryka Atmosfery",
+    category: BuildingCategory.PRODUCTION,
+    color: "#fb923c",
+    cost: { biomass: 300, power: 50 },
+    production: { biomass: -0.2, power: -5, o2: 1.2 },
+    modelPath: "/models/mars/rocket_baseA.glb",
+    modelScale: 3.2,
+    dependsOn: ["o2-gen"],
+    requiredTech: "atmosphere_terraforming",
+    connectionType: "power" as const,
+    influenceRadius: 4.5,
+    upgrades: [
+      {
+        level: 2,
+        cost: { biomass: 200, power: 40 },
+        productionMultiplier: 1.6,
+        description: "+60% Emisji i Produkcji O₂",
+      },
+      {
+        level: 3,
+        cost: { biomass: 400, power: 80 },
+        productionMultiplier: 2.3,
+        description: "+130% Emisji i Produkcji O₂",
+      },
+    ],
+  },
+  {
+    id: "fusion_reactor",
+    name: "Reaktor Fuzyjny",
+    category: BuildingCategory.PRODUCTION,
+    color: "#38bdf8",
+    cost: { biomass: 400 },
+    production: { power: 150, water: -0.1 },
+    modelPath: "/models/mars/machine_generatorLarge.glb",
+    modelScale: 3.5,
+    dependsOn: ["rtg"],
+    requiredTech: "fusion_power",
+    connectionType: "power" as const,
+    influenceRadius: 4.0,
+    upgrades: [
+      {
+        level: 2,
+        cost: { biomass: 250, water: 50 },
+        productionMultiplier: 1.5,
+        description: "+50% Mocy (+225 kW)",
+      },
+      {
+        level: 3,
+        cost: { biomass: 500, water: 100 },
+        productionMultiplier: 2.2,
+        description: "+120% Mocy (+330 kW)",
+      },
+    ],
+  },
 ];
 
 export const BUILDING_DEFINITIONS: Record<string, BuildingDefinition> =

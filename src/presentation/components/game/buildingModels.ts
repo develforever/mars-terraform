@@ -42,6 +42,15 @@ export const BUILDING_LEVEL_MODELS: Record<string, Record<number, string>> = {
     2: "/models/mars/o2-gen_lvl2.glb",
     3: "/models/mars/o2-gen_lvl3.glb",
   },
+  biosphere_dome: {
+    1: "/models/mars/hangar_roundGlass.glb",
+  },
+  atmosphere_factory: {
+    1: "/models/mars/rocket_baseA.glb",
+  },
+  fusion_reactor: {
+    1: "/models/mars/machine_generatorLarge.glb",
+  },
 };
 
 /**
