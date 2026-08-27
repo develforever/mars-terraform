@@ -189,16 +189,14 @@ Zrobione:
 - Silnik Zadań i Celów Misji (`QuestService.ts`, `QuestTrackerWidget.tsx`, `QuestLogModal.tsx` z 10 zadaniami kampanii, automatyczną ewaluacją w pętli ekonomii i odbiorem nagród).
 - Predefiniowane Scenariusze Fabularne (`ScenarioService.ts`, `ScenarioSelectModal.tsx` z 5 zbalansowanymi misjami fabularnymi, unikalnymi modyfikatorami i rozmieszczeniem POI).
 - Ekran Zwycięstwa / Porażki i Ewaluacja Kolonii (`GameAnalyticsService.ts`, `VictorySummaryModal.tsx` z wykresami analitycznymi SVG time-series, punktacją i 4 rangami kolonii).
+- Mieszkańcy Kolonii, Zawody i Morale (`ColonistService.ts`, `ColonistManagerModal.tsx`, dynamiczne zużycie O₂/wody/żywności, przylot promów, wpływ morale na produkcję).
 
 ---
 
 ## Nowa Roadmapa Projektu (Next-Gen Milestones)
 
 ### Faza 7: Zarządzanie Populacją Kolonistów i Zaawansowane Łańcuchy Produkcji
-1. **Mieszkańcy Kolonii, Zawody i Morale (`feat/colonists-and-morale`)**:
-   - Grupy zawodowe (Inżynierowie, Naukowcy, Rolnicy, Górnicy).
-   - Zużycie tlenu, wody i żywności per habitat; wskaźnik Morale wpływający na produktywność kolonii.
-2. **Zaawansowane Struktury Przemysłowe (`feat/advanced-megastructures`)**:
+1. **Zaawansowane Struktury Przemysłowe (`feat/advanced-megastructures`)**:
    - Kopuła Biosfery (zaawansowane habitaty), Fabryka Atmosfery (zwiększanie ciśnienia), Reaktor Termojądrowy (stabilna energia jądrowa).
 
 ### Faza 8: Infrastruktura Produkcyjna i Hosting (Vercel Edge + API Backend)
