@@ -364,5 +364,61 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     useGameStore.getState().dismissDefeatModal();
     expect(useGameStore.getState().defeatModalDismissed).toBe(true);
   });
+
+  it("handles tactical pause and speed controls properly", () => {
+    useGameStore.getState().startNewGame("Speed Colony", "normal", "exploration");
+
+    expect(useGameStore.getState().isPaused).toBe(false);
+    expect(useGameStore.getState().gameSpeed).toBe(1);
+
+    // Toggle pause
+    useGameStore.getState().togglePause();
+    expect(useGameStore.getState().isPaused).toBe(true);
+
+    const initialTick = useGameStore.getState().tick;
+    // applyEconomyTick should do nothing when paused
+    useGameStore.getState().applyEconomyTick();
+    expect(useGameStore.getState().tick).toBe(initialTick);
+
+    // Unpause
+    useGameStore.getState().setIsPaused(false);
+    expect(useGameStore.getState().isPaused).toBe(false);
+
+    useGameStore.getState().applyEconomyTick();
+    expect(useGameStore.getState().tick).toBe(initialTick + 1);
+
+    // Set speed
+    useGameStore.getState().setGameSpeed(4);
+    expect(useGameStore.getState().gameSpeed).toBe(4);
+  });
+
+  it("activates emergencyLifeSupport buffer and handles countdown in applyEconomyTick", () => {
+    useGameStore.getState().startNewGame("LifeSupport Colony", "normal", "exploration");
+
+    // Force O2 to 0 and replace placed hab with a solar panel that produces no O2
+    useGameStore.setState({
+      placed: [
+        { id: "sol-1", definitionId: "solar", position: { x: 0, y: 0, z: 0 }, condition: 100, level: 1 },
+      ],
+      resources: { o2: 0, power: 50, water: 50, biomass: 50 },
+    });
+
+    useGameStore.getState().applyEconomyTick();
+
+    const stateTick1 = useGameStore.getState();
+    expect(stateTick1.alive).toBe(true);
+    expect(stateTick1.emergencyLifeSupport.active).toBe(true);
+    expect(stateTick1.emergencyLifeSupport.secondsRemaining).toBe(59);
+
+    // Set remaining seconds to 1 and run tick to test gameOver
+    useGameStore.setState({
+      emergencyLifeSupport: { active: true, secondsRemaining: 1 },
+    });
+
+    useGameStore.getState().applyEconomyTick();
+    const stateGameOver = useGameStore.getState();
+    expect(stateGameOver.emergencyLifeSupport.secondsRemaining).toBe(0);
+    expect(stateGameOver.alive).toBe(false);
+  });
 });
 

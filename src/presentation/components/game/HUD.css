@@ -805,3 +805,145 @@
     border-radius: 3px;
     transition: width 0.6s ease;
 }
+
+/* Time & Tactical Speed Controls */
+.time-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    margin-left: 6px;
+}
+
+.time-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 22px;
+    padding: 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #9ca3af;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+}
+
+.time-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.time-btn--active {
+    color: #60a5fa !important;
+    background: rgba(59, 130, 246, 0.25) !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+.time-btn--pause {
+    font-size: 10px;
+}
+
+.time-btn--active-pause {
+    color: #fca5a5 !important;
+    background: rgba(239, 68, 68, 0.3) !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.time-paused-indicator {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin-left: 2px;
+    text-transform: uppercase;
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Czerwony Alarm Awaryjnego Podtrzymywania Życia */
+.emergency-alert-banner {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    pointer-events: auto;
+    background: linear-gradient(135deg, rgba(153, 27, 27, 0.95), rgba(69, 10, 10, 0.95));
+    border: 2px solid #ef4444;
+    border-radius: 12px;
+    padding: 10px 24px;
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(239, 68, 68, 0.3);
+    animation: emergency-pulse 1s infinite alternate;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    max-width: 90vw;
+}
+
+@keyframes emergency-pulse {
+    0% {
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.7);
+    }
+    100% {
+        box-shadow: 0 0 35px rgba(239, 68, 68, 0.9), inset 0 0 20px rgba(239, 68, 68, 0.4);
+        border-color: #ef4444;
+    }
+}
+
+.emergency-alert-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 12px;
+    font-size: 13px;
+    color: #fee2e2;
+    text-align: center;
+}
+
+.emergency-alert-icon {
+    font-size: 18px;
+    animation: bounce 1s infinite;
+}
+
+.emergency-alert-title {
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+}
+
+.emergency-alert-seconds {
+    font-weight: 800;
+    color: #fef08a;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(254, 240, 138, 0.4);
+}
+
+.emergency-alert-hint {
+    font-size: 12px;
+    color: #fca5a5;
+    opacity: 0.95;
+}

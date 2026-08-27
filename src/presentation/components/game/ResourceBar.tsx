@@ -1,5 +1,6 @@
 import type { ResourceKey, Resources, ResourceDelta, ResourceCapacity } from "../../../domain/entities/Resources";
 import type { ColonyPopulation, MoraleState } from "../../../domain/entities/Colonist";
+import { TimeControls } from "./TimeControls";
 
 interface ResourceBarProps {
     sun: number;
@@ -91,6 +92,7 @@ export function ResourceBar({
                     {getMoraleEmoji(morale.value)} {morale.value}%
                 </button>
             )}
+            <TimeControls />
             {colonyName && <span className="bar-colony-name">🏛 {colonyName}</span>}
         </div>
     );

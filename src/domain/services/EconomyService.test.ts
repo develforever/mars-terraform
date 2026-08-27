@@ -149,4 +149,124 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
     );
     expect(stormProd.power).toBeCloseTo(0.25, 4);
   });
+
+  describe("Emergency Life Support Buffer Mechanics", () => {
+    it("should activate emergency life support without immediate gameOver when O2 drops to 0", () => {
+      const colony: ColonyState = {
+        resources: { o2: 0.02, power: 10, water: 10, biomass: 10 },
+        capacity: { power: 100, water: 100, biomass: 100 },
+        sun: 1.0,
+        alive: true,
+      };
+      // Solar panel does not produce O2, but consumes 0.05 O2 -> final O2 drops to 0
+      const placed: PlacedBuilding[] = [
+        { id: "sol-1", definitionId: "solar", position: { x: wx, y: 0, z: wz }, condition: 100 },
+      ];
+
+      const result = EconomyService.tick(
+        colony,
+        placed,
+        BUILDING_DEFINITIONS,
+        1.0,
+        [],
+        0,
+        "clear",
+        undefined,
+        undefined,
+        { active: false, secondsRemaining: 60 }
+      );
+
+      expect(result.gameOver).toBe(false);
+      expect(result.emergencyLifeSupport.active).toBe(true);
+      expect(result.emergencyLifeSupport.secondsRemaining).toBe(59);
+    });
+
+    it("should decrement secondsRemaining on consecutive O2 depleted ticks", () => {
+      const colony: ColonyState = {
+        resources: { o2: 0, power: 10, water: 10, biomass: 10 },
+        capacity: { power: 100, water: 100, biomass: 100 },
+        sun: 1.0,
+        alive: true,
+      };
+      const placed: PlacedBuilding[] = [
+        { id: "sol-1", definitionId: "solar", position: { x: wx, y: 0, z: wz }, condition: 100 },
+      ];
+
+      const result = EconomyService.tick(
+        colony,
+        placed,
+        BUILDING_DEFINITIONS,
+        1.0,
+        [],
+        0,
+        "clear",
+        undefined,
+        undefined,
+        { active: true, secondsRemaining: 15 }
+      );
+
+      expect(result.gameOver).toBe(false);
+      expect(result.emergencyLifeSupport.active).toBe(true);
+      expect(result.emergencyLifeSupport.secondsRemaining).toBe(14);
+    });
+
+    it("should trigger gameOver when secondsRemaining reaches 0", () => {
+      const colony: ColonyState = {
+        resources: { o2: 0, power: 10, water: 10, biomass: 10 },
+        capacity: { power: 100, water: 100, biomass: 100 },
+        sun: 1.0,
+        alive: true,
+      };
+      const placed: PlacedBuilding[] = [
+        { id: "sol-1", definitionId: "solar", position: { x: wx, y: 0, z: wz }, condition: 100 },
+      ];
+
+      const result = EconomyService.tick(
+        colony,
+        placed,
+        BUILDING_DEFINITIONS,
+        1.0,
+        [],
+        0,
+        "clear",
+        undefined,
+        undefined,
+        { active: true, secondsRemaining: 1 }
+      );
+
+      expect(result.emergencyLifeSupport.secondsRemaining).toBe(0);
+      expect(result.gameOver).toBe(true);
+    });
+
+    it("should deactivate emergency life support and reset timer to 60s when O2 is restored", () => {
+      const colony: ColonyState = {
+        resources: { o2: 0, power: 10, water: 10, biomass: 10 },
+        capacity: { power: 100, water: 100, biomass: 100 },
+        sun: 1.0,
+        alive: true,
+      };
+      // O2 generator (id: "o2-gen") produces +0.60 O2, minus 0.05 consumption = +0.55 net O2
+      const placed: PlacedBuilding[] = [
+        { id: "o2-gen-1", definitionId: "o2-gen", position: { x: wx, y: 0, z: wz }, condition: 100 },
+      ];
+
+      const result = EconomyService.tick(
+        colony,
+        placed,
+        BUILDING_DEFINITIONS,
+        1.0,
+        [],
+        0,
+        "clear",
+        undefined,
+        undefined,
+        { active: true, secondsRemaining: 23 }
+      );
+
+      expect(result.gameOver).toBe(false);
+      expect(result.emergencyLifeSupport.active).toBe(false);
+      expect(result.emergencyLifeSupport.secondsRemaining).toBe(60);
+      expect(result.delta.o2).toBeGreaterThan(0);
+    });
+  });
 });

@@ -5,7 +5,7 @@ import type { Resources, ResourceCapacity, ResourceDelta, ResourceKey } from "..
 import { INITIAL_COLONY_STATE } from "../../domain/entities/Colony";
 import { BUILDING_DEFINITIONS } from "../../domain/config/buildings";
 import { BuildingService } from "../../domain/services/BuildingService";
-import { EconomyService } from "../../domain/services/EconomyService";
+import { EconomyService, EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS, type EmergencyLifeSupportState } from "../../domain/services/EconomyService";
 import { WeatherService } from "../../domain/services/WeatherService";
 import type { WeatherState } from "../../domain/services/WeatherService";
 import { TerraformingService } from "../../domain/services/TerraformingService";
@@ -43,6 +43,13 @@ export interface GameState {
   alive: boolean;
   colonyName: string;
   currentScenarioId?: string | null;
+
+  // Time & Speed Controls (Pauza taktyczna i prędkość symulacji)
+  isPaused: boolean;
+  gameSpeed: 1 | 2 | 4;
+
+  // Emergency Life Support buffer
+  emergencyLifeSupport: EmergencyLifeSupportState;
 
   // Colonists & Morale (Faza 7.1)
   population: ColonyPopulation;
@@ -92,6 +99,9 @@ export interface GameState {
   setColonyName: (name: string) => void;
   setDifficulty: (level: DifficultyLevel) => void;
   setGameMode: (mode: GameMode) => void;
+  togglePause: () => void;
+  setIsPaused: (isPaused: boolean) => void;
+  setGameSpeed: (speed: 1 | 2 | 4) => void;
   placeBuilding: (cell: { x: number; z: number }, heightY: number, definitionId: string) => boolean;
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
   upgradeBuilding: (buildingId: string) => boolean;
@@ -252,6 +262,12 @@ function getInitialGameState(
     activeQuests: QuestService.getInitialQuestStates(),
     population: INITIAL_POPULATION,
     morale: INITIAL_MORALE,
+    isPaused: false,
+    gameSpeed: 1 as const,
+    emergencyLifeSupport: {
+      active: false,
+      secondsRemaining: EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS,
+    },
   };
 }
 
@@ -298,6 +314,18 @@ export const useGameStore = create<GameState>()(
 
       setGameMode: (mode) => {
         set({ gameMode: mode });
+      },
+
+      togglePause: () => {
+        set((state) => ({ isPaused: !state.isPaused }));
+      },
+
+      setIsPaused: (isPaused) => {
+        set({ isPaused });
+      },
+
+      setGameSpeed: (speed) => {
+        set({ gameSpeed: speed });
       },
 
       setWeather: (weather) => set({ weather }),
@@ -493,7 +521,7 @@ export const useGameStore = create<GameState>()(
 
       applyEconomyTick: () => {
         const state = get();
-        if (!state.alive) return;
+        if (state.isPaused || !state.alive) return;
 
         // Game mode config
         const modeCfg = GAME_MODE_CONFIGS[state.gameMode];
@@ -549,7 +577,8 @@ export const useGameStore = create<GameState>()(
           modeCfg.depositDepletionRate,
           newWeather.type,
           currentPopulation,
-          roleBonuses
+          roleBonuses,
+          state.emergencyLifeSupport
         );
 
         const newO2Accumulated = TerraformingService.accumulateO2(state.o2Accumulated, tickResult.delta);
@@ -621,6 +650,7 @@ export const useGameStore = create<GameState>()(
           resources: newResources,
           resourceNodes: tickResult.resourceNodes ?? state.resourceNodes,
           alive: !tickResult.gameOver,
+          emergencyLifeSupport: tickResult.emergencyLifeSupport,
           tick: currentTick,
           sol: currentSol,
           aliensDefeated: newAliensDefeated,
@@ -935,6 +965,12 @@ export const useGameStore = create<GameState>()(
             activeQuests: loadedEvaluatedQuests,
             population: effectivePopulation,
             morale: loadedMorale,
+            isPaused: false,
+            gameSpeed: 1,
+            emergencyLifeSupport: gameState.emergencyLifeSupport ?? {
+              active: false,
+              secondsRemaining: EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS,
+            },
           });
           return true;
         } catch (error) {

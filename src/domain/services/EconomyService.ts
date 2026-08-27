@@ -10,6 +10,12 @@ import { ResearchService } from "./ResearchService";
 import { WeatherService, type WeatherType } from "./WeatherService";
 
 export const O2_CONSUMPTION_PER_TICK = 0.05;
+export const EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS = 60;
+
+export interface EmergencyLifeSupportState {
+  active: boolean;
+  secondsRemaining: number;
+}
 
 export interface EconomyTickResult {
   delta: ResourceDelta;
@@ -17,6 +23,7 @@ export interface EconomyTickResult {
   resourceNodes?: ResourceNode[];
   /** Research Points produced this tick (from Lab buildings and Scientist colonists) */
   researchPointsDelta: number;
+  emergencyLifeSupport: EmergencyLifeSupportState;
 }
 
 export class EconomyService {
@@ -126,8 +133,19 @@ export class EconomyService {
     return clamped;
   }
 
-  static checkGameOver(resources: Resources, alive: boolean): boolean {
-    return alive && resources.o2 <= 0;
+  static checkGameOver(
+    resources: Resources,
+    alive: boolean,
+    emergencyLifeSupport?: EmergencyLifeSupportState
+  ): boolean {
+    if (!alive) return true;
+    if (resources.o2 <= 0) {
+      if (emergencyLifeSupport) {
+        return emergencyLifeSupport.secondsRemaining <= 0;
+      }
+      return true;
+    }
+    return false;
   }
 
   static calculateCapacityDelta(
@@ -204,7 +222,8 @@ export class EconomyService {
     depletionRate: number = 0,
     weatherType: WeatherType = "clear",
     population?: ColonyPopulation,
-    roleBonuses?: RoleBonuses
+    roleBonuses?: RoleBonuses,
+    emergencyLifeSupport?: EmergencyLifeSupportState
   ): EconomyTickResult {
     const production = this.calculateProduction(
       buildings,
@@ -248,7 +267,28 @@ export class EconomyService {
     const clamped = this.clampResources(newResources, colony.capacity);
     const finalResources = { ...newResources, ...clamped };
 
-    const gameOver = this.checkGameOver(finalResources, colony.alive);
+    // Emergency Life Support calculation
+    let newEmergencyLifeSupport: EmergencyLifeSupportState;
+    if (finalResources.o2 <= 0) {
+      const prevSeconds = emergencyLifeSupport
+        ? emergencyLifeSupport.secondsRemaining
+        : EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS;
+      const nextSeconds = emergencyLifeSupport?.active
+        ? Math.max(0, prevSeconds - 1)
+        : Math.max(0, EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS - 1);
+      
+      newEmergencyLifeSupport = {
+        active: true,
+        secondsRemaining: nextSeconds,
+      };
+    } else {
+      newEmergencyLifeSupport = {
+        active: false,
+        secondsRemaining: EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS,
+      };
+    }
+
+    const gameOver = this.checkGameOver(finalResources, colony.alive, newEmergencyLifeSupport);
 
     return {
       delta: {
@@ -260,6 +300,7 @@ export class EconomyService {
       gameOver,
       resourceNodes: updatedResourceNodes,
       researchPointsDelta,
+      emergencyLifeSupport: newEmergencyLifeSupport,
     };
   }
 }

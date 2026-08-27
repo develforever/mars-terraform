@@ -9,6 +9,7 @@ import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 import type { ResourceKey } from "../../../domain/entities/Resources";
 import { HintService } from "../../../domain/services/HintService";
 import { WeatherAlert } from "./WeatherAlert";
+import { EmergencyLifeSupportAlert } from "./EmergencyLifeSupportAlert";
 import { DebugOverlay } from "./DebugOverlay";
 import { ResourceDetailPanel } from "./ResourceDetailPanel";
 import { WeatherService } from "../../../domain/services/WeatherService";
@@ -63,6 +64,7 @@ export function HUD() {
     const continueEndless       = useGameStore((state) => state.continueEndless);
     const dismissVictoryModal   = useGameStore((state) => state.dismissVictoryModal);
     const dismissDefeatModal    = useGameStore((state) => state.dismissDefeatModal);
+    const togglePause           = useGameStore((state) => state.togglePause);
     const openModal             = useModalStore((state) => state.open);
 
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
@@ -119,6 +121,10 @@ export function HUD() {
         function onKey(e: KeyboardEvent) {
             const target = e.target as HTMLElement;
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+            if (e.code === "Space" || e.key === " " || e.key === "Spacebar") {
+                e.preventDefault();
+                togglePause();
+            }
             if (e.key === "b" || e.key === "B") toggleBuildMode();
             if (e.key === "x" || e.key === "X") toggleDemolishMode();
             if (e.key === "r" || e.key === "R") {
@@ -140,7 +146,7 @@ export function HUD() {
         }
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [toggleBuildMode, toggleDemolishMode, cancelBuild]);
+    }, [toggleBuildMode, toggleDemolishMode, cancelBuild, togglePause]);
 
     const hint = useMemo(() => {
         if (!lastDelta) return null;
@@ -153,6 +159,7 @@ export function HUD() {
     return (
         <div className="hud">
             <DebugOverlay />
+            <EmergencyLifeSupportAlert />
             <WeatherAlert />
             {gameMode === "survival" && alienState.wave > 0 && (alienState.ships.length > 0 || alienState.groundUnits.length > 0) && (
                 <div className="alien-alert">
