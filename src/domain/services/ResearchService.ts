@@ -2,6 +2,9 @@ import type { PlacedBuilding, BuildingDefinition } from "../entities/Building";
 import { TECHNOLOGIES } from "../config/technologies";
 
 // constants
+/** Base RP produced per Centrum Kolonii (hab) */
+export const RP_PER_HAB = 0.2;
+
 /** RP produced per Laboratorium per level (index = level-1) */
 export const RP_PER_LAB_LEVEL = [0.5, 0.75, 1.1] as const;
 
@@ -16,8 +19,8 @@ export interface ResearchResult {
 // main logic
 export class ResearchService {
   /**
-   * Returns total RP produced per economy tick from all lab buildings.
-   * Only buildings with definitionId === "lab" contribute RP.
+   * Returns total RP produced per economy tick from hab and lab buildings.
+   * Centrum Kolonii ("hab") produces base 0.2 RP/tick, Laboratorium ("lab") produces 0.5-1.1 RP/tick based on level.
    */
   static calculateRPProduction(
     buildings: PlacedBuilding[],
@@ -26,11 +29,14 @@ export class ResearchService {
     void definitions; // intentionally unused — reserved for future per-building RP bonuses
     let total = 0;
     for (const b of buildings) {
-      if (b.definitionId !== "lab") continue;
-      const level = b.level ?? 1;
-      const idx = Math.min(level - 1, RP_PER_LAB_LEVEL.length - 1);
       const condFactor = Math.max(0, (b.condition ?? 100) / 100);
-      total += RP_PER_LAB_LEVEL[idx] * condFactor;
+      if (b.definitionId === "hab") {
+        total += RP_PER_HAB * condFactor;
+      } else if (b.definitionId === "lab") {
+        const level = b.level ?? 1;
+        const idx = Math.min(level - 1, RP_PER_LAB_LEVEL.length - 1);
+        total += RP_PER_LAB_LEVEL[idx] * condFactor;
+      }
     }
     return total;
   }

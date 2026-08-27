@@ -13,6 +13,7 @@ interface ResourceBarProps {
     population?: ColonyPopulation;
     morale?: MoraleState;
     onOpenColonists?: () => void;
+    flashingResources?: ResourceKey[];
 }
 
 function renderDelta(val: number | undefined) {
@@ -33,9 +34,15 @@ export function ResourceBar({
     population,
     morale,
     onOpenColonists,
+    flashingResources = [],
 }: ResourceBarProps) {
-    const btn = (key: ResourceKey | "terraforming") =>
-        `bar-btn${activePanel === key ? " bar-btn--active" : ""}`;
+    const isFlashing = (key: ResourceKey) => flashingResources.includes(key);
+
+    const btn = (key: ResourceKey | "terraforming") => {
+        const activeClass = activePanel === key ? " bar-btn--active" : "";
+        const flashClass = typeof key !== "string" || key === "terraforming" ? "" : isFlashing(key as ResourceKey) ? " bar-btn--shortage-flash" : "";
+        return `bar-btn${activeClass}${flashClass}`;
+    };
 
     const getMoraleEmoji = (val: number) => {
         if (val >= 75) return "😊";

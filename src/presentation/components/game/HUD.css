@@ -103,6 +103,27 @@
     color: #fca5a5;
 }
 
+@keyframes resource-shortage-flash {
+    0%, 100% {
+        border-color: rgba(239, 68, 68, 0.9);
+        background-color: rgba(239, 68, 68, 0.35);
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+        transform: scale(1.05);
+    }
+    50% {
+        border-color: rgba(239, 68, 68, 0.3);
+        background-color: rgba(239, 68, 68, 0.1);
+        box-shadow: none;
+        transform: scale(1);
+    }
+}
+
+.bar-btn--shortage-flash {
+    animation: resource-shortage-flash 0.35s ease-in-out 3;
+    border-color: #ef4444 !important;
+    color: #fca5a5 !important;
+}
+
 .bar-colony-name {
     margin-left: auto;
     margin-right: auto;
@@ -227,8 +248,18 @@
 }
 
 .hud-dock button.locked {
-    opacity: 0.3;
-    filter: grayscale(1);
+    opacity: 0.45;
+    filter: grayscale(0.8);
+}
+
+.hud-dock button.tech-locked {
+    opacity: 0.4;
+    border-color: rgba(147, 197, 253, 0.2);
+}
+
+.hud-dock button.unaffordable:not(.locked) {
+    opacity: 0.75;
+    border-color: rgba(248, 113, 113, 0.3);
 }
 
 .hud-dock button.placed {

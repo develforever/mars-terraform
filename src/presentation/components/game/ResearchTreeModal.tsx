@@ -10,6 +10,7 @@ import { ResearchService } from "../../../domain/services/ResearchService";
 // props
 interface ResearchTreeModalProps {
   onClose: () => void;
+  selectedTechId?: string | null;
 }
 
 // constants
@@ -25,7 +26,7 @@ const CATEGORY_ICONS: Record<TechCategory, string> = {
 type TechStatus = "researched" | "available" | "locked";
 
 // main logic
-export function ResearchTreeModal({ onClose }: ResearchTreeModalProps) {
+export function ResearchTreeModal({ onClose, selectedTechId }: ResearchTreeModalProps) {
   const { t } = useTranslation();
   const researchPoints = useGameStore((s) => s.researchPoints);
   const unlockedTechs  = useGameStore((s) => s.unlockedTechs);
@@ -146,6 +147,7 @@ export function ResearchTreeModal({ onClose }: ResearchTreeModalProps) {
                         unlocksBuildings={tech.unlocksBuildings}
                         currentRP={researchPoints}
                         canBuy={canBuy}
+                        isHighlighted={selectedTechId === tech.id}
                         onPurchase={() => handlePurchase(tech.id)}
                         t={t}
                       />
@@ -175,6 +177,7 @@ interface TechNodeProps {
   unlocksBuildings: string[];
   currentRP: number;
   canBuy: boolean;
+  isHighlighted?: boolean;
   onPurchase: () => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
@@ -193,13 +196,26 @@ const STATUS_DOT: Record<TechStatus, string> = {
 
 function TechNode({
   id, name, description, costRP, status, prereqNames, unlockEffects, unlocksBuildings,
-  currentRP, canBuy, onPurchase, t,
+  currentRP, canBuy, isHighlighted, onPurchase, t,
 }: TechNodeProps) {
   const canAfford = currentRP >= costRP;
+  const nodeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isHighlighted && nodeRef.current && typeof nodeRef.current.scrollIntoView === "function") {
+      nodeRef.current.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    }
+  }, [isHighlighted]);
+
+  const highlightClass = isHighlighted
+    ? "ring-2 ring-[#58a6ff] ring-offset-2 ring-offset-[#0d1117] shadow-[0_0_16px_rgba(88,166,255,0.7)]"
+    : "";
 
   return (
     <div
-      className={`rounded-lg border p-3 flex flex-col gap-2 transition-all ${STATUS_STYLES[status]}`}
+      ref={nodeRef}
+      data-tech-id={id}
+      className={`rounded-lg border p-3 flex flex-col gap-2 transition-all ${STATUS_STYLES[status]} ${highlightClass}`}
     >
       {/* Status dot + name */}
       <div className="flex items-start gap-2">

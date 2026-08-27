@@ -53,6 +53,9 @@ interface BuildingPaletteProps {
     selectedBuildingId: string | null;
     demolishActive: boolean;
     onSelect: (defId: string) => void;
+    onOpenResearch?: (techId?: string) => void;
+    onOpenDependencies?: () => void;
+    onResourceShortage?: (missingResources: ResourceKey[]) => void;
 }
 
 export function BuildingPalette({
@@ -61,6 +64,9 @@ export function BuildingPalette({
     selectedBuildingId,
     demolishActive,
     onSelect,
+    onOpenResearch,
+    onOpenDependencies,
+    onResourceShortage,
 }: BuildingPaletteProps) {
     const { t } = useTranslation();
 
@@ -206,13 +212,41 @@ export function BuildingPalette({
                                 </>
                             );
 
+                            const handleButtonClick = () => {
+                                if (demolishActive) return;
+                                if (!techOk) {
+                                    onOpenResearch?.(def.requiredTech);
+                                    return;
+                                }
+                                if (!reqsMet) {
+                                    onOpenDependencies?.();
+                                    return;
+                                }
+                                if (!affordable) {
+                                    const missing = (Object.entries(def.cost) as [ResourceKey, number][])
+                                        .filter(([k, cost]) => (resources[k] ?? 0) < cost)
+                                        .map(([k]) => k);
+                                    onResourceShortage?.(missing);
+                                    return;
+                                }
+                                onSelect(def.id);
+                            };
+
+                            const buttonClasses = [
+                                "palette-btn",
+                                active ? "active" : "",
+                                !reqsMet || !techOk ? "locked" : "",
+                                !techOk ? "tech-locked" : "",
+                                !affordable ? "unaffordable" : "",
+                                isPlaced ? "placed" : "",
+                            ].filter(Boolean).join(" ");
+
                             return (
                                 <BuildingTooltip key={def.id} content={tooltipContent}>
                                     <button
                                         type="button"
-                                        className={`palette-btn ${active ? "active" : ""} ${!reqsMet || !techOk ? "locked" : ""} ${isPlaced ? "placed" : ""}`}
-                                        disabled={!affordable || !reqsMet || !techOk || demolishActive}
-                                        onClick={() => onSelect(def.id)}
+                                        className={buttonClasses}
+                                        onClick={handleButtonClick}
                                     >
                                         <BuildingIcon id={def.id} name={def.name} color={def.color} />
                                         {isPlaced && <span style={{ color: "#4ade80", marginRight: 2 }}>●</span>}

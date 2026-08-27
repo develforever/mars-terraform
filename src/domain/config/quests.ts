@@ -35,7 +35,7 @@ export const CAMPAIGN_QUESTS: QuestDefinition[] = [
     ],
     reward: {
       resources: { power: 15, biomass: 5 },
-      researchPoints: 5,
+      researchPoints: 20,
     },
   },
   {
@@ -57,7 +57,7 @@ export const CAMPAIGN_QUESTS: QuestDefinition[] = [
     ],
     reward: {
       resources: { water: 25, power: 10 },
-      researchPoints: 5,
+      researchPoints: 20,
     },
   },
   {
@@ -86,7 +86,7 @@ export const CAMPAIGN_QUESTS: QuestDefinition[] = [
     ],
     reward: {
       resources: { o2: 50, power: 20 },
-      researchPoints: 10,
+      researchPoints: 20,
     },
   },
 

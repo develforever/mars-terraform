@@ -11,14 +11,21 @@ describe("ResearchService.calculateRPProduction", () => {
     expect(ResearchService.calculateRPProduction([], BUILDING_DEFINITIONS)).toBe(0);
   });
 
-  it("returns 0 when no lab is placed", () => {
+  it("returns 0.2 RP when one hab is placed at full condition", () => {
     const placed: PlacedBuilding[] = [
       { id: "hab-1", definitionId: "hab", position: { x: 0, y: 0, z: 0 }, condition: 100 },
     ];
-    expect(ResearchService.calculateRPProduction(placed, BUILDING_DEFINITIONS)).toBe(0);
+    expect(ResearchService.calculateRPProduction(placed, BUILDING_DEFINITIONS)).toBeCloseTo(0.2, 4);
   });
 
-  it("returns 0.5 RP for one Lab level-1 at full condition", () => {
+  it("scales Hab RP by condition factor (50% condition = 0.1 RP)", () => {
+    const placed: PlacedBuilding[] = [
+      { id: "hab-1", definitionId: "hab", position: { x: 0, y: 0, z: 0 }, condition: 50 },
+    ];
+    expect(ResearchService.calculateRPProduction(placed, BUILDING_DEFINITIONS)).toBeCloseTo(0.1, 4);
+  });
+
+  it("returns 0.5 RP for one Lab level-1 at full condition (without hab)", () => {
     const placed: PlacedBuilding[] = [
       { id: "lab-1", definitionId: "lab", position: { x: 0, y: 0, z: 0 }, condition: 100, level: 1 },
     ];
@@ -39,19 +46,20 @@ describe("ResearchService.calculateRPProduction", () => {
     expect(ResearchService.calculateRPProduction(placed, BUILDING_DEFINITIONS)).toBeCloseTo(1.1, 4);
   });
 
-  it("scales RP by condition factor (50% condition = 0.25 RP from Lv1 lab)", () => {
+  it("scales Lab RP by condition factor (50% condition = 0.25 RP from Lv1 lab)", () => {
     const placed: PlacedBuilding[] = [
       { id: "lab-1", definitionId: "lab", position: { x: 0, y: 0, z: 0 }, condition: 50, level: 1 },
     ];
     expect(ResearchService.calculateRPProduction(placed, BUILDING_DEFINITIONS)).toBeCloseTo(0.25, 4);
   });
 
-  it("sums RP from multiple labs", () => {
+  it("sums RP from Hab and multiple labs", () => {
     const placed: PlacedBuilding[] = [
-      { id: "lab-1", definitionId: "lab", position: { x: 0, y: 0, z: 0 }, condition: 100, level: 1 },
+      { id: "hab-1", definitionId: "hab", position: { x: 0, y: 0, z: 0 }, condition: 100 },
+      { id: "lab-1", definitionId: "lab", position: { x: 2, y: 0, z: 2 }, condition: 100, level: 1 },
       { id: "lab-2", definitionId: "lab", position: { x: 5, y: 0, z: 5 }, condition: 100, level: 2 },
     ];
-    expect(ResearchService.calculateRPProduction(placed, BUILDING_DEFINITIONS)).toBeCloseTo(0.5 + 0.75, 4);
+    expect(ResearchService.calculateRPProduction(placed, BUILDING_DEFINITIONS)).toBeCloseTo(0.2 + 0.5 + 0.75, 4);
   });
 });
 
@@ -166,9 +174,10 @@ describe("ResearchService.getUnlockedBuildingIds", () => {
     expect(ids.has("hab")).toBe(true);
     expect(ids.has("solar")).toBe(true);
     expect(ids.has("ice")).toBe(true);
+    expect(ids.has("lab")).toBe(true);
     // Should not have advanced buildings
     expect(ids.has("rtg")).toBe(false);
-    expect(ids.has("lab")).toBe(false);
+    expect(ids.has("greenhouse")).toBe(false);
   });
 
   it("includes greenhouse when advanced_hab is unlocked", () => {

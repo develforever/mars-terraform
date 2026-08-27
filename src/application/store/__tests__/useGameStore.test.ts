@@ -315,7 +315,7 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     const stateClaimed = useGameStore.getState();
     expect(stateClaimed.resources.power).toBe(initialPower + 15);
     expect(stateClaimed.resources.biomass).toBe(initialBiomass + 5);
-    expect(stateClaimed.researchPoints).toBe(initialRP + 5);
+    expect(stateClaimed.researchPoints).toBe(initialRP + 20);
 
     const claimedQuest = stateClaimed.activeQuests.find((q) => q.id === "quest_solar_power");
     expect(claimedQuest?.status).toBe("claimed");

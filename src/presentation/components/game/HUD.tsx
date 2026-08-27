@@ -69,6 +69,8 @@ export function HUD() {
     const [activePanel, setActivePanel] = useState<ResourceKey | "terraforming" | null>(null);
     const [showDepTree, setShowDepTree] = useState(false);
     const [showResearchTree, setShowResearchTree] = useState(false);
+    const [selectedTechId, setSelectedTechId] = useState<string | null>(null);
+    const [flashingResources, setFlashingResources] = useState<ResourceKey[]>([]);
     const [showQuestLog, setShowQuestLog] = useState(false);
     const [showColonistModal, setShowColonistModal] = useState(false);
 
@@ -80,6 +82,20 @@ export function HUD() {
 
     const togglePanel = (key: ResourceKey | "terraforming") => {
         setActivePanel((prev) => (prev === key ? null : key));
+    };
+
+    const handleOpenResearch = (techId?: string) => {
+        setSelectedTechId(techId ?? null);
+        setShowResearchTree(true);
+    };
+
+    const handleOpenDependencies = () => {
+        setShowDepTree(true);
+    };
+
+    const handleResourceShortage = (missing: ResourceKey[]) => {
+        setFlashingResources(missing);
+        setTimeout(() => setFlashingResources([]), 1200);
     };
 
     const handleSave = async () => {
@@ -105,13 +121,19 @@ export function HUD() {
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
             if (e.key === "b" || e.key === "B") toggleBuildMode();
             if (e.key === "x" || e.key === "X") toggleDemolishMode();
-            if (e.key === "r" || e.key === "R") setShowResearchTree((v) => !v);
+            if (e.key === "r" || e.key === "R") {
+                setShowResearchTree((v) => {
+                    if (v) setSelectedTechId(null);
+                    return !v;
+                });
+            }
             if (e.key === "q" || e.key === "Q") setShowQuestLog((v) => !v);
             if (e.key === "c" || e.key === "C") setShowColonistModal((v) => !v);
             if (e.key === "Escape") {
                 cancelBuild();
                 setActivePanel(null);
                 setShowResearchTree(false);
+                setSelectedTechId(null);
                 setShowQuestLog(false);
                 setShowColonistModal(false);
             }
@@ -151,6 +173,7 @@ export function HUD() {
                 population={population}
                 morale={morale}
                 onOpenColonists={() => setShowColonistModal(true)}
+                flashingResources={flashingResources}
             />
 
             {activePanel !== null && (
@@ -296,6 +319,9 @@ export function HUD() {
                     selectedBuildingId={selectedBuildingId}
                     demolishActive={demolishActive}
                     onSelect={setSelectedBuilding}
+                    onOpenResearch={handleOpenResearch}
+                    onOpenDependencies={handleOpenDependencies}
+                    onResourceShortage={handleResourceShortage}
                 />
             </div>
 
@@ -314,7 +340,11 @@ export function HUD() {
 
             {showResearchTree && (
                 <ResearchTreeModal
-                    onClose={() => setShowResearchTree(false)}
+                    selectedTechId={selectedTechId}
+                    onClose={() => {
+                        setShowResearchTree(false);
+                        setSelectedTechId(null);
+                    }}
                 />
             )}
 

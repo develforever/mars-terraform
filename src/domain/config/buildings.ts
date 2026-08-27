@@ -276,8 +276,8 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     production: { power: -0.40, water: -0.20, biomass: 0.10 },
     modelPath: "/models/mars/machine_wireless.glb",
     modelScale: 2.5,
-    dependsOn: ["hab", "rtg"],
-    requiredTech: "nuclear_power",
+    dependsOn: ["hab"],
+    requiredTech: "basic_structures",
     connectionType: "data" as const,
     bonusNeighbors: [
       { neighborId: "hab",  bonusPercent: 25, description: "+25% Biomasa obok Kolonii" },

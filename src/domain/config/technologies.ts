@@ -50,8 +50,8 @@ export const TECHNOLOGY_LIST: Technology[] = [
     costRP: 0,
     category: "foundations",
     prereqs: [],
-    unlocksBuildings: ["hab", "solar", "ice"],
-    unlockEffects: "Odblokowanie: Centrum Kolonii, Generator Solarny, Ekstraktor Lodu",
+    unlocksBuildings: ["hab", "solar", "ice", "lab"],
+    unlockEffects: "Odblokowanie: Centrum Kolonii, Generator Solarny, Ekstraktor Lodu, Laboratorium",
   },
   {
     id: TECH_IDS.ADVANCED_HAB,
@@ -104,8 +104,8 @@ export const TECHNOLOGY_LIST: Technology[] = [
     costRP: 100,
     category: "energy",
     prereqs: [TECH_IDS.SOLAR_ARRAY],
-    unlocksBuildings: ["rtg", "lab"],
-    unlockEffects: "Odblokowanie: Blok RTG, Laboratorium",
+    unlocksBuildings: ["rtg"],
+    unlockEffects: "Odblokowanie: Blok RTG",
   },
   {
     id: TECH_IDS.FUSION_POWER,

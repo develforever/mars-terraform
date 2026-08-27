@@ -128,7 +128,7 @@ describe("QuestService", () => {
     );
 
     expect(claimResult.success).toBe(true);
-    expect(claimResult.newRP).toBe(initialRP + 5);
+    expect(claimResult.newRP).toBe(initialRP + 20);
     expect(claimResult.newResources.power).toBe(initialResources.power + 15);
     expect(claimResult.newResources.biomass).toBe(initialResources.biomass + 5);
 

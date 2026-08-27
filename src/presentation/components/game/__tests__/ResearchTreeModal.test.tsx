@@ -129,4 +129,15 @@ describe("ResearchTreeModal", () => {
     // At least BASIC_STRUCTURES and SOLAR_ARRAY are shown as researched
     expect(badges.length).toBeGreaterThanOrEqual(2);
   });
+
+  it("highlights the target tech node when selectedTechId is provided", () => {
+    mockStore({
+      researchPoints: 50,
+      unlockedTechs: [TECH_IDS.BASIC_STRUCTURES],
+    });
+    render(<ResearchTreeModal onClose={vi.fn()} selectedTechId={TECH_IDS.ADVANCED_HAB} />);
+    const node = document.querySelector(`[data-tech-id="${TECH_IDS.ADVANCED_HAB}"]`);
+    expect(node).not.toBeNull();
+    expect(node?.className).toContain("ring-[#58a6ff]");
+  });
 });
