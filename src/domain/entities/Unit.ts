@@ -39,4 +39,11 @@ export interface PlacedUnit {
   status: "idle" | "moving" | "working" | "combat" | "repairing";
   assignedBuildingId?: string;
   targetPosition?: { x: number; y: number; z: number };
+  targetEntityId?: string;
+  targetType?: "alien" | "building" | "position";
+  path?: [number, number][]; // A* path coordinates [q, r]
+  currentPathIndex?: number;
+  attackCooldown?: number;
+  repairCooldown?: number;
 }
+

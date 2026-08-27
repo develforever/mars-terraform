@@ -20,6 +20,9 @@ import { MeteorShower } from "./MeteorShower";
 import { BuildingConnections } from "./BuildingConnections";
 import { AlienInvasion } from "./AlienInvasion";
 import { MiningLogisticsSystem } from "./MiningLogisticsSystem";
+import { UnitsLayer } from "./UnitsLayer";
+import { TargetMarker } from "./TargetMarker";
+import { RTSSceneController } from "./RTSSceneController";
 import { OutlineEffectContext } from "./OutlineEffectContext";
 import type { OutlineEffect } from "postprocessing";
 import MapOverlay from "./MapOverlay";
@@ -111,6 +114,9 @@ function World() {
             <BuildingConnections />
             <AlienInvasion />
             <MiningLogisticsSystem />
+            <UnitsLayer />
+            <TargetMarker />
+            <RTSSceneController />
             <MapOverlay />
             <ResourceDepositMarkers />
 

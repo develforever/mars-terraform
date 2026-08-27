@@ -168,6 +168,18 @@ vi.mock("../MiningLogisticsSystem", () => ({
     MiningLogisticsSystem: () => <div data-testid="mining-logistics-system" />,
 }));
 
+vi.mock("../UnitsLayer", () => ({
+    UnitsLayer: () => <div data-testid="units-layer" />,
+}));
+
+vi.mock("../TargetMarker", () => ({
+    TargetMarker: () => <div data-testid="target-marker" />,
+}));
+
+vi.mock("../RTSSceneController", () => ({
+    RTSSceneController: () => <div data-testid="rts-scene-controller" />,
+}));
+
 vi.mock("../WaterHexMesh", () => ({
     WaterHexMesh: () => <div data-testid="water-hex-mesh" />,
     default: () => <div data-testid="water-hex-mesh" />,

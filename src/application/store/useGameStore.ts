@@ -33,6 +33,9 @@ import { GameAnalyticsService } from "../../domain/services/GameAnalyticsService
 import type { ColonistRole, ColonyPopulation, MoraleState } from "../../domain/entities/Colonist";
 import { INITIAL_POPULATION, INITIAL_MORALE } from "../../domain/entities/Colonist";
 import { ColonistService } from "../../domain/services/ColonistService";
+import type { PlacedUnit } from "../../domain/entities/Unit";
+import { UNIT_IDS } from "../../domain/config/units";
+import { RTSCommandService, type RTSOrder } from "../../domain/services/RTSCommandService";
 
 export interface GameState {
   // Resources and colony state
@@ -71,9 +74,10 @@ export interface GameState {
   decor?: DecorItem[];
   currentMapData?: MapExportJSON | null;
 
-  // Buildings
+  // Buildings & Units
   placed: PlacedBuilding[];
   occupied: Record<string, string>;
+  units: PlacedUnit[];
 
   // Weather
   weather: WeatherState;
@@ -106,6 +110,10 @@ export interface GameState {
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
   upgradeBuilding: (buildingId: string) => boolean;
   toggleBuildingPower: (buildingId: string) => boolean;
+  issueOrderToUnits: (unitIds: string[], order: RTSOrder) => void;
+  updateUnits: (units: PlacedUnit[]) => void;
+  addUnit: (unit: PlacedUnit) => void;
+  removeUnit: (id: string) => void;
   assignColonistRole: (role: ColonistRole, delta: number) => void;
   applyEconomyTick: () => void;
   resetGame: () => void;
@@ -210,6 +218,33 @@ function getInitialGameState(
 
   const habKey = `${Math.round(spawnWx)},${Math.round(spawnWz)}`;
 
+  const initialUnits: PlacedUnit[] = [
+    {
+      id: "initial-combat-rover-1",
+      definitionId: UNIT_IDS.ROVER_COMBAT,
+      position: { x: spawnWx + 2.5, y: spawnWy, z: spawnWz + 2.0 },
+      heading: 0,
+      currentHealth: 250,
+      status: "idle",
+    },
+    {
+      id: "initial-repair-drone-1",
+      definitionId: UNIT_IDS.DRONE_REPAIR,
+      position: { x: spawnWx - 2.5, y: spawnWy + 1.5, z: spawnWz + 2.0 },
+      heading: 0,
+      currentHealth: 120,
+      status: "idle",
+    },
+    {
+      id: "initial-logistics-rover-1",
+      definitionId: UNIT_IDS.ROVER,
+      position: { x: spawnWx + 2.0, y: spawnWy, z: spawnWz - 2.5 },
+      heading: 0,
+      currentHealth: 100,
+      status: "idle",
+    },
+  ];
+
   const initialResources = { ...INITIAL_COLONY_STATE.resources, ...(startingResources ?? {}) };
   const initialWaterLevel = TerraformingService.calculateWaterLevel(
     initialResources.water,
@@ -248,6 +283,7 @@ function getInitialGameState(
     defeatModalDismissed: false,
     placed: [habBuilding],
     occupied: { [habKey]: habBuilding.id },
+    units: initialUnits,
     weather: { type: "clear" as const, intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
     terraforming: 0,
     o2Accumulated: 0,
@@ -513,6 +549,38 @@ export const useGameStore = create<GameState>()(
         return true;
       },
 
+      issueOrderToUnits: (unitIds: string[], order: RTSOrder) => {
+        const state = get();
+        const hexGrid = state.hexGrid;
+        const waterLevel = state.waterLevel;
+        const aliens = state.alienState;
+        const buildings = state.placed;
+
+        const updatedUnits = state.units.map((unit) => {
+          if (!unitIds.includes(unit.id)) return unit;
+          return RTSCommandService.applyOrder(unit, order, {
+            hexGrid,
+            waterLevel,
+            aliens,
+            buildings,
+          });
+        });
+
+        set({ units: updatedUnits });
+      },
+
+      updateUnits: (units: PlacedUnit[]) => {
+        set({ units });
+      },
+
+      addUnit: (unit: PlacedUnit) => {
+        set((state) => ({ units: [...state.units, unit] }));
+      },
+
+      removeUnit: (id: string) => {
+        set((state) => ({ units: state.units.filter((u) => u.id !== id) }));
+      },
+
       assignColonistRole: (role: ColonistRole, delta: number) => {
         const state = get();
         const newPop = ColonistService.assignRole(state.population, role, delta);
@@ -608,6 +676,24 @@ export const useGameStore = create<GameState>()(
           newAliensDefeated += alienResult.eliminatedUnits ?? 0;
         }
 
+        // Apply RTS player unit combat, repairs and movement simulation
+        const rtsResult = RTSCommandService.tickUnits(
+          state.units,
+          newAlienState,
+          finalPlaced,
+          state.hexGrid,
+          newWaterLevel,
+          1.0
+        );
+        const finalUnits = rtsResult.units;
+        finalPlaced = rtsResult.buildings;
+        newAlienState = {
+          ...newAlienState,
+          ships: rtsResult.aliens.ships,
+          groundUnits: rtsResult.aliens.groundUnits,
+        };
+        newAliensDefeated += rtsResult.eliminatedAliens;
+
         const newRP = state.researchPoints + tickResult.researchPointsDelta;
 
         const evaluatedQuests = QuestService.evaluateQuests(
@@ -646,6 +732,7 @@ export const useGameStore = create<GameState>()(
         set({
           weather: newWeather,
           placed: finalPlaced,
+          units: finalUnits,
           lastDelta: tickResult.delta,
           resources: newResources,
           resourceNodes: tickResult.resourceNodes ?? state.resourceNodes,
@@ -815,6 +902,7 @@ export const useGameStore = create<GameState>()(
                 capacity: state.capacity,
                 placed: state.placed,
                 occupied: state.occupied,
+                units: state.units,
                 weather: state.weather,
                 terraforming: state.terraforming,
                 o2Accumulated: state.o2Accumulated,
@@ -932,6 +1020,8 @@ export const useGameStore = create<GameState>()(
             effectivePopulation
           );
 
+          const loadedUnits: PlacedUnit[] = gameState.units ?? getInitialGameState().units;
+
           set({
             colonyName: data.name,
             hexGrid: loadedGrid,
@@ -943,6 +1033,7 @@ export const useGameStore = create<GameState>()(
             capacity: gameState.capacity,
             placed: loadedPlaced,
             occupied: gameState.occupied,
+            units: loadedUnits,
             weather: gameState.weather ?? { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
             terraforming: loadedTerraforming,
             o2Accumulated: loadedO2Accumulated,

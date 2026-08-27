@@ -23,6 +23,8 @@ import { QuestTrackerWidget } from "./QuestTrackerWidget";
 import { QuestLogModal } from "./QuestLogModal";
 import { QuestService } from "../../../domain/services/QuestService";
 import { ColonistManagerModal } from "./ColonistManagerModal";
+import { RTSSelectionBox } from "./RTSSelectionBox";
+import { UnitCommandCard } from "./UnitCommandCard";
 import "./HUD.css";
 
 export function HUD() {
@@ -158,6 +160,8 @@ export function HUD() {
 
     return (
         <div className="hud">
+            <RTSSelectionBox />
+            <UnitCommandCard />
             <DebugOverlay />
             <EmergencyLifeSupportAlert />
             <WeatherAlert />

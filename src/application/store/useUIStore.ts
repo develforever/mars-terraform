@@ -25,6 +25,10 @@ export interface UIState {
   // Launch transition
   isLaunching: boolean;
 
+  // RTS Unit Selection & Control Groups
+  selectedUnitIds: string[];
+  controlGroups: Record<number, string[]>;
+
   // Actions
   setSelectedBuilding: (id: string | null) => void;
   setHoverCell: (cell: { x: number; z: number } | null) => void;
@@ -35,6 +39,11 @@ export interface UIState {
   toggleHUD: () => void;
   toggleDebugOverlay: () => void;
   setLaunching: (value: boolean) => void;
+  selectUnits: (ids: string[]) => void;
+  toggleSelectUnit: (id: string) => void;
+  clearUnitSelection: () => void;
+  setControlGroup: (groupNumber: number, unitIds: string[]) => void;
+  selectControlGroup: (groupNumber: number) => void;
   resetUI: () => void;
 }
 
@@ -48,6 +57,8 @@ export const useUIStore = create<UIState>()(
       isHUDVisible: false,
       debugOverlayVisible: false,
       isLaunching: false,
+      selectedUnitIds: [],
+      controlGroups: {},
 
       setSelectedBuilding: (id) => set({ selectedBuildingId: id }),
       
@@ -73,16 +84,53 @@ export const useUIStore = create<UIState>()(
 
       setLaunching: (value) => set({ isLaunching: value }),
 
+      selectUnits: (ids) => set({ selectedUnitIds: Array.from(new Set(ids)) }),
+
+      toggleSelectUnit: (id) => {
+        const current = get().selectedUnitIds;
+        if (current.includes(id)) {
+          set({ selectedUnitIds: current.filter((uId) => uId !== id) });
+        } else {
+          set({ selectedUnitIds: [...current, id] });
+        }
+      },
+
+      clearUnitSelection: () => set({ selectedUnitIds: [] }),
+
+      setControlGroup: (groupNumber, unitIds) => {
+        set((state) => ({
+          controlGroups: {
+            ...state.controlGroups,
+            [groupNumber]: [...unitIds],
+          },
+        }));
+      },
+
+      selectControlGroup: (groupNumber) => {
+        const group = get().controlGroups[groupNumber];
+        if (group && group.length > 0) {
+          set({ selectedUnitIds: [...group] });
+        }
+      },
+
       resetUI: () =>
         set({
           buildMode: null,
           selectedBuildingId: "hab",
           hoverCell: null,
           inspectedInstanceId: null,
+          selectedUnitIds: [],
+          controlGroups: {},
         }),
     }),
     { name: "UIStore", enabled: true }
   )
 );
+
+if (typeof window !== "undefined") {
+  (window as unknown as { useUIStore: typeof useUIStore }).useUIStore = useUIStore;
+}
+
+
 
 
