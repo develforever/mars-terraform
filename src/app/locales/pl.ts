@@ -613,6 +613,52 @@ const pl = {
                 desc: "Wielki kanion Valles Marineris z gigantycznymi depozytami lodu podpowierzchniowego. Zainicjuj proces topnienia i stwórz pierwsze marsjańskie morze w głębokim rowie tektonicznym.",
             },
         },
+        colonists: {
+            title: "Mieszkańcy i Załoga Kolonii",
+            subtitle: "Zarządzaj populacją ({{total}} / {{capacity}} miejsc w habitatach)",
+            manageTitle: "Zarządzanie Załogą",
+            crewBtn: "Załoga",
+            morale: "Morale Kolonii",
+            moraleDescription: "Wskaźnik zadowolenia mieszkańców zaspokaja potrzeby i wpływa na wydajność całej bazy",
+            productivityBonus: "Mnożnik Produkcji (Wysokie Morale)",
+            productivityPenalty: "Kara do Produkcji (Niskie Morale)",
+            productivityNormal: "Normalna Wydajność",
+            professionsTitle: "Podział Zawodów i Specjalizacje",
+            shuttleTitle: "Promy Kolonizacyjne z Ziemi",
+            shuttleDesc: "Nowi osadnicy przylatują co {{interval}} ticków (do +{{max}} osadników na lot), o ile w Habitatach są wolne kwatery.",
+            needs: {
+                o2: "Tlen (O₂)",
+                water: "Woda",
+                food: "Żywność",
+                housing: "Kwatery",
+            },
+            roles: {
+                unassigned: {
+                    title: "Wolni Koloniści",
+                    desc: "Rezerwa kadrowa kolonii gotowa do obsadzenia wakatów w infrastrukturze.",
+                },
+                engineer: {
+                    title: "Inżynierowie Energetyki",
+                    desc: "Specjaliści od optymalizacji i konserwacji reaktorów, turbin i paneli solarnych.",
+                    bonusLabel: "do generacji energii",
+                },
+                scientist: {
+                    title: "Naukowcy i Badacze",
+                    desc: "Pracownicy laboratoriów przyspieszający odkrywanie nowych technologii.",
+                    bonusLabel: "RP / tick",
+                },
+                farmer: {
+                    title: "Rolnicy Hydroponiczni",
+                    desc: "Zwiększają wydajność szklarni, plony biomasy oraz wytwarzanie tlenu biologicznego.",
+                    bonusLabel: "do produkcji w Szklarniach",
+                },
+                miner: {
+                    title: "Górnicy Geologiczni",
+                    desc: "Eksploatują marsjańskie złoża mineralne i podpowierzchniowe złoża lodu.",
+                    bonusLabel: "do wydobycia surowców",
+                },
+            },
+        },
     },
 } as const;
 

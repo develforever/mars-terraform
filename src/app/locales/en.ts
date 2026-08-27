@@ -609,6 +609,52 @@ const en = {
                 desc: "Great rift of Valles Marineris with colossal subsurface ice deposits. Trigger thermal melting and create the first Martian sea in the tectonic abyss.",
             },
         },
+        colonists: {
+            title: "Colony Crew & Colonists",
+            subtitle: "Manage population ({{total}} / {{capacity}} habitat capacity)",
+            manageTitle: "Crew Management",
+            crewBtn: "Crew",
+            morale: "Colony Morale",
+            moraleDescription: "Colonist satisfaction fulfills basic needs and directly influences outpost productivity",
+            productivityBonus: "Production Boost (High Morale)",
+            productivityPenalty: "Production Penalty (Low Morale)",
+            productivityNormal: "Nominal Productivity",
+            professionsTitle: "Professions & Role Assignments",
+            shuttleTitle: "Earth Colony Shuttles",
+            shuttleDesc: "New immigrants arrive every {{interval}} ticks (up to +{{max}} colonists), provided habitat quarters are available.",
+            needs: {
+                o2: "Oxygen (O₂)",
+                water: "Water",
+                food: "Food (Biomass)",
+                housing: "Housing",
+            },
+            roles: {
+                unassigned: {
+                    title: "Unassigned Colonists",
+                    desc: "Colony labor reserve available for specialized infrastructure assignments.",
+                },
+                engineer: {
+                    title: "Power Engineers",
+                    desc: "Energy specialists optimizing power reactors, solar panels, and turbines.",
+                    bonusLabel: "to Power generation",
+                },
+                scientist: {
+                    title: "Research Scientists",
+                    desc: "Laboratory personnel accelerating technology tree research.",
+                    bonusLabel: "RP / tick",
+                },
+                farmer: {
+                    title: "Hydroponic Farmers",
+                    desc: "Greenhouse agriculturalists boosting biomass yield and biological O₂ production.",
+                    bonusLabel: "to Greenhouse yields",
+                },
+                miner: {
+                    title: "Geological Miners",
+                    desc: "Extraction specialists operating mineral extractors and ice drills.",
+                    bonusLabel: "to Resource extraction",
+                },
+            },
+        },
     },
 } as const;
 

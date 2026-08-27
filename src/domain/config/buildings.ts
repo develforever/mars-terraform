@@ -22,7 +22,21 @@ export const BUILDING_SEED: BuildingDefinition[] = [
     production: { o2: 0.15, power: -0.10, water: -0.05 },
     modelPath: "/models/mars/rocket_baseA.glb",
     modelScale: 2.5,
-    influenceRadius: 5,
+    colonistCapacity: 10,
+    upgrades: [
+      {
+        level: 2,
+        cost: { power: 6, water: 3 },
+        productionMultiplier: 1.5,
+        description: "+10 Miejsc dla Kolonistów (Razem 20)",
+      },
+      {
+        level: 3,
+        cost: { power: 12, water: 6, biomass: 4 },
+        productionMultiplier: 2.0,
+        description: "+15 Miejsc dla Kolonistów (Razem 35)",
+      },
+    ],
   },
   {
     id: "greenhouse",

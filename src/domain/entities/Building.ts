@@ -39,6 +39,7 @@ export interface BuildingDefinition {
   extractsDeposit?: import("../mapEditorTypes").ResourceType;
   /** Technology ID required to unlock this building in the palette */
   requiredTech?: string;
+  colonistCapacity?: number;
   /** Upgrade paths (levels 2 and 3) */
   upgrades?: BuildingUpgrade[];
 }

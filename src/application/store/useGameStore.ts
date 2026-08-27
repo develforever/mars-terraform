@@ -30,6 +30,9 @@ import type { Scenario } from "../../domain/entities/Scenario";
 import { ScenarioService } from "../../domain/services/ScenarioService";
 import type { GameAnalyticsSnapshot } from "../../domain/entities/GameStats";
 import { GameAnalyticsService } from "../../domain/services/GameAnalyticsService";
+import type { ColonistRole, ColonyPopulation, MoraleState } from "../../domain/entities/Colonist";
+import { INITIAL_POPULATION, INITIAL_MORALE } from "../../domain/entities/Colonist";
+import { ColonistService } from "../../domain/services/ColonistService";
 
 export interface GameState {
   // Resources and colony state
@@ -40,6 +43,10 @@ export interface GameState {
   alive: boolean;
   colonyName: string;
   currentScenarioId?: string | null;
+
+  // Colonists & Morale (Faza 7.1)
+  population: ColonyPopulation;
+  morale: MoraleState;
 
   // Time & Analytics
   tick: number;
@@ -88,6 +95,7 @@ export interface GameState {
   placeBuilding: (cell: { x: number; z: number }, heightY: number, definitionId: string) => boolean;
   demolishBuilding: (cell: { x: number; z: number }) => boolean;
   upgradeBuilding: (buildingId: string) => boolean;
+  assignColonistRole: (role: ColonistRole, delta: number) => void;
   applyEconomyTick: () => void;
   resetGame: () => void;
   startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode, mapData?: MapExportJSON | null, seed?: number) => void;
@@ -241,6 +249,8 @@ function getInitialGameState(
     researchPoints: 0,
     unlockedTechs: [TECH_IDS.BASIC_STRUCTURES],
     activeQuests: QuestService.getInitialQuestStates(),
+    population: INITIAL_POPULATION,
+    morale: INITIAL_MORALE,
   };
 }
 
@@ -366,11 +376,16 @@ export const useGameStore = create<GameState>()(
 
         // Add building
         const key = `${Math.round(cell.x)},${Math.round(cell.z)}`;
+        const newPlaced = [...state.placed, result.building];
+        const habCapacity = ColonistService.calculateCapacity(newPlaced, BUILDING_DEFINITIONS);
+        const newPopulation = { ...state.population, capacity: habCapacity || state.population.capacity };
+
         set({
           resources: newResources,
-          placed: [...state.placed, result.building],
+          placed: newPlaced,
           occupied: { ...state.occupied, [key]: result.building.id },
           capacity: newCapacity,
+          population: newPopulation,
         });
 
         return true;
@@ -408,12 +423,16 @@ export const useGameStore = create<GameState>()(
         const key = `${Math.round(building.position.x)},${Math.round(building.position.z)}`;
         const newOccupied = { ...state.occupied };
         delete newOccupied[key];
+        const newPlaced = state.placed.filter(b => b.id !== building.id);
+        const habCapacity = ColonistService.calculateCapacity(newPlaced, BUILDING_DEFINITIONS);
+        const newPopulation = { ...state.population, capacity: habCapacity };
 
         set({
           resources: newResources,
-          placed: state.placed.filter(b => b.id !== building.id),
+          placed: newPlaced,
           occupied: newOccupied,
           capacity: newCapacity,
+          population: newPopulation,
         });
 
         return true;
@@ -439,12 +458,23 @@ export const useGameStore = create<GameState>()(
           ? applyResourceDelta(state.resources, result.costDelta)
           : { ...state.resources };
 
+        const newPlaced = state.placed.map((b) => (b.id === buildingId ? result.building! : b));
+        const habCapacity = ColonistService.calculateCapacity(newPlaced, BUILDING_DEFINITIONS);
+        const newPopulation = { ...state.population, capacity: habCapacity || state.population.capacity };
+
         set({
           resources: newResources,
-          placed: state.placed.map((b) => (b.id === buildingId ? result.building! : b)),
+          placed: newPlaced,
+          population: newPopulation,
         });
 
         return true;
+      },
+
+      assignColonistRole: (role: ColonistRole, delta: number) => {
+        const state = get();
+        const newPop = ColonistService.assignRole(state.population, role, delta);
+        set({ population: newPop });
       },
 
       applyEconomyTick: () => {
@@ -475,6 +505,22 @@ export const useGameStore = create<GameState>()(
           degradedPlaced = MeteorService.applyImpacts(degradedPlaced, newWeather.impactZones);
         }
 
+        const currentTick = state.tick + 1;
+        const currentSol = GameAnalyticsService.tickToSol(currentTick);
+
+        // Immigration shuttle arrival
+        const shuttleResult = ColonistService.processShuttleArrival(state.population, currentTick);
+        const currentPopulation = shuttleResult.population;
+
+        // Morale and profession role bonuses
+        const currentMorale = ColonistService.calculateMorale(
+          state.resources,
+          state.capacity,
+          currentPopulation
+        );
+        const roleBonuses = ColonistService.calculateRoleBonuses(currentPopulation.roles);
+        const totalProductionModifier = productionModifier * currentMorale.productivityMultiplier;
+
         const tickResult = EconomyService.tick(
           {
             resources: state.resources,
@@ -484,10 +530,12 @@ export const useGameStore = create<GameState>()(
           },
           degradedPlaced,
           BUILDING_DEFINITIONS,
-          productionModifier,
+          totalProductionModifier,
           state.resourceNodes,
           modeCfg.depositDepletionRate,
-          newWeather.type
+          newWeather.type,
+          currentPopulation,
+          roleBonuses
         );
 
         const newO2Accumulated = TerraformingService.accumulateO2(state.o2Accumulated, tickResult.delta);
@@ -505,9 +553,6 @@ export const useGameStore = create<GameState>()(
           newTerraforming,
           state.difficulty
         );
-
-        const currentTick = state.tick + 1;
-        const currentSol = GameAnalyticsService.tickToSol(currentTick);
 
         // Apply alien invasion tick in survival mode or when wave is active (debug)
         let finalPlaced = degradedPlaced;
@@ -573,6 +618,8 @@ export const useGameStore = create<GameState>()(
           won,
           researchPoints: newRP,
           activeQuests: evaluatedQuests,
+          population: currentPopulation,
+          morale: currentMorale,
         });
       },
 
@@ -742,6 +789,8 @@ export const useGameStore = create<GameState>()(
                 aliensDefeated: state.aliensDefeated,
                 analyticsSnapshots: state.analyticsSnapshots,
                 isEndless: state.isEndless,
+                population: state.population,
+                morale: state.morale,
               }
             })
           });
@@ -827,6 +876,18 @@ export const useGameStore = create<GameState>()(
             })
           ];
 
+          const loadedPopulation: ColonyPopulation = gameState.population ?? INITIAL_POPULATION;
+          const habCapacity = ColonistService.calculateCapacity(loadedPlaced, BUILDING_DEFINITIONS);
+          const effectivePopulation: ColonyPopulation = {
+            ...loadedPopulation,
+            capacity: habCapacity > 0 ? habCapacity : loadedPopulation.capacity,
+          };
+          const loadedMorale: MoraleState = gameState.morale ?? ColonistService.calculateMorale(
+            loadedResources,
+            gameState.capacity ?? INITIAL_COLONY_STATE.capacity,
+            effectivePopulation
+          );
+
           set({
             colonyName: data.name,
             hexGrid: loadedGrid,
@@ -858,6 +919,8 @@ export const useGameStore = create<GameState>()(
             researchPoints: gameState.researchPoints ?? 0,
             unlockedTechs: loadedTechs,
             activeQuests: loadedEvaluatedQuests,
+            population: effectivePopulation,
+            morale: loadedMorale,
           });
           return true;
         } catch (error) {

@@ -2,6 +2,8 @@ import type { BuildingDefinition, PlacedBuilding } from "../entities/Building";
 import type { Resources, ResourceDelta, ResourceCapacity, ResourceProduction } from "../entities/Resources";
 import type { ColonyState } from "../entities/Colony";
 import type { ResourceNode } from "../mapEditorTypes";
+import type { ColonyPopulation, RoleBonuses } from "../entities/Colonist";
+import { ColonistService } from "./ColonistService";
 import { BuildingService } from "./BuildingService";
 import { NeighborService } from "./NeighborService";
 import { ResearchService } from "./ResearchService";
@@ -13,7 +15,7 @@ export interface EconomyTickResult {
   delta: ResourceDelta;
   gameOver: boolean;
   resourceNodes?: ResourceNode[];
-  /** Research Points produced this tick (from Lab buildings) */
+  /** Research Points produced this tick (from Lab buildings and Scientist colonists) */
   researchPointsDelta: number;
 }
 
@@ -24,7 +26,8 @@ export class EconomyService {
     sunFactor: number,
     productionModifier: number = 1,
     resourceNodes: ResourceNode[] = [],
-    weatherType: WeatherType = "clear"
+    weatherType: WeatherType = "clear",
+    roleBonuses?: RoleBonuses
   ): ResourceProduction {
     const production: ResourceProduction = {};
     const isDustStorm = WeatherService.isDustStorm(weatherType);
@@ -54,6 +57,17 @@ export class EconomyService {
 
         // Condition, neighbor bonus, deposit bonus, and level upgrade only scale positive production, not consumption
         if (adjustedValue > 0) {
+          // Colonist role bonuses
+          if (resourceKey === "power" && roleBonuses?.engineerPowerMultiplier) {
+            adjustedValue *= roleBonuses.engineerPowerMultiplier;
+          }
+          if (def.id === "greenhouse" && roleBonuses?.farmerBonusMultiplier) {
+            adjustedValue *= roleBonuses.farmerBonusMultiplier;
+          }
+          if ((def.id === "miner" || def.id === "ice") && roleBonuses?.minerBonusMultiplier) {
+            adjustedValue *= roleBonuses.minerBonusMultiplier;
+          }
+
           adjustedValue *= condFactor * neighborMult * depositMult * levelMult;
         }
 
@@ -65,9 +79,24 @@ export class EconomyService {
     return production;
   }
 
-  static calculateConsumption(buildingCount: number): ResourceProduction {
+  static calculateConsumption(
+    buildingCount: number,
+    population?: ColonyPopulation
+  ): ResourceProduction {
+    const baseBuildingConsumption = -O2_CONSUMPTION_PER_TICK * buildingCount;
+
+    if (!population || population.total <= 0) {
+      return {
+        o2: baseBuildingConsumption,
+      };
+    }
+
+    const colonistCons = ColonistService.calculateConsumption(population);
+
     return {
-      o2: -O2_CONSUMPTION_PER_TICK * buildingCount, // Simplified: 1 astronaut per building
+      o2: baseBuildingConsumption + (colonistCons.o2 ?? 0),
+      water: colonistCons.water ?? 0,
+      biomass: colonistCons.biomass ?? 0,
     };
   }
 
@@ -171,7 +200,9 @@ export class EconomyService {
     productionModifier: number = 1,
     resourceNodes: ResourceNode[] = [],
     depletionRate: number = 0,
-    weatherType: WeatherType = "clear"
+    weatherType: WeatherType = "clear",
+    population?: ColonyPopulation,
+    roleBonuses?: RoleBonuses
   ): EconomyTickResult {
     const production = this.calculateProduction(
       buildings,
@@ -179,9 +210,10 @@ export class EconomyService {
       colony.sun,
       productionModifier,
       resourceNodes,
-      weatherType
+      weatherType,
+      roleBonuses
     );
-    const consumption = this.calculateConsumption(buildings.length);
+    const consumption = this.calculateConsumption(buildings.length, population);
     const updatedResourceNodes = this.depleteDeposits(
       buildings,
       definitions,
@@ -189,8 +221,9 @@ export class EconomyService {
       depletionRate
     );
 
-    // Research Points from Lab buildings
-    const researchPointsDelta = ResearchService.calculateRPProduction(buildings, definitions);
+    // Research Points from Lab buildings + Scientist colonists
+    const labRPDelta = ResearchService.calculateRPProduction(buildings, definitions);
+    const researchPointsDelta = labRPDelta + (roleBonuses?.scientistRPDelta ?? 0);
     
     // Merge production and consumption
     const totalDelta: ResourceDelta = { ...production };

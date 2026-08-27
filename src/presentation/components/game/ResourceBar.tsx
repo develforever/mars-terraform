@@ -1,4 +1,5 @@
 import type { ResourceKey, Resources, ResourceDelta, ResourceCapacity } from "../../../domain/entities/Resources";
+import type { ColonyPopulation, MoraleState } from "../../../domain/entities/Colonist";
 
 interface ResourceBarProps {
     sun: number;
@@ -9,6 +10,9 @@ interface ResourceBarProps {
     colonyName: string;
     activePanel: ResourceKey | "terraforming" | null;
     onTogglePanel: (key: ResourceKey | "terraforming") => void;
+    population?: ColonyPopulation;
+    morale?: MoraleState;
+    onOpenColonists?: () => void;
 }
 
 function renderDelta(val: number | undefined) {
@@ -26,9 +30,18 @@ export function ResourceBar({
     colonyName,
     activePanel,
     onTogglePanel,
+    population,
+    morale,
+    onOpenColonists,
 }: ResourceBarProps) {
     const btn = (key: ResourceKey | "terraforming") =>
         `bar-btn${activePanel === key ? " bar-btn--active" : ""}`;
+
+    const getMoraleEmoji = (val: number) => {
+        if (val >= 75) return "😊";
+        if (val < 30) return "😞";
+        return "😐";
+    };
 
     return (
         <div className="bar">
@@ -51,6 +64,26 @@ export function ResourceBar({
                     <span className="terraforming-fill" style={{ width: `${terraforming}%` }} />
                 </span>
             </button>
+            {population && (
+                <button
+                    className="bar-btn bar-btn--population"
+                    onClick={onOpenColonists}
+                    title="Zarządzanie Populacją i Załogą (C)"
+                >
+                    👥 {population.total} / {population.capacity}
+                </button>
+            )}
+            {morale && (
+                <button
+                    className={`bar-btn bar-btn--morale ${
+                        morale.value >= 75 ? "bar-btn--morale-high" : morale.value < 30 ? "bar-btn--morale-low" : "bar-btn--morale-med"
+                    }`}
+                    onClick={onOpenColonists}
+                    title={`Morale Kolonii: ${morale.value}% (Mnożnik: x${morale.productivityMultiplier.toFixed(2)})`}
+                >
+                    {getMoraleEmoji(morale.value)} {morale.value}%
+                </button>
+            )}
             {colonyName && <span className="bar-colony-name">🏛 {colonyName}</span>}
         </div>
     );

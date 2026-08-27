@@ -21,6 +21,7 @@ import { ResearchTreeModal } from "./ResearchTreeModal";
 import { QuestTrackerWidget } from "./QuestTrackerWidget";
 import { QuestLogModal } from "./QuestLogModal";
 import { QuestService } from "../../../domain/services/QuestService";
+import { ColonistManagerModal } from "./ColonistManagerModal";
 import "./HUD.css";
 
 export function HUD() {
@@ -33,6 +34,8 @@ export function HUD() {
     const won            = useGameStore((state) => state.won);
     const difficulty     = useGameStore((state) => state.difficulty);
     const alive          = useGameStore((state) => state.alive);
+    const population     = useGameStore((state) => state.population);
+    const morale         = useGameStore((state) => state.morale);
     const selectedBuildingId  = useUIStore((state) => state.selectedBuildingId);
     const setSelectedBuilding = useUIStore((state) => state.setSelectedBuilding);
     const buildMode      = useUIStore((state) => state.buildMode);
@@ -67,6 +70,7 @@ export function HUD() {
     const [showDepTree, setShowDepTree] = useState(false);
     const [showResearchTree, setShowResearchTree] = useState(false);
     const [showQuestLog, setShowQuestLog] = useState(false);
+    const [showColonistModal, setShowColonistModal] = useState(false);
 
     const researchPoints = useGameStore((state) => state.researchPoints);
     const unlockedTechs  = useGameStore((state) => state.unlockedTechs);
@@ -103,11 +107,13 @@ export function HUD() {
             if (e.key === "x" || e.key === "X") toggleDemolishMode();
             if (e.key === "r" || e.key === "R") setShowResearchTree((v) => !v);
             if (e.key === "q" || e.key === "Q") setShowQuestLog((v) => !v);
+            if (e.key === "c" || e.key === "C") setShowColonistModal((v) => !v);
             if (e.key === "Escape") {
                 cancelBuild();
                 setActivePanel(null);
                 setShowResearchTree(false);
                 setShowQuestLog(false);
+                setShowColonistModal(false);
             }
         }
         window.addEventListener("keydown", onKey);
@@ -142,6 +148,9 @@ export function HUD() {
                 colonyName={colonyName}
                 activePanel={activePanel}
                 onTogglePanel={togglePanel}
+                population={population}
+                morale={morale}
+                onOpenColonists={() => setShowColonistModal(true)}
             />
 
             {activePanel !== null && (
@@ -201,6 +210,17 @@ export function HUD() {
                     )}
                     <button type="button" onClick={() => setShowDepTree(true)}>
                         {t("hud.depTree")}
+                    </button>
+                    <button
+                        type="button"
+                        className={showColonistModal ? "active" : ""}
+                        onClick={() => setShowColonistModal((v) => !v)}
+                        title={`${t("colonists.title")} (C)`}
+                    >
+                        👥 {t("colonists.crewBtn")}
+                        <span style={{ marginLeft: 4, color: "#a5d6ff", fontSize: "11px" }}>
+                            {population.total}/{population.capacity}
+                        </span>
                     </button>
                     <button
                         type="button"
@@ -283,6 +303,12 @@ export function HUD() {
                 <BuildingDependencyModal
                     placedBuildings={placedBuildings}
                     onClose={() => setShowDepTree(false)}
+                />
+            )}
+
+            {showColonistModal && (
+                <ColonistManagerModal
+                    onClose={() => setShowColonistModal(false)}
                 />
             )}
 
