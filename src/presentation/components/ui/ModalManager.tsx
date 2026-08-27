@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useModalStore } from "../../../ui/ModalManager/store";
 import { ColonyNameModal } from "../game/ColonyNameModal";
+import { ScenarioSelectModal } from "../game/ScenarioSelectModal";
 import { ExitConfirmModal } from "../game/ExitConfirmModal";
 import { LoadGameModal } from "../game/LoadGameModal";
 import LoginModal from "../auth/LoginModal";
@@ -29,6 +30,8 @@ export default function ModalManager() {
         switch (modalType) {
             case "colony-name":
                 return <ColonyNameModal onConfirm={close} onCancel={close} />;
+            case "scenario-select":
+                return <ScenarioSelectModal onConfirm={close} onCancel={close} />;
             case "login":
                 return <LoginModal />;
             case "register":

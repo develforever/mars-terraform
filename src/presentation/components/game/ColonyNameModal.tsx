@@ -9,6 +9,7 @@ import { authClient } from "../../../application/service/authService";
 import { mapApiService, type MapSummaryResponse } from "../../../application/service/mapApiService";
 import { parseMapJSON } from "../../generator/schema/mapSchema";
 import type { MapExportJSON } from "../../../domain/mapEditorTypes";
+import { useModalStore } from "../../../ui/ModalManager/store";
 import "./ColonyNameModal.css";
 
 interface ColonyNameModalProps {
@@ -39,6 +40,7 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
     const gameMode = useGameStore((s) => s.gameMode);
     const resetUI = useUIStore((s) => s.resetUI);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    const openModal = useModalStore((s) => s.open);
 
     const setLaunching = useUIStore((s) => s.setLaunching);
 
@@ -254,6 +256,19 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
                     >
                         <span className="colony-modal__map-source-icon">☁</span>
                         <span>Cloud Maps</span>
+                    </button>
+                    <button
+                        type="button"
+                        className="colony-modal__map-source-btn"
+                        onClick={() => {
+                            onCancel();
+                            openModal("scenario-select");
+                        }}
+                        disabled={isLaunching}
+                        title={t("scenarios.title")}
+                    >
+                        <span className="colony-modal__map-source-icon">🗺️</span>
+                        <span>{t("scenarios.menuButton")}</span>
                     </button>
                 </div>
 

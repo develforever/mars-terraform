@@ -26,6 +26,8 @@ import { ResearchService } from "../../domain/services/ResearchService";
 import { TECH_IDS } from "../../domain/config/technologies";
 import type { QuestState } from "../../domain/entities/Quest";
 import { QuestService } from "../../domain/services/QuestService";
+import type { Scenario } from "../../domain/entities/Scenario";
+import { ScenarioService } from "../../domain/services/ScenarioService";
 
 export interface GameState {
   // Resources and colony state
@@ -35,6 +37,7 @@ export interface GameState {
   sun: number;
   alive: boolean;
   colonyName: string;
+  currentScenarioId?: string | null;
 
   // Hex Grid Terrain, Resources & Decorations
   hexGrid: HexGrid;
@@ -77,6 +80,7 @@ export interface GameState {
   applyEconomyTick: () => void;
   resetGame: () => void;
   startNewGame: (name: string, difficulty: DifficultyLevel, gameMode: GameMode, mapData?: MapExportJSON | null, seed?: number) => void;
+  startScenarioGame: (scenario: Scenario, colonyName?: string, customSeed?: number) => void;
   saveGame: () => Promise<boolean>;
   loadGame: (name: string) => Promise<boolean>;
   triggerAlienWave: (wave: 0 | 1 | 2, count?: number) => void;
@@ -90,7 +94,12 @@ export interface GameState {
   claimQuestReward: (questId: string) => boolean;
 }
 
-function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
+function getInitialGameState(
+  mapData?: MapExportJSON | null,
+  seed?: number,
+  startingResources?: Partial<Resources>,
+  startingCapacity?: Partial<ResourceCapacity>
+) {
   let defaultGrid: HexGrid;
   const s = seed ?? mapData?.meta?.seed ?? 42;
   if (mapData) {
@@ -171,17 +180,22 @@ function getInitialGameState(mapData?: MapExportJSON | null, seed?: number) {
     decorations,
     decor: decorations,
     currentMapData: mapData ?? null,
-    resources: { ...INITIAL_COLONY_STATE.resources },
-    capacity: { ...INITIAL_COLONY_STATE.capacity },
+    resources: { ...INITIAL_COLONY_STATE.resources, ...(startingResources ?? {}) },
+    capacity: { ...INITIAL_COLONY_STATE.capacity, ...(startingCapacity ?? {}) },
     sun: INITIAL_COLONY_STATE.sun,
     alive: INITIAL_COLONY_STATE.alive,
     colonyName: "",
+    currentScenarioId: null,
     placed: [habBuilding],
     occupied: { [habKey]: habBuilding.id },
     weather: { type: "clear" as const, intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
     terraforming: 0,
     o2Accumulated: 0,
-    waterLevel: TerraformingService.calculateWaterLevel(INITIAL_COLONY_STATE.resources.water, 0, "normal"),
+    waterLevel: TerraformingService.calculateWaterLevel(
+      (startingResources?.water ?? INITIAL_COLONY_STATE.resources.water),
+      0,
+      "normal"
+    ),
     won: false,
     difficulty: "normal" as DifficultyLevel,
     gameMode: "exploration" as GameMode,
@@ -584,6 +598,33 @@ export const useGameStore = create<GameState>()(
           colonyName: name,
           difficulty: diff,
           gameMode: mode,
+        });
+      },
+
+      startScenarioGame: (scenario: Scenario, colonyName?: string, customSeed?: number) => {
+        const initState = ScenarioService.createInitialScenarioState(scenario, colonyName, customSeed);
+        const initialState = getInitialGameState(
+          initState.mapData,
+          customSeed ?? scenario.seed,
+          scenario.startingResources,
+          scenario.startingCapacity
+        );
+
+        let alienState = INITIAL_ALIEN_STATE;
+        if (scenario.modifiers.initialAlienWave && scenario.modifiers.initialAlienWave > 0) {
+          alienState = {
+            ...INITIAL_ALIEN_STATE,
+            wave: scenario.modifiers.initialAlienWave,
+          };
+        }
+
+        set({
+          ...initialState,
+          colonyName: initState.colonyName,
+          difficulty: scenario.difficulty,
+          gameMode: "exploration",
+          alienState,
+          currentScenarioId: scenario.id,
         });
       },
 

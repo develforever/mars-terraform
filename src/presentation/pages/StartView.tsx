@@ -36,6 +36,10 @@ export default function StartView() {
         open("colony-name");
     };
 
+    const handleScenarios = () => {
+        open("scenario-select");
+    };
+
     const handleLoad = () => {
         open("load-game");
     };
@@ -83,6 +87,9 @@ export default function StartView() {
                 <div className="start-actions">
                     <button className="start-btn-primary" onClick={handleStart} disabled={isLaunching}>
                         {t("start.startGame")}
+                    </button>
+                    <button className="start-btn-secondary" onClick={handleScenarios} disabled={isLaunching}>
+                        {t("scenarios.menuButton")}
                     </button>
                     {isAuthenticated && (
                         <button className="start-btn-secondary" onClick={handleLoad} disabled={isLaunching}>

@@ -1,0 +1,162 @@
+.scenario-modal {
+    background: rgba(8, 12, 22, 0.98);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 16px;
+    padding: 28px;
+    width: 960px;
+    max-width: 95vw;
+    max-height: 90vh;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8), 0 0 30px rgba(239, 68, 68, 0.15);
+    color: #e5e7eb;
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.scenario-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
+}
+
+.scenario-modal__title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.scenario-modal__subtitle {
+    font-size: 13px;
+    color: #9ca3af;
+}
+
+.scenario-modal__grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    overflow-y: auto;
+    padding-right: 6px;
+    flex: 1;
+    min-height: 0;
+}
+
+@media (max-width: 768px) {
+    .scenario-modal__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.scenario-modal__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    max-height: 480px;
+    padding-right: 4px;
+}
+
+.scenario-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.scenario-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(239, 68, 68, 0.3);
+    transform: translateY(-1px);
+}
+
+.scenario-card--selected {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.65);
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
+}
+
+.scenario-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.scenario-card__title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #f3f4f6;
+}
+
+.scenario-card__desc {
+    font-size: 12px;
+    color: #9ca3af;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.scenario-detail {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+}
+
+.scenario-badge {
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.scenario-badge--easy {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.scenario-badge--normal {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+    border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.scenario-badge--hard {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.scenario-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 16px;
+}
