@@ -205,7 +205,15 @@ export function BuildingInspectionPopover({ building }: BuildingInspectionPopove
                         </span>
                       </div>
                     ) : (
-                      <span className="res-val">
+                      <span
+                        className={`res-val ${
+                          adjusted > 0
+                            ? "res-val--positive"
+                            : adjusted < 0
+                            ? "res-val--negative"
+                            : "res-val--neutral"
+                        }`}
+                      >
                         {adjusted > 0 ? "+" : ""}
                         {adjusted}
                       </span>

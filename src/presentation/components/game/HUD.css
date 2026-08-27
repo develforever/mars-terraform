@@ -632,8 +632,21 @@
 }
 
 .res-val {
-    color: #4ade80;
     font-weight: 600;
+}
+
+.res-val--positive,
+.res-val-pos {
+    color: #4ade80;
+}
+
+.res-val--negative,
+.res-val-neg {
+    color: #f87171;
+}
+
+.res-val--neutral {
+    color: #9ca3af;
 }
 
 .res-values {
