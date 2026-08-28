@@ -191,6 +191,7 @@ Zrobione:
 - Ekran Zwycięstwa / Porażki i Ewaluacja Kolonii (`GameAnalyticsService.ts`, `VictorySummaryModal.tsx` z wykresami analitycznymi SVG time-series, punktacją i 4 rangami kolonii).
 - Mieszkańcy Kolonii, Zawody i Morale (`ColonistService.ts`, `ColonistManagerModal.tsx`, dynamiczne zużycie O₂/wody/żywności, przylot promów, wpływ morale na produkcję).
 - Zaawansowane Struktury Przemysłowe i Megastruktury (`buildings.ts`, `technologies.ts`, `TerraformingService.ts`, megastruktury `biosphere_dome`, `atmosphere_factory`, `fusion_reactor`).
+- System Grywalności, Niezawodności i RTS Overhaul (`ResearchService.ts` z pasywnym RP, stabilny raycasting `BuildingInspectionPopover.tsx`, pauza taktyczna i kontrola prędkości `TimeControls.tsx`, bufor awaryjny $O_2$ `EmergencyLifeSupportAlert.tsx`, aktywne rozkazy RTS i ramka selekcji `RTSCommandService.ts`, `TacticalMinimap.tsx` z radarem zagrożeń `OffscreenThreatRadar.tsx`).
 
 ---
 

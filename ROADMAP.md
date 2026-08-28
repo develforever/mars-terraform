@@ -51,6 +51,13 @@ Ten dokument stanowi centralny rejestr zrealizowanych kamieni milowych oraz plan
 - [x] **Mieszkańcy Kolonii, Zawody i Morale (`feat/colonists-and-morale`)**: `ColonistService.ts`, `ColonistManagerModal.tsx`, 4 specjalizacje zawodowe, dynamiczne zużycie zasobów, przylot promów transportowych, wpływ zadowolenia/morale na produktywność bazy.
 - [x] **Zaawansowane Struktury Przemysłowe i Megastruktury (`feat/advanced-megastructures`)**: Megastruktury `biosphere_dome`, `atmosphere_factory`, `fusion_reactor` zintegrowane w `buildings.ts`, `technologies.ts` i `EconomyService.ts`.
 
+### Faza Naprawcza: Grywalność, Niezawodność i System RTS (Gameplay Overhaul)
+- [x] **Krok 1: Usunięcie Blokad Progresji Badań (`fix/progression-deadlocks-and-rp-loop`)**: Pasywny przyrost RP w habitatach, wczesne laboratorium, klikalna paleta budowy z automatycznym otwieraniem drzewa technologii `🔬` i rozbłyskami surowców.
+- [x] **Krok 2: Architektura Zdarzeń 3D i Inspekcja Struktur (`fix/interaction-raycasting-popover-system`)**: Stabilny raycasting, rozbudowany popover inspekcji (ulepszenia, przełącznik zasilania, dynamiczne kolory produkcji 🟢/🔴), pierścienie zasięgu 3D (ekstrakcja, obrona, habitat).
+- [x] **Krok 3: Pętla Gospodarcza Odporna na Awarię i Pauza Taktyczna (`feat/economy-resilience-and-alerts`)**: Pauza pod spacją `[ ⏸ ]`, skalowanie prędkości (`1x`, `2x`, `4x`), 60-sekundowy bufor podtrzymywania życia z czerwonym alarmem (Anti-Death-Spiral).
+- [x] **Krok 4: System Sterowania RTS (`feat/rts-unit-control-and-combat`)**: Selekcja ramką (Drag Box), rozkazy PPM (Ruch, Atak, Naprawa), grupy bojowe `Ctrl + 1..9`, paski HP i panel dowodzenia jednostkami (`UnitCommandCard.tsx`).
+- [x] **Krok 5: Taktyczna Mini-mapa i Radar Zagrożeń (`feat/tactical-minimap-and-radar`)**: Interaktywna mini-mapa 2D Canvas z podglądem bazy, wrogów i stożka kamery, radar zagrożeń poza ekranem (Offscreen Radar ze skokiem kamery).
+
 ---
 
 ## 2. Bieżące i Nadchodzące Fazy (Upcoming Milestones)
@@ -67,7 +74,7 @@ Ten dokument stanowi centralny rejestr zrealizowanych kamieni milowych oraz plan
 
 ## 3. Standardy Jakościowe Projektu
 
-- **Test Suite**: **510 / 510 testów PASS (100%)** w Vitest (477 frontend + 33 backend).
+- **Test Suite**: **561 / 561 testów PASS (100%)** w Vitest (528 frontend + 33 backend).
 - **Linter**: **0 błędów i 0 ostrzeżeń** w ESLint pod regułami strict TypeScript.
 - **Kompilacja**: Czysty build produkcyjny (`tsc -b && vite build` + backend SSR).
 - **UX**: Wszystkie okna modalne, popovery i panele spełniają *Modal & Popover Dismiss Rule* (`✕`, Escape, kliknięcie w tło).
