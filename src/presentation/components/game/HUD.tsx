@@ -25,6 +25,8 @@ import { QuestService } from "../../../domain/services/QuestService";
 import { ColonistManagerModal } from "./ColonistManagerModal";
 import { RTSSelectionBox } from "./RTSSelectionBox";
 import { UnitCommandCard } from "./UnitCommandCard";
+import { TacticalMinimap } from "./TacticalMinimap";
+import { OffscreenThreatRadar } from "./OffscreenThreatRadar";
 import "./HUD.css";
 
 export function HUD() {
@@ -50,6 +52,8 @@ export function HUD() {
     const { loadMapFromFile, loaded: mapLoaded, mapName, clearMap } = useMapConfigStore();
     const isHUDVisible   = useUIStore((state) => state.isHUDVisible);
     const toggleHUD      = useUIStore((state) => state.toggleHUD);
+    const isMinimapVisible = useUIStore((state) => state.isMinimapVisible);
+    const toggleMinimap    = useUIStore((state) => state.toggleMinimap);
     const saveGame       = useGameStore((state) => state.saveGame);
     const loadGame       = useGameStore((state) => state.loadGame);
     const colonyName     = useGameStore((state) => state.colonyName);
@@ -129,6 +133,7 @@ export function HUD() {
             }
             if (e.key === "b" || e.key === "B") toggleBuildMode();
             if (e.key === "x" || e.key === "X") toggleDemolishMode();
+            if (e.key === "m" || e.key === "M") toggleMinimap();
             if (e.key === "r" || e.key === "R") {
                 setShowResearchTree((v) => {
                     if (v) setSelectedTechId(null);
@@ -148,7 +153,7 @@ export function HUD() {
         }
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [toggleBuildMode, toggleDemolishMode, cancelBuild, togglePause]);
+    }, [toggleBuildMode, toggleDemolishMode, toggleMinimap, cancelBuild, togglePause]);
 
     const hint = useMemo(() => {
         if (!lastDelta) return null;
@@ -162,6 +167,8 @@ export function HUD() {
         <div className="hud">
             <RTSSelectionBox />
             <UnitCommandCard />
+            <TacticalMinimap />
+            <OffscreenThreatRadar />
             <DebugOverlay />
             <EmergencyLifeSupportAlert />
             <WeatherAlert />
@@ -229,6 +236,14 @@ export function HUD() {
                     </button>
                     <button type="button" onClick={cancelBuild}>
                         {t("hud.cancel")} <span aria-hidden="true">&nbsp;(Esc)</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={isMinimapVisible ? "active" : ""}
+                        onClick={toggleMinimap}
+                        title={`${t("hud.minimap")} (M)`}
+                    >
+                        📡 {t("hud.minimap")}
                     </button>
                     <button
                         type="button"

@@ -3,6 +3,17 @@ import { devtools } from "zustand/middleware";
 
 export type BuildMode = "place" | "demolish" | null;
 
+export interface OffscreenThreatItem {
+  id: string;
+  type: "alien_ship" | "alien_ground" | "meteor";
+  worldPosition: { x: number; y: number; z: number };
+  screenX: number;
+  screenY: number;
+  angleRad: number;
+  distanceMeters: number;
+  severity?: "warning" | "danger" | "critical";
+}
+
 export interface UIState {
   // Building selection
   selectedBuildingId: string | null;
@@ -25,6 +36,14 @@ export interface UIState {
   // Launch transition
   isLaunching: boolean;
 
+  // Tactical Minimap & Threat Radar State
+  isMinimapVisible: boolean;
+  isMinimapExpanded: boolean;
+  cameraFrustumPoints: { x: number; z: number }[];
+  cameraTarget: { x: number; y: number; z: number };
+  cameraPanRequest: { x: number; z: number } | null;
+  offscreenThreats: OffscreenThreatItem[];
+
   // RTS Unit Selection & Control Groups
   selectedUnitIds: string[];
   controlGroups: Record<number, string[]>;
@@ -39,6 +58,14 @@ export interface UIState {
   toggleHUD: () => void;
   toggleDebugOverlay: () => void;
   setLaunching: (value: boolean) => void;
+  toggleMinimap: () => void;
+  setMinimapVisible: (visible: boolean) => void;
+  toggleMinimapExpanded: () => void;
+  setMinimapExpanded: (expanded: boolean) => void;
+  requestCameraPan: (pos: { x: number; z: number }) => void;
+  clearCameraPanRequest: () => void;
+  setCameraFrustum: (points: { x: number; z: number }[], target: { x: number; y: number; z: number }) => void;
+  setOffscreenThreats: (threats: OffscreenThreatItem[]) => void;
   selectUnits: (ids: string[]) => void;
   toggleSelectUnit: (id: string) => void;
   clearUnitSelection: () => void;
@@ -57,6 +84,12 @@ export const useUIStore = create<UIState>()(
       isHUDVisible: false,
       debugOverlayVisible: false,
       isLaunching: false,
+      isMinimapVisible: true,
+      isMinimapExpanded: true,
+      cameraFrustumPoints: [],
+      cameraTarget: { x: 0, y: 0, z: 0 },
+      cameraPanRequest: null,
+      offscreenThreats: [],
       selectedUnitIds: [],
       controlGroups: {},
 
@@ -83,6 +116,22 @@ export const useUIStore = create<UIState>()(
       toggleDebugOverlay: () => set({ debugOverlayVisible: !get().debugOverlayVisible }),
 
       setLaunching: (value) => set({ isLaunching: value }),
+
+      toggleMinimap: () => set({ isMinimapVisible: !get().isMinimapVisible }),
+
+      setMinimapVisible: (visible) => set({ isMinimapVisible: visible }),
+
+      toggleMinimapExpanded: () => set({ isMinimapExpanded: !get().isMinimapExpanded }),
+
+      setMinimapExpanded: (expanded) => set({ isMinimapExpanded: expanded }),
+
+      requestCameraPan: (pos) => set({ cameraPanRequest: pos }),
+
+      clearCameraPanRequest: () => set({ cameraPanRequest: null }),
+
+      setCameraFrustum: (points, target) => set({ cameraFrustumPoints: points, cameraTarget: target }),
+
+      setOffscreenThreats: (threats) => set({ offscreenThreats: threats }),
 
       selectUnits: (ids) => set({ selectedUnitIds: Array.from(new Set(ids)) }),
 
@@ -119,6 +168,7 @@ export const useUIStore = create<UIState>()(
           selectedBuildingId: "hab",
           hoverCell: null,
           inspectedInstanceId: null,
+          cameraPanRequest: null,
           selectedUnitIds: [],
           controlGroups: {},
         }),

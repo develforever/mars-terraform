@@ -23,6 +23,8 @@ import { MiningLogisticsSystem } from "./MiningLogisticsSystem";
 import { UnitsLayer } from "./UnitsLayer";
 import { TargetMarker } from "./TargetMarker";
 import { RTSSceneController } from "./RTSSceneController";
+import { TacticalCameraBridge } from "./TacticalCameraBridge";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { OutlineEffectContext } from "./OutlineEffectContext";
 import type { OutlineEffect } from "postprocessing";
 import MapOverlay from "./MapOverlay";
@@ -79,6 +81,7 @@ function World() {
 
     const target = useMemo<[number, number, number]>(() => [0, 0, 0], []);
 
+    const controlsRef = useRef<OrbitControlsImpl>(null);
     const [, setVisibilityMap] = useState<THREE.CanvasTexture | null>(null);
     const [, setDataMap] = useState<THREE.CanvasTexture | null>(null);
     const [outlineEffect, setOutlineEffect] = useState<OutlineEffect | null>(null);
@@ -117,10 +120,12 @@ function World() {
             <UnitsLayer />
             <TargetMarker />
             <RTSSceneController />
+            <TacticalCameraBridge controlsRef={controlsRef} />
             <MapOverlay />
             <ResourceDepositMarkers />
 
             <OrbitControls
+                ref={controlsRef}
                 enabled={buildMode === null}
                 enableDamping
                 dampingFactor={0.05}

@@ -85,11 +85,27 @@ vi.mock("../../../../application/hooks/usePlacement", () => {
     };
 });
 
+vi.mock("../TacticalCameraBridge", () => ({
+    TacticalCameraBridge: () => <div data-testid="tactical-camera-bridge" />,
+}));
+
 vi.mock("../../../../application/store/useUIStore", () => ({
-    useUIStore: <T,>(fn: (state: { buildMode: string | null; cancelBuild: () => void }) => T) => {
-        const state = { buildMode: null as string | null, cancelBuild: () => {} };
-        return fn ? fn(state) : (state as unknown as T);
-    },
+    useUIStore: Object.assign(
+        <T,>(fn: (state: { buildMode: string | null; cancelBuild: () => void }) => T) => {
+            const state = { buildMode: null as string | null, cancelBuild: () => {} };
+            return fn ? fn(state) : (state as unknown as T);
+        },
+        {
+            getState: () => ({
+                buildMode: null,
+                cancelBuild: () => {},
+                cameraPanRequest: null,
+                clearCameraPanRequest: () => {},
+                setCameraFrustum: () => {},
+                setOffscreenThreats: () => {},
+            }),
+        }
+    ),
 }));
 
 vi.mock("../../../../application/store/useGameStore", () => ({
