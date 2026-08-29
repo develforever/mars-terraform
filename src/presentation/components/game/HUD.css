@@ -947,3 +947,20 @@
     color: #fca5a5;
     opacity: 0.95;
 }
+
+/* Right Rail for Alerts & Trackers */
+.hud-right-rail {
+    position: absolute;
+    top: 64px;
+    right: 16px;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+    max-width: 340px;
+}
+
+.hud-right-rail > * {
+    pointer-events: auto;
+}

@@ -27,7 +27,7 @@ export const QuestTrackerWidget: React.FC<QuestTrackerWidgetProps> = ({ onOpenLo
   return (
     <aside
       aria-label={t("quests.trackerTitle")}
-      className="absolute top-16 right-4 z-20 w-72 md:w-80 bg-[#0d1117]/90 border border-[#30363d] backdrop-blur-md rounded-xl p-3.5 shadow-2xl text-white select-none transition-all duration-200"
+      className="w-72 md:w-80 bg-[#0d1117]/90 border border-[#30363d] backdrop-blur-md rounded-xl p-3.5 shadow-2xl text-white select-none transition-all duration-200"
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-2 border-b border-[#21262d] pb-2 mb-2.5">

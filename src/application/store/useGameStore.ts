@@ -285,7 +285,7 @@ function getInitialGameState(
     placed: [habBuilding],
     occupied: { [habKey]: habBuilding.id },
     units: initialUnits,
-    weather: { type: "clear" as const, intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
+    weather: { type: "clear" as const, intensity: 0, remainingTicks: 0, cooldownTicks: WeatherService.INITIAL_GRACE_TICKS },
     terraforming: 0,
     o2Accumulated: 0,
     waterLevel: initialWaterLevel,

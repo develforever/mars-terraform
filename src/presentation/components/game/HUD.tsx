@@ -185,7 +185,6 @@ export const HUD = () => {
             <OffscreenThreatRadar />
             <DebugOverlay />
             <EmergencyLifeSupportAlert />
-            <WeatherAlert />
             {gameMode === "survival" && alienState.wave > 0 && (alienState.ships.length > 0 || alienState.groundUnits.length > 0) && (
                 <div className="alien-alert">
                     {alienState.wave === 1 && t("hud.alien.wave1", { count: alienState.ships.length })}
@@ -394,9 +393,12 @@ export const HUD = () => {
                 />
             )}
 
-            <QuestTrackerWidget
-                onOpenLog={() => setShowQuestLog(true)}
-            />
+            <div className="hud-right-rail">
+                <WeatherAlert />
+                <QuestTrackerWidget
+                    onOpenLog={() => setShowQuestLog(true)}
+                />
+            </div>
 
             {won && !victoryModalDismissed && (
                 <WinOverlay
