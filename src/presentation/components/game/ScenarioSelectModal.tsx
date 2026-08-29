@@ -175,7 +175,11 @@ export const ScenarioSelectModal: React.FC<ScenarioSelectModalProps> = ({ onConf
                         <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
                             {t("scenarios.startingResources")}
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                            <div className="bg-zinc-900/80 border border-zinc-800 p-2 rounded flex flex-col items-center">
+                                <span className="text-xs text-zinc-400">⛏️ {t("hud.resource_labels.minerals").split(" ")[1] || "Minerały"}</span>
+                                <span className="text-sm font-bold text-slate-300">{selectedScenario.startingResources.minerals ?? 60}</span>
+                            </div>
                             <div className="bg-zinc-900/80 border border-zinc-800 p-2 rounded flex flex-col items-center">
                                 <span className="text-xs text-zinc-400">💨 O₂</span>
                                 <span className="text-sm font-bold text-cyan-400">{selectedScenario.startingResources.o2 ?? 5}</span>

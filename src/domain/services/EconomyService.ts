@@ -114,8 +114,8 @@ export class EconomyService {
   ): ResourceDelta {
     const clamped: ResourceDelta = {};
 
-    // Clamp resources to capacity (power, water, biomass)
-    (["power", "water", "biomass"] as const).forEach(key => {
+    // Clamp resources to capacity (power, water, biomass, minerals)
+    (["power", "water", "biomass", "minerals"] as const).forEach(key => {
       const cap = capacity[key];
       if (resources[key] > cap) {
         clamped[key] = cap;
@@ -163,6 +163,9 @@ export class EconomyService {
     }
     if (definition.capacity?.biomass) {
       delta.biomass = definition.capacity.biomass * multiplier;
+    }
+    if (definition.capacity?.minerals) {
+      delta.minerals = definition.capacity.minerals * multiplier;
     }
 
     return delta;
@@ -261,6 +264,7 @@ export class EconomyService {
       power: colony.resources.power + (totalDelta.power ?? 0),
       water: colony.resources.water + (totalDelta.water ?? 0),
       biomass: colony.resources.biomass + (totalDelta.biomass ?? 0),
+      minerals: colony.resources.minerals + (totalDelta.minerals ?? 0),
     };
 
     // Clamp to capacity
@@ -296,6 +300,7 @@ export class EconomyService {
         power: finalResources.power - colony.resources.power,
         water: finalResources.water - colony.resources.water,
         biomass: finalResources.biomass - colony.resources.biomass,
+        minerals: finalResources.minerals - colony.resources.minerals,
       },
       gameOver,
       resourceNodes: updatedResourceNodes,

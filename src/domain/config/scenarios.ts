@@ -14,11 +14,13 @@ export const SCENARIOS: Scenario[] = [
       power: 12,
       water: 8,
       biomass: 4,
+      minerals: 60,
     },
     startingCapacity: {
       power: 15,
       water: 15,
       biomass: 15,
+      minerals: 200,
     },
     customPOIs: [
       {
@@ -55,11 +57,13 @@ export const SCENARIOS: Scenario[] = [
       power: 6,
       water: 2,
       biomass: 0,
+      minerals: 40,
     },
     startingCapacity: {
       power: 10,
       water: 10,
       biomass: 10,
+      minerals: 150,
     },
     customPOIs: [
       {
@@ -101,11 +105,13 @@ export const SCENARIOS: Scenario[] = [
       power: 16,
       water: 6,
       biomass: 2,
+      minerals: 80,
     },
     startingCapacity: {
       power: 20,
       water: 15,
       biomass: 10,
+      minerals: 200,
     },
     customPOIs: [
       {
@@ -147,11 +153,13 @@ export const SCENARIOS: Scenario[] = [
       power: 10,
       water: 6,
       biomass: 3,
+      minerals: 100,
     },
     startingCapacity: {
       power: 15,
       water: 15,
       biomass: 15,
+      minerals: 300,
     },
     customPOIs: [
       {
@@ -193,11 +201,13 @@ export const SCENARIOS: Scenario[] = [
       power: 8,
       water: 16,
       biomass: 6,
+      minerals: 60,
     },
     startingCapacity: {
       power: 20,
       water: 25,
       biomass: 20,
+      minerals: 200,
     },
     customPOIs: [
       {

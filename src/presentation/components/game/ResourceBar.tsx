@@ -23,7 +23,7 @@ function renderDelta(val: number | undefined) {
     return <span className="delta-negative">▼{Math.abs(val).toFixed(1)}</span>;
 }
 
-export function ResourceBar({
+export const ResourceBar = ({
     sun,
     resources,
     capacity,
@@ -36,7 +36,7 @@ export function ResourceBar({
     morale,
     onOpenColonists,
     flashingResources = [],
-}: ResourceBarProps) {
+}: ResourceBarProps) => {
     const isFlashing = (key: ResourceKey) => flashingResources.includes(key);
 
     const btn = (key: ResourceKey | "terraforming") => {
@@ -54,6 +54,9 @@ export function ResourceBar({
     return (
         <div className="bar">
             <span>☀️ {sun.toFixed(2)}</span>
+            <button className={btn("minerals")} onClick={() => onTogglePanel("minerals")}>
+                ⛏️ {resources.minerals.toFixed(1)} / {capacity.minerals} {renderDelta(lastDelta?.minerals)}
+            </button>
             <button className={btn("o2")} onClick={() => onTogglePanel("o2")}>
                 💨 O₂ {resources.o2.toFixed(1)} {renderDelta(lastDelta?.o2)}
             </button>
@@ -96,4 +99,4 @@ export function ResourceBar({
             {colonyName && <span className="bar-colony-name">🏛 {colonyName}</span>}
         </div>
     );
-}
+};
