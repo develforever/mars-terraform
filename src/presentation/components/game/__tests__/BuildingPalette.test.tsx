@@ -21,6 +21,7 @@ describe("BuildingPalette", () => {
     water: 100,
     biomass: 100,
     o2: 100,
+    minerals: 100,
   };
 
   const defaultPlaced: PlacedBuilding[] = [
@@ -80,7 +81,7 @@ describe("BuildingPalette", () => {
   });
 
   it("calls onOpenResearch with requiredTech when clicking a tech-locked building", () => {
-    // only basic_structures unlocked; greenhouse requires advanced_hab
+    // only basic_structures unlocked; o2-gen requires o2_synthesis
     mockStore([TECH_IDS.BASIC_STRUCTURES]);
     const onOpenResearch = vi.fn();
     render(
@@ -94,9 +95,9 @@ describe("BuildingPalette", () => {
       />
     );
 
-    const greenhouseBtn = screen.getByText("Szklarnia Bio").closest("button")!;
-    fireEvent.click(greenhouseBtn);
-    expect(onOpenResearch).toHaveBeenCalledWith("advanced_hab");
+    const o2GenBtn = screen.getByText("Generator Tlenu").closest("button")!;
+    fireEvent.click(o2GenBtn);
+    expect(onOpenResearch).toHaveBeenCalledWith("o2_synthesis");
   });
 
   it("calls onOpenDependencies when tech is unlocked but dependency building is missing", () => {
@@ -125,12 +126,13 @@ describe("BuildingPalette", () => {
     mockStore([TECH_IDS.BASIC_STRUCTURES]);
     const onResourceShortage = vi.fn();
     const onSelect = vi.fn();
-    // 'hab' cost: { power: 5, water: 1 }; player has 0 power
+    // 'hab' cost: { minerals: 40 }; player has 0 minerals
     const emptyResources: Resources = {
       power: 0,
       water: 0,
       biomass: 0,
       o2: 0,
+      minerals: 0,
     };
 
     render(
@@ -148,8 +150,7 @@ describe("BuildingPalette", () => {
     fireEvent.click(habBtn);
     expect(onResourceShortage).toHaveBeenCalled();
     const missingKeys = onResourceShortage.mock.calls[0][0];
-    expect(missingKeys).toContain("power");
-    expect(missingKeys).toContain("water");
+    expect(missingKeys).toContain("minerals");
     expect(onSelect).not.toHaveBeenCalled();
   });
 

@@ -24,6 +24,7 @@ function mockGameStore(overrides: Partial<GameState> = {}) {
             water: 120,
             o2: 180,
             biomass: 90,
+            minerals: 200,
         },
         placed: [
             { id: "b-1", definitionId: "hab", position: { x: 0, y: 0, z: 0 }, condition: 100, level: 1 },

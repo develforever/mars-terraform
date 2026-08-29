@@ -33,7 +33,7 @@ describe("BuildingInspectionPopover", () => {
   beforeEach(() => {
     useUIStore.getState().resetUI();
     useGameStore.setState({
-      resources: { power: 100, water: 100, biomass: 100, o2: 100 },
+      resources: { power: 100, water: 100, biomass: 100, o2: 100, minerals: 100 },
       placed: [
         {
           id: "hab-1",

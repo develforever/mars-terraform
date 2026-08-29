@@ -137,7 +137,7 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
             level: 1,
           },
         ],
-        resources: { o2: 50, power: 50, water: 50, biomass: 50 },
+        resources: { o2: 50, power: 50, water: 50, biomass: 50, minerals: 50 },
       });
 
       useGameStore.getState().applyEconomyTick();
@@ -153,7 +153,7 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     useGameStore.getState().startNewGame("Upgrade Colony", "normal", "exploration");
 
     useGameStore.setState({
-      resources: { o2: 100, power: 100, water: 100, biomass: 100 },
+      resources: { o2: 100, power: 100, water: 100, biomass: 100, minerals: 200 },
       placed: [
         {
           id: "placed-miner-1",
@@ -172,10 +172,8 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     let state = useGameStore.getState();
     const minerLvl2 = state.placed.find((b) => b.id === "placed-miner-1");
     expect(minerLvl2?.level).toBe(2);
-    // Cost of miner lvl 2: power: 6, water: 2, biomass: 2
-    expect(state.resources.power).toBe(94);
-    expect(state.resources.water).toBe(98);
-    expect(state.resources.biomass).toBe(98);
+    // Cost of miner lvl 2: minerals: 38
+    expect(state.resources.minerals).toBe(162);
 
     // Upgrade to Lvl 3
     const successLvl3 = useGameStore.getState().upgradeBuilding("placed-miner-1");
@@ -183,6 +181,8 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     state = useGameStore.getState();
     const minerLvl3 = state.placed.find((b) => b.id === "placed-miner-1");
     expect(minerLvl3?.level).toBe(3);
+    // Cost of miner lvl 3: minerals: 63 (162 - 63 = 99)
+    expect(state.resources.minerals).toBe(99);
 
     // Upgrade beyond Lvl 3 should fail
     const successLvl4 = useGameStore.getState().upgradeBuilding("placed-miner-1");
@@ -400,7 +400,7 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
       placed: [
         { id: "sol-1", definitionId: "solar", position: { x: 0, y: 0, z: 0 }, condition: 100, level: 1 },
       ],
-      resources: { o2: 0, power: 50, water: 50, biomass: 50 },
+      resources: { o2: 0, power: 50, water: 50, biomass: 50, minerals: 50 },
     });
 
     useGameStore.getState().applyEconomyTick();
