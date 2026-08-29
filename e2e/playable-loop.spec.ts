@@ -194,5 +194,114 @@ test.describe("Playable Game Loop E2E Test", () => {
     }
     expect(allContextLostLogs.length).toBe(0);
   });
+
+  test("sesja przezywa odswiezenie strony i zachowuje stan na /mars", async ({ page }) => {
+    await page.goto("/");
+
+    const startBtn = page.locator(".start-btn-primary");
+    await expect(startBtn).toBeVisible();
+    await startBtn.click();
+
+    const colonyInput = page.locator(".colony-modal__input");
+    await expect(colonyInput).toBeVisible();
+    await colonyInput.fill("Reload Colony");
+
+    const confirmBtn = page.locator(".colony-modal__confirm-btn");
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
+
+    await page.waitForURL("**/mars", { timeout: 15000 });
+    await page.waitForSelector(".hud-dock", { state: "attached", timeout: 15000 });
+    await page.waitForFunction(() => typeof (window as unknown as GlobalStoreWindow).useGameStore !== "undefined");
+
+    // Advance 10 ticks
+    await page.evaluate(() => {
+      const win = window as unknown as GlobalStoreWindow;
+      for (let i = 0; i < 10; i++) {
+        win.useGameStore.getState().applyEconomyTick();
+      }
+    });
+
+    const stateBeforeReload = await page.evaluate(() => {
+      const win = window as unknown as GlobalStoreWindow;
+      const s = win.useGameStore.getState();
+      return {
+        colonyName: (s as unknown as { colonyName: string }).colonyName,
+        minerals: s.resources.minerals,
+        o2: s.resources.o2,
+        placedCount: s.placed.length,
+      };
+    });
+
+    expect(stateBeforeReload.colonyName).toBe("Reload Colony");
+
+    // Reload page
+    await page.reload();
+
+    // Verify stays on /mars and does not redirect to /
+    await page.waitForURL("**/mars", { timeout: 10000 });
+    await page.waitForSelector(".hud-dock", { state: "attached", timeout: 15000 });
+    await page.waitForFunction(() => typeof (window as unknown as GlobalStoreWindow).useGameStore !== "undefined");
+
+    const stateAfterReload = await page.evaluate(() => {
+      const win = window as unknown as GlobalStoreWindow;
+      const s = win.useGameStore.getState();
+      return {
+        colonyName: (s as unknown as { colonyName: string }).colonyName,
+        minerals: s.resources.minerals,
+        o2: s.resources.o2,
+        placedCount: s.placed.length,
+      };
+    });
+
+    expect(stateAfterReload.colonyName).toBe("Reload Colony");
+    expect(stateAfterReload.minerals).toBe(stateBeforeReload.minerals);
+    expect(stateAfterReload.placedCount).toBe(stateBeforeReload.placedCount);
+
+    // Verify right rail container exists
+    const rightRail = page.locator(".hud-right-rail");
+    await expect(rightRail).toBeAttached();
+  });
+
+  test("brak katastrof w pierwszych 60 sekundach nowej gry", async ({ page }) => {
+    await page.goto("/");
+
+    const startBtn = page.locator(".start-btn-primary");
+    await expect(startBtn).toBeVisible();
+    await startBtn.click();
+
+    const colonyInput = page.locator(".colony-modal__input");
+    await expect(colonyInput).toBeVisible();
+    await colonyInput.fill("Safe Haven");
+
+    const confirmBtn = page.locator(".colony-modal__confirm-btn");
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
+
+    await page.waitForURL("**/mars", { timeout: 15000 });
+    await page.waitForSelector(".hud-dock", { state: "attached", timeout: 15000 });
+    await page.waitForFunction(() => typeof (window as unknown as GlobalStoreWindow).useGameStore !== "undefined");
+
+    // Simulate 60 economy / weather ticks
+    await page.evaluate(() => {
+      const win = window as unknown as GlobalStoreWindow;
+      for (let i = 0; i < 60; i++) {
+        win.useGameStore.getState().applyEconomyTick();
+      }
+    });
+
+    const weatherState = await page.evaluate(() => {
+      const win = window as unknown as { useGameStore: { getState: () => { weather: { type: string; cooldownTicks: number } } } };
+      return win.useGameStore.getState().weather;
+    });
+
+    expect(weatherState.type).toBe("clear");
+    expect(weatherState.cooldownTicks).toBeGreaterThan(0);
+    expect(weatherState.cooldownTicks).toBeLessThanOrEqual(180);
+
+    // Verify weather alert is not rendered in right rail
+    const weatherAlert = page.locator(".weather-alert");
+    expect(await weatherAlert.count()).toBe(0);
+  });
 });
 

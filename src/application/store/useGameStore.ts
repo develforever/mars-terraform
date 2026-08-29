@@ -978,8 +978,10 @@ export const useGameStore = create<GameState>()(
             : generateDecor(loadedGrid, loadedSeed)
         );
 
-        const loadedPlaced = (gameState.placed ?? []).map((b: PlacedBuilding) => ({
+        const loadedPlaced = (gameState.placed ?? []).map((b) => ({
           ...b,
+          position: { x: b.position.x, y: b.position.y ?? 0, z: b.position.z },
+          condition: b.condition ?? 100,
           level: b.level ?? 1,
         }));
 
@@ -1026,7 +1028,7 @@ export const useGameStore = create<GameState>()(
         const loadedTick = gameState.tick ?? 0;
         const loadedSol = gameState.sol ?? GameAnalyticsService.tickToSol(loadedTick);
         const loadedAliensDefeated = gameState.aliensDefeated ?? 0;
-        const loadedSnapshots = gameState.analyticsSnapshots ?? [
+        const loadedSnapshots = (gameState as unknown as { analyticsSnapshots?: GameAnalyticsSnapshot[] }).analyticsSnapshots ?? [
           GameAnalyticsService.createSnapshot({
             tick: loadedTick,
             resources: loadedResources,
@@ -1051,7 +1053,15 @@ export const useGameStore = create<GameState>()(
           effectivePopulation
         );
 
-        const loadedUnits: PlacedUnit[] = gameState.units ?? getInitialGameState().units;
+        const loadedUnits: PlacedUnit[] = gameState.units
+          ? (gameState.units as unknown as PlacedUnit[]).map((u) => ({
+              ...u,
+              position: { x: u.position.x, y: u.position.y ?? 0, z: u.position.z },
+              heading: u.heading ?? 0,
+              currentHealth: u.currentHealth ?? 100,
+              status: u.status ?? "idle",
+            }))
+          : getInitialGameState().units;
 
         const centerHab = loadedPlaced.find((b: PlacedBuilding) => b.id === "colony-center-hab");
         if (centerHab) {
@@ -1073,7 +1083,7 @@ export const useGameStore = create<GameState>()(
           resources: loadedResources,
           capacity: loadedCapacity,
           placed: loadedPlaced,
-          occupied: gameState.occupied ?? {},
+          occupied: (gameState.occupied as Record<string, string>) ?? {},
           units: loadedUnits,
           weather: gameState.weather ?? { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: WeatherService.INITIAL_GRACE_TICKS },
           terraforming: loadedTerraforming,

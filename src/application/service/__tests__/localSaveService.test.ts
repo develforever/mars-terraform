@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { LocalSaveService, LOCAL_SAVE_STORAGE_KEY } from "../localSaveService";
 import { useGameStore } from "../../store/useGameStore";
-import { HexGrid } from "../../../presentation/generator/hex/HexGrid";
 
 describe("LocalSaveService - Session Persistence & Autosave", () => {
   beforeEach(() => {

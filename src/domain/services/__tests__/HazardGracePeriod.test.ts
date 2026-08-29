@@ -77,7 +77,7 @@ describe("HazardGracePeriod - Initial Colony Protection", () => {
       }),
     }) as unknown as typeof fetch;
 
-    const loaded = await useGameStore.getState().loadGame();
+    const loaded = await useGameStore.getState().loadGame("LoadedColony");
     expect(loaded).toBe(true);
     expect(useGameStore.getState().weather.cooldownTicks).toBe(15);
   });

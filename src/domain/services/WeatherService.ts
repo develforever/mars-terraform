@@ -174,7 +174,7 @@ export class WeatherService {
       };
     }
 
-    return { ...currentWeather, cooldownTicks };
+    return currentWeather;
   }
 
   static generateImpactZones(count?: number): ImpactZone[] {
