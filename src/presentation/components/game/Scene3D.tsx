@@ -1,7 +1,7 @@
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Loader, OrbitControls } from "@react-three/drei";
 import { PostProcessingComposer } from "./PostProcessingComposer";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { usePlacement } from "../../../application/hooks/usePlacement";
 import { useUIStore } from "../../../application/store/useUIStore";
@@ -9,13 +9,10 @@ import { useGameStore } from "../../../application/store/useGameStore";
 import { TerrainHexMesh } from "./TerrainHexMesh";
 import { Decorations } from "./Decorations";
 import { worldToHex } from "../../generator/hex/HexMath";
-import { TERRAIN_BOUNDS } from "../../utils/terrainBounds";
 import { Buildings, DemolishGhost, HoverGhost } from "./Buildings";
 import { TerrainHeightContext } from "./TerrainHeightContext";
 import { AtmosphereSky } from "./AtmosphereSky";
 import { WeatherEffects } from "./WeatherEffects";
-import { VisibilitySystem } from "./VisibilitySystem";
-import { TerrainDataSystem } from "./TerrainDataSystem";
 import { MeteorShower } from "./MeteorShower";
 import { BuildingConnections } from "./BuildingConnections";
 import { AlienInvasion } from "./AlienInvasion";
@@ -32,17 +29,106 @@ import { ResourceDepositMarkers } from "./ResourceDepositMarkers";
 import { WaterHexMesh } from "./WaterHexMesh";
 import { VegetationHexMesh } from "./VegetationHexMesh";
 
-export function Scene3D() {
+const DiagnosticLogger = () => {
+    const { gl } = useThree();
+    const frameStatsRef = useRef({ calls: 0, triangles: 0 });
+
+    useFrame(() => {
+        // Capture render metrics right after frame renders
+        if (gl?.info?.render && gl.info.render.triangles > 0) {
+            frameStatsRef.current.calls = gl.info.render.calls;
+            frameStatsRef.current.triangles = gl.info.render.triangles;
+        }
+    }, 2);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            (window as unknown as { __THREE_RENDERER__?: THREE.WebGLRenderer }).__THREE_RENDERER__ = gl;
+        }
+        const startTime = Date.now();
+        const interval = setInterval(() => {
+            const sec = Math.round((Date.now() - startTime) / 1000);
+            const calls = frameStatsRef.current.calls || gl?.info?.render?.calls || 0;
+            const triangles = frameStatsRef.current.triangles || gl?.info?.render?.triangles || 0;
+            const geometries = gl?.info?.memory?.geometries || 0;
+            const textures = gl?.info?.memory?.textures || 0;
+            const programs = gl?.info?.programs?.length ?? 0;
+            console.log(
+                `[DIAG +${sec}s] ` +
+                `geometries=${geometries} ` +
+                `textures=${textures} ` +
+                `programs=${programs} ` +
+                `calls=${calls} ` +
+                `triangles=${triangles}`
+            );
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [gl]);
+    return null;
+};
+
+export const Scene3D = () => {
+    const [sceneKey, setSceneKey] = useState(0);
+    const [contextLost, setContextLost] = useState(false);
+    const [tooFrequentLoss, setTooFrequentLoss] = useState(false);
+    const lastLossTimeRef = useRef<number>(0);
+    const saveGame = useGameStore((state) => state.saveGame);
+
+    const handleSaveAndReload = useCallback(() => {
+        saveGame();
+        window.location.reload();
+    }, [saveGame]);
+
     return (
-        <>
-            <Canvas className="main-canvas" frameloop="always"
+        <div className="relative w-full h-full">
+            {contextLost && (
+                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85 text-white p-6 select-none">
+                    {tooFrequentLoss ? (
+                        <div className="bg-red-950/90 border border-red-500 rounded-lg p-6 max-w-md text-center shadow-2xl">
+                            <h3 className="text-lg font-bold text-red-400 mb-2">⚠️ Wielokrotna utrata kontekstu WebGL</h3>
+                            <p className="text-sm text-zinc-300 mb-4">
+                                Sterownik GPU zresetował kontekst graficzny kilkukrotnie w krótkim czasie.
+                                Zalecamy zapisanie stanu gry i odświeżenie karty przeglądarki.
+                            </p>
+                            <button
+                                onClick={handleSaveAndReload}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow transition-colors"
+                            >
+                                💾 Zapisz grę i odśwież stronę
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-3 bg-zinc-900/90 border border-cyan-500/50 rounded-lg px-5 py-3 shadow-xl">
+                            <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-cyan-200 font-mono text-sm">Wznawianie renderera 3D...</span>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <Canvas
+                key={sceneKey}
+                className="main-canvas"
+                frameloop="always"
+                dpr={[1, 1.5]}
                 onCreated={({ gl }) => {
+                    if (typeof window !== "undefined") {
+                        (window as unknown as { __THREE_RENDERER__?: THREE.WebGLRenderer }).__THREE_RENDERER__ = gl;
+                    }
                     gl.domElement.addEventListener('webglcontextlost', (e) => {
                         e.preventDefault();
-                        console.warn('WebGL context lost');
+                        console.warn('WebGL context lost - attempting recovery');
+                        const now = Date.now();
+                        if (lastLossTimeRef.current > 0 && now - lastLossTimeRef.current < 60000) {
+                            setTooFrequentLoss(true);
+                        }
+                        lastLossTimeRef.current = now;
+                        setContextLost(true);
                     });
                     gl.domElement.addEventListener('webglcontextrestored', () => {
-                        console.info('WebGL context restored');
+                        console.info('WebGL context restored - rebuilding scene graph');
+                        setContextLost(false);
+                        setSceneKey((prev) => prev + 1);
                     });
                 }}
                 gl={{ antialias: false, powerPreference: "high-performance" }}
@@ -53,19 +139,21 @@ export function Scene3D() {
                     near: 0.5,
                     far: 1000
                 }}>
+                <DiagnosticLogger />
                 <World />
             </Canvas>
             <Loader />
-        </>
+        </div>
     );
-}
+};
 
-function World() {
+const World = () => {
     const terrainRef = useRef<THREE.Mesh>(null);
     const buildMode = useUIStore((state: { buildMode: "place" | "demolish" | null }) => state.buildMode);
     const hexGrid = useGameStore((state) => state.hexGrid);
-
-    const terrainSize = useMemo(() => ({ x: TERRAIN_BOUNDS.sizeX, z: TERRAIN_BOUNDS.sizeZ }), []);
+    const placed = useGameStore((state) => state.placed);
+    const colonyName = useGameStore((state) => state.colonyName);
+    const { camera } = useThree();
 
     const getTerrainY = useCallback(
         (wx: number, wz: number) => {
@@ -79,12 +167,28 @@ function World() {
 
     usePlacement({ grid: 1, getHeightAt: getTerrainY, terrainMesh: terrainRef });
 
-    const target = useMemo<[number, number, number]>(() => [0, 0, 0], []);
-
     const controlsRef = useRef<OrbitControlsImpl>(null);
-    const [, setVisibilityMap] = useState<THREE.CanvasTexture | null>(null);
-    const [, setDataMap] = useState<THREE.CanvasTexture | null>(null);
     const [outlineEffect, setOutlineEffect] = useState<OutlineEffect | null>(null);
+
+    const centerHab = placed.find((b) => b.id === "colony-center-hab");
+    const hasCenteredRef = useRef(false);
+
+    useEffect(() => {
+        hasCenteredRef.current = false;
+    }, [colonyName]);
+
+    useFrame(() => {
+        if (!hasCenteredRef.current && centerHab) {
+            const { x, y = 0, z } = centerHab.position;
+            if (controlsRef.current) {
+                controlsRef.current.target.set(x, y, z);
+                controlsRef.current.update();
+            }
+            camera.position.set(x, y + 26, z + 20);
+            useUIStore.getState().setCameraFrustum([], { x, y, z });
+            hasCenteredRef.current = true;
+        }
+    });
 
     return (
         <OutlineEffectContext.Provider value={outlineEffect}>
@@ -92,16 +196,6 @@ function World() {
 
             <AtmosphereSky />
             <WeatherEffects />
-
-            <VisibilitySystem
-                terrainSize={terrainSize}
-                onVisibilityMapCreated={setVisibilityMap}
-            />
-
-            <TerrainDataSystem
-                terrainSize={terrainSize}
-                onDataMapCreated={setDataMap}
-            />
 
             <TerrainHexMesh
                 ref={terrainRef}
@@ -130,10 +224,9 @@ function World() {
                 enableDamping
                 dampingFactor={0.05}
                 minDistance={5}
-                maxDistance={500}
+                maxDistance={90}
                 minPolarAngle={0}
                 maxPolarAngle={Math.PI / 2.1}
-                target={target}
             />
 
             <PostProcessingComposer
@@ -147,4 +240,4 @@ function World() {
         </TerrainHeightContext.Provider>
         </OutlineEffectContext.Provider>
     );
-}
+};

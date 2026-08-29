@@ -34,3 +34,4 @@ repomix-output.md
 __pycache__/
 *.pyc
 *.blend1
+test-results/

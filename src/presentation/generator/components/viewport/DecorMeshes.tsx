@@ -5,7 +5,7 @@
  * Docelowo mozna podmienic na modele .glb z Blendera (ten sam klucz `model`).
  */
 
-import { Suspense, useMemo } from 'react'
+import { Suspense, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { Detailed, useGLTF } from '@react-three/drei'
 import { POI_MODEL_PATHS, POI_LOD_MODEL_PATHS, getLOD1Path } from './decorConstants'
@@ -28,6 +28,11 @@ function makeRockGeo(detail: number, squash: number, seed: number): THREE.Buffer
 
 const Rock = ({ scale, rot }: { scale: number; rot: number }) => {
   const geo = useMemo(() => makeRockGeo(0, 0.72, 1.3), [])
+  useEffect(() => {
+    return () => {
+      geo.dispose()
+    }
+  }, [geo])
   return (
     <mesh geometry={geo} rotation={[0.12, rot, 0.05]} scale={scale * 0.6}
       position={[0, scale * 0.6 * 0.36, 0]} castShadow receiveShadow>
@@ -38,6 +43,11 @@ const Rock = ({ scale, rot }: { scale: number; rot: number }) => {
 
 const Boulder = ({ scale, rot }: { scale: number; rot: number }) => {
   const geo = useMemo(() => makeRockGeo(1, 0.85, 1.7), [])
+  useEffect(() => {
+    return () => {
+      geo.dispose()
+    }
+  }, [geo])
   return (
     <mesh geometry={geo} rotation={[0.08, rot, 0.04]} scale={scale * 0.95}
       position={[0, scale * 0.95 * 0.42, 0]} castShadow receiveShadow>
@@ -48,6 +58,11 @@ const Boulder = ({ scale, rot }: { scale: number; rot: number }) => {
 
 const Stones = ({ scale, rot }: { scale: number; rot: number }) => {
   const geos = useMemo(() => [makeRockGeo(0, 0.7, 0.5), makeRockGeo(0, 0.7, 2.1), makeRockGeo(0, 0.7, 3.3)], [])
+  useEffect(() => {
+    return () => {
+      geos.forEach((g) => g.dispose())
+    }
+  }, [geos])
   const items = [
     { p: [0, 0] as const, s: 0.5, r: 0.0 },
     { p: [0.24, 0.08] as const, s: 0.32, r: 1.2 },

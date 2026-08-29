@@ -128,6 +128,14 @@ export function StartScene3D({ onClick, warpSpeed = false }: Scene3DProps) {
     return (
         <Canvas
             className="main-canvas"
+            gl={{ antialias: false, powerPreference: "high-performance" }}
+            dpr={[1, 1.5]}
+            onCreated={({ gl }) => {
+                gl.dispose = () => {
+                    gl.renderLists?.dispose();
+                    // Clean teardown without triggering webglcontextlost event
+                };
+            }}
             camera={{ fov: 45, position: CAM_POS, near: 0.1, far: 250000 }}
         >
             <World onClick={onClick} warpSpeed={warpSpeed} />
