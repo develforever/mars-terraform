@@ -11,9 +11,13 @@ vi.mock("@react-three/fiber", async () => {
         ),
         useFrame: vi.fn((cb) => cb({ clock: { elapsedTime: 0 }, camera: { position: { x: 0, y: 0, z: 0 } }, scene: { background: null, fog: null } }, 0.016)),
         useThree: () => ({
-            gl: { domElement: document.createElement("canvas") },
+            gl: {
+                domElement: document.createElement("canvas"),
+                getContext: () => null,
+                info: { render: { calls: 0, triangles: 0 }, memory: { geometries: 0, textures: 0 }, reset: () => {} },
+            },
             camera: { position: { set: () => {} } },
-            scene: { background: null, fog: null },
+            scene: { background: null, fog: null, traverse: () => {} },
         }),
     };
 });

@@ -10,6 +10,16 @@ vi.mock("@react-three/fiber", async () => {
             <div data-testid="canvas" {...props}>{children}</div>
         ),
         useFrame: vi.fn(),
+        useThree: () => ({
+            gl: {
+                domElement: document.createElement("canvas"),
+                getContext: () => null,
+                info: { render: { calls: 0, triangles: 0 }, memory: { geometries: 0, textures: 0 } },
+                renderLists: { dispose: () => {} },
+                dispose: () => {},
+            },
+            scene: { traverse: () => {} },
+        }),
     };
 });
 

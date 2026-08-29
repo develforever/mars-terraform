@@ -72,7 +72,6 @@ test.describe("Playable Game Loop E2E Test", () => {
     await page.waitForFunction(() => typeof (window as unknown as GlobalStoreWindow).useGameStore !== "undefined");
     await page.waitForFunction(() => typeof (window as unknown as GlobalStoreWindow).useUIStore !== "undefined");
     await page.waitForTimeout(500);
-    const marsMountedTime = Date.now();
 
     // 1. Check habitat and camera centering
     const habData = await page.evaluate(() => {
@@ -167,22 +166,33 @@ test.describe("Playable Game Loop E2E Test", () => {
 
     expect(affordableBuildingsCount).toBeGreaterThan(0);
 
-    // 5. Verify 3D WebGL scene rendering & triangles > 0
+    // 5. Verify 3D WebGL scene rendering (real scene triangles > 10000 and draw calls > 10)
     await page.waitForTimeout(2000);
-    const triangles = await page.evaluate(() => {
+    const renderStats = await page.evaluate(() => {
       const win = window as unknown as GlobalStoreWindow;
-      return win.__THREE_RENDERER__?.info?.render?.triangles ?? 0;
+      return {
+        triangles: win.__THREE_RENDERER__?.info?.render?.triangles ?? 0,
+        calls: win.__THREE_RENDERER__?.info?.render?.calls ?? 0,
+      };
     });
-    expect(triangles).toBeGreaterThan(0);
+    expect(renderStats.triangles).toBeGreaterThan(10000);
+    expect(renderStats.calls).toBeGreaterThan(10);
 
-    // Verify no WebGL Context Lost occurred during gameplay on /mars
-    const contextLostOnMars = consoleLogs.filter(
-      (l) => l.time > marsMountedTime + 1000 && (l.text.includes("Context Lost") || l.text.includes("webglcontextlost") || l.text.includes("WebGL context lost"))
+    // Verify exactly 1 active WebGL context remains on /mars
+    const activeContextCount = await page.evaluate(() => {
+      const win = window as unknown as { __GET_ACTIVE_CONTEXT_COUNT__?: () => number };
+      return win.__GET_ACTIVE_CONTEXT_COUNT__?.() ?? 1;
+    });
+    expect(activeContextCount).toBe(1);
+
+    // Verify no WebGL Context Lost occurred during the ENTIRE test run (from goto('/') to end of gameplay)
+    const allContextLostLogs = consoleLogs.filter(
+      (l) => l.text.includes("Context Lost") || l.text.includes("webglcontextlost") || l.text.includes("WebGL context lost")
     );
-    if (contextLostOnMars.length > 0) {
-      console.error("DEBUG: Found Context Lost on /mars during gameplay:", contextLostOnMars);
+    if (allContextLostLogs.length > 0) {
+      console.error("DEBUG: Found Context Lost in console logs:", allContextLostLogs);
     }
-    expect(contextLostOnMars.length).toBe(0);
+    expect(allContextLostLogs.length).toBe(0);
   });
 });
 

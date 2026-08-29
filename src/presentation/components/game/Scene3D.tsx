@@ -29,13 +29,36 @@ import { ResourceDepositMarkers } from "./ResourceDepositMarkers";
 import { WaterHexMesh } from "./WaterHexMesh";
 import { VegetationHexMesh } from "./VegetationHexMesh";
 
+import { registerWebGLContext, unregisterWebGLContext } from "../../utils/webglContextTracker";
+
 const DiagnosticLogger = () => {
     const { gl } = useThree();
     const frameStatsRef = useRef({ calls: 0, triangles: 0 });
 
+    useEffect(() => {
+        if (gl?.info) {
+            gl.info.autoReset = false;
+        }
+        if (gl?.getContext) {
+            registerWebGLContext(gl.getContext());
+        }
+        return () => {
+            if (gl?.getContext) {
+                unregisterWebGLContext(gl.getContext());
+            }
+        };
+    }, [gl]);
+
+    // Priority -1: Reset stats at the start of the frame before RenderPass
     useFrame(() => {
-        // Capture render metrics right after frame renders
-        if (gl?.info?.render && gl.info.render.triangles > 0) {
+        if (gl?.info) {
+            gl.info.reset();
+        }
+    }, -1);
+
+    // Priority 2: Read accumulated render stats after RenderPass & EffectPass have rendered
+    useFrame(() => {
+        if (gl?.info?.render) {
             frameStatsRef.current.calls = gl.info.render.calls;
             frameStatsRef.current.triangles = gl.info.render.triangles;
         }
@@ -48,13 +71,13 @@ const DiagnosticLogger = () => {
         const startTime = Date.now();
         const interval = setInterval(() => {
             const sec = Math.round((Date.now() - startTime) / 1000);
-            const calls = frameStatsRef.current.calls || gl?.info?.render?.calls || 0;
-            const triangles = frameStatsRef.current.triangles || gl?.info?.render?.triangles || 0;
+            const calls = frameStatsRef.current.calls;
+            const triangles = frameStatsRef.current.triangles;
             const geometries = gl?.info?.memory?.geometries || 0;
             const textures = gl?.info?.memory?.textures || 0;
             const programs = gl?.info?.programs?.length ?? 0;
             console.log(
-                `[DIAG +${sec}s] ` +
+                `[DIAG-MARS +${sec}s] ` +
                 `geometries=${geometries} ` +
                 `textures=${textures} ` +
                 `programs=${programs} ` +
