@@ -32,6 +32,7 @@ export function DebugOverlay() {
     const debugOverlayVisible = useUIStore((s) => s.debugOverlayVisible);
     const toggleDebugOverlay = useUIStore((s) => s.toggleDebugOverlay);
     const forceMeteorShower = useGameStore((s) => s.forceMeteorShower);
+    const setWeather = useGameStore((s) => s.setWeather);
     const [fps, setFps] = useState(0);
     const [meteorCount, setMeteorCount] = useState(10);
     const [alienCount, setAlienCount] = useState(3);

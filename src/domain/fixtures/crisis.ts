@@ -2,7 +2,8 @@ import type { StateFixture } from "./types";
 import { placeDeterministicBuildings } from "./fixtureUtils";
 import { ColonistService } from "../services/ColonistService";
 import { BUILDING_DEFINITIONS } from "../config/buildings";
-import type { WeatherState } from "../entities/Weather";
+import type { WeatherState } from "../services/WeatherService";
+import type { MoraleState } from "../entities/Colonist";
 
 export const crisisFixture: StateFixture = {
   id: "crisis",
@@ -39,18 +40,24 @@ export const crisisFixture: StateFixture = {
       cooldownTicks: 0,
     };
 
+    const morale: MoraleState = {
+      value: 35,
+      factors: {
+        foodSatisfaction: 50,
+        waterSatisfaction: 20,
+        o2Satisfaction: 30,
+        housingSatisfaction: 40,
+      },
+      productivityMultiplier: 0.5,
+    };
+
     store.setState({
       placed,
       occupied,
       capacity,
       population,
       weather,
-      morale: {
-        health: 45,
-        happiness: 30,
-        productivity: 0.5,
-        unmetNeeds: ["power", "water"],
-      },
+      morale,
       resources: {
         o2: 3.5,
         power: 0.8,

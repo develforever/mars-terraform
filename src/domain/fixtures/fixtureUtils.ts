@@ -40,7 +40,7 @@ export function placeDeterministicBuildings(
     if (q === centerQ && r === centerR) continue;
 
     const cell = grid.getCell(q, r);
-    if (!cell || !cell.isWalkable) continue;
+    if (!cell || cell.terrainType === "peak" || cell.terrainType === "deep_crater") continue;
 
     const [wx, wz] = hexToWorld(q, r);
     const key = `${Math.round(wx)},${Math.round(wz)}`;

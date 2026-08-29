@@ -1,5 +1,6 @@
 import type { useGameStore } from "../../application/store/useGameStore";
-import type { DifficultyLevel, GameMode } from "../entities/Colony";
+import type { DifficultyLevel } from "../services/TerraformingService";
+import type { GameMode } from "../services/GameModeService";
 
 export type GameStoreInstance = typeof useGameStore;
 
