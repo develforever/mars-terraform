@@ -9,10 +9,35 @@ const AUTOSAVE_INTERVAL_MS = 30000; // 30 seconds
 export function useEconomy() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runningRef = useRef(false);
 
   const gameSpeed = useGameStore((state) => state.gameSpeed);
   const isPaused = useGameStore((state) => state.isPaused);
+
+  const applyVisibilityState = useCallback(() => {
+    if (typeof document === "undefined") return;
+
+    const state = useGameStore.getState();
+    if (document.visibilityState === "hidden") {
+      if (state.alive && !state.won && state.colonyName) {
+        LocalSaveService.saveLocal(state);
+      }
+      if (!state.isPaused) {
+        useUIStore.getState().setIsAutoPaused(true);
+      }
+    } else if (document.visibilityState === "visible") {
+      const { isAutoPaused, setIsAutoPaused, setAutoPauseToast } = useUIStore.getState();
+      if (isAutoPaused) {
+        setIsAutoPaused(false);
+        setAutoPauseToast(true);
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => {
+          setAutoPauseToast(false);
+        }, 3000);
+      }
+    }
+  }, []);
 
   const scheduleNext = useCallback(() => {
     if (!runningRef.current) return;
@@ -37,10 +62,12 @@ export function useEconomy() {
     if (runningRef.current) return;
     runningRef.current = true;
 
+    applyVisibilityState();
+
     const { gameSpeed: speed } = useGameStore.getState();
     const interval = BASE_TICK_INTERVAL / speed;
     timerRef.current = setTimeout(scheduleNext, interval);
-  }, [scheduleNext]);
+  }, [applyVisibilityState, scheduleNext]);
 
   const stop = useCallback(() => {
     runningRef.current = false;
@@ -77,7 +104,7 @@ export function useEconomy() {
     };
   }, []);
 
-  // Window lifecycle: beforeunload and visibilitychange
+  // Window lifecycle: beforeunload, visibilitychange, and initial visibility check
   useEffect(() => {
     const handleBeforeUnload = () => {
       const state = useGameStore.getState();
@@ -86,39 +113,18 @@ export function useEconomy() {
       }
     };
 
-    let toastTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const handleVisibilityChange = () => {
-      const state = useGameStore.getState();
-      if (document.visibilityState === "hidden") {
-        if (state.alive && !state.won && state.colonyName) {
-          LocalSaveService.saveLocal(state);
-          if (!state.isPaused) {
-            useUIStore.getState().setIsAutoPaused(true);
-          }
-        }
-      } else if (document.visibilityState === "visible") {
-        const { isAutoPaused, setIsAutoPaused, setAutoPauseToast } = useUIStore.getState();
-        if (isAutoPaused) {
-          setIsAutoPaused(false);
-          setAutoPauseToast(true);
-          if (toastTimer) clearTimeout(toastTimer);
-          toastTimer = setTimeout(() => {
-            setAutoPauseToast(false);
-          }, 3000);
-        }
-      }
-    };
+    // Apply visibility state immediately on mount (handles background tabs on initial load)
+    applyVisibilityState();
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("visibilitychange", applyVisibilityState);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (toastTimer) clearTimeout(toastTimer);
+      document.removeEventListener("visibilitychange", applyVisibilityState);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
-  }, []);
+  }, [applyVisibilityState]);
 
   return { start, stop };
 }
