@@ -183,7 +183,7 @@ export const HUD = () => {
             <UnitCommandCard />
             <TacticalMinimap />
             <OffscreenThreatRadar />
-            <DebugOverlay />
+            {import.meta.env.DEV && <DebugOverlay />}
             <EmergencyLifeSupportAlert />
             {gameMode === "survival" && alienState.wave > 0 && (alienState.ships.length > 0 || alienState.groundUnits.length > 0) && (
                 <div className="alien-alert">

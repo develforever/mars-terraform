@@ -20,7 +20,7 @@ export function useEconomy() {
 
     const state = useGameStore.getState();
     if (document.visibilityState === "hidden") {
-      if (state.alive && !state.won && state.colonyName) {
+      if (state.alive && !state.won && state.colonyName && !state.isDevFixture) {
         LocalSaveService.saveLocal(state);
       }
       if (!state.isPaused) {
@@ -92,7 +92,7 @@ export function useEconomy() {
   useEffect(() => {
     autosaveTimerRef.current = setInterval(() => {
       const state = useGameStore.getState();
-      if (state.alive && !state.won && state.colonyName) {
+      if (state.alive && !state.won && state.colonyName && !state.isDevFixture) {
         LocalSaveService.saveLocal(state);
       }
     }, AUTOSAVE_INTERVAL_MS);
@@ -108,7 +108,7 @@ export function useEconomy() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       const state = useGameStore.getState();
-      if (state.alive && !state.won && state.colonyName) {
+      if (state.alive && !state.won && state.colonyName && !state.isDevFixture) {
         LocalSaveService.saveLocal(state);
       }
     };

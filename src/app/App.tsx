@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Route, Routes, useSearchParams, useNavigate, useLocation } from "react-router";
 import TopMenu from "../presentation/components/ui/TopMenu";
 import ModalManager from "../presentation/components/ui/ModalManager";
@@ -33,18 +33,95 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const resumeLocalGame = useGameStore(state => state.resumeLocalGame);
     const { open } = useModalStore();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const [fixtureError, setFixtureError] = useState<{ notFoundId: string; available: { id: string; label: string }[] } | null>(null);
+    const [isFixtureLoading, setIsFixtureLoading] = useState(false);
+    const fixtureParam = searchParams.get("fixture");
 
     useEffect(() => {
-        if (!colonyName) {
+        if (import.meta.env.DEV && fixtureParam && !colonyName) {
+            setIsFixtureLoading(true);
+            import("../domain/fixtures").then(({ getFixtureById, STATE_FIXTURES }) => {
+                const fixture = getFixtureById(fixtureParam);
+                if (fixture) {
+                    const seedParam = searchParams.get("seed");
+                    const speedParam = searchParams.get("speed");
+                    const pausedParam = searchParams.get("paused");
+
+                    const seed = seedParam ? Number(seedParam) : undefined;
+                    const speed = (speedParam === "1" || speedParam === "2" || speedParam === "4") ? Number(speedParam) as 1 | 2 | 4 : undefined;
+                    const paused = pausedParam !== null ? (pausedParam === "1" || pausedParam === "true") : undefined;
+
+                    fixture.apply(useGameStore, { seed, speed, paused });
+                    useGameStore.setState({ isDevFixture: true });
+                    setIsFixtureLoading(false);
+                } else {
+                    setFixtureError({
+                        notFoundId: fixtureParam,
+                        available: STATE_FIXTURES.map(f => ({ id: f.id, label: f.label })),
+                    });
+                    setIsFixtureLoading(false);
+                }
+            }).catch((err: unknown) => {
+                console.error("Failed to load fixtures:", err);
+                setIsFixtureLoading(false);
+            });
+            return;
+        }
+
+        if (!colonyName && !isFixtureLoading && !fixtureError) {
             const resumed = resumeLocalGame();
             if (!resumed) {
                 navigate("/", { replace: true });
                 open("colony-name");
             }
         }
-    }, [colonyName, navigate, open, resumeLocalGame]);
+    }, [colonyName, navigate, open, resumeLocalGame, fixtureParam, searchParams, isFixtureLoading, fixtureError]);
+
+    if (fixtureError) {
+        return (
+            <div data-testid="fixture-error-screen" className="flex flex-col items-center justify-center w-full h-full min-h-screen bg-[#0d1117] text-white p-8 font-mono select-none">
+                <div className="max-w-md w-full bg-[#161b22] border border-red-500/50 rounded-xl p-6 shadow-2xl space-y-4">
+                    <div className="flex items-center gap-3 text-red-400 font-bold text-lg">
+                        <span>⚠️</span>
+                        <span>Nieznany fixture stanu gry</span>
+                    </div>
+                    <p className="text-sm text-zinc-300">
+                        Nie odnaleziono fixture'a o ID: <span className="px-2 py-0.5 bg-red-950/60 border border-red-500/40 rounded text-red-300 font-semibold">{fixtureError.notFoundId}</span>
+                    </p>
+                    <div className="text-xs text-zinc-400 pt-2 border-t border-zinc-700/60">
+                        Dostępne ID fixture'ów:
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                        {fixtureError.available.map((f) => (
+                            <a
+                                key={f.id}
+                                href={`/mars?fixture=${f.id}`}
+                                className="px-3 py-2 bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 rounded text-xs flex justify-between items-center text-cyan-400 hover:text-cyan-300 transition-colors"
+                            >
+                                <span className="font-semibold">{f.id}</span>
+                                <span className="text-zinc-400">{f.label}</span>
+                            </a>
+                        ))}
+                    </div>
+                    <div className="pt-2">
+                        <button
+                            type="button"
+                            onClick={() => navigate("/")}
+                            className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 rounded text-xs text-zinc-300 transition-colors cursor-pointer"
+                        >
+                            Wróć do menu głównego
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (!colonyName) {
+        if (import.meta.env.DEV && fixtureParam) {
+            return <MarsLoadingFallback />;
+        }
         const resumed = resumeLocalGame();
         if (!resumed) return null;
     }
@@ -119,6 +196,26 @@ export default function App() {
         }
         return () => stop();
     }, [alive, start, stop]);
+
+    useEffect(() => {
+        if (import.meta.env.DEV && typeof window !== "undefined") {
+            import("../domain/fixtures").then(({ getFixtureById, listFixtures, STATE_FIXTURES }) => {
+                (window as unknown as { __listFixtures: typeof listFixtures }).__listFixtures = () => listFixtures();
+                (window as unknown as {
+                    __loadFixture: (id: string, opts?: { seed?: number; speed?: 1 | 2 | 4; paused?: boolean }) => boolean;
+                }).__loadFixture = (id: string, opts) => {
+                    const fixture = getFixtureById(id);
+                    if (!fixture) {
+                        console.warn(`[Fixtures] Fixture "${id}" not found. Available:`, STATE_FIXTURES.map(f => f.id));
+                        return false;
+                    }
+                    fixture.apply(useGameStore, opts);
+                    useGameStore.setState({ isDevFixture: true });
+                    return true;
+                };
+            }).catch(() => {});
+        }
+    }, []);
 
     return (
         <div data-testid="app" className="app-root w-full h-full min-h-0">

@@ -89,6 +89,9 @@ export type SavedGame = z.infer<typeof savedGameSchema>;
 
 export class LocalSaveService {
   public static saveLocal(state: Partial<GameState>): boolean {
+    if (state.isDevFixture) {
+      return false;
+    }
     if (!state.colonyName || !state.alive || state.won) {
       return false;
     }

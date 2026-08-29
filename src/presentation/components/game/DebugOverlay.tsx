@@ -32,13 +32,20 @@ export function DebugOverlay() {
     const debugOverlayVisible = useUIStore((s) => s.debugOverlayVisible);
     const toggleDebugOverlay = useUIStore((s) => s.toggleDebugOverlay);
     const forceMeteorShower = useGameStore((s) => s.forceMeteorShower);
-    const setWeather = useGameStore((s) => s.setWeather);
-
     const [fps, setFps] = useState(0);
     const [meteorCount, setMeteorCount] = useState(10);
     const [alienCount, setAlienCount] = useState(3);
+    const [fixtures, setFixtures] = useState<{ id: string; label: string; description: string; apply: (store: typeof useGameStore) => void }[]>([]);
     const frameCount = useRef(0);
     const lastTime = useRef(performance.now());
+
+    useEffect(() => {
+        if (import.meta.env.DEV) {
+            import("../../../domain/fixtures").then(({ STATE_FIXTURES }) => {
+                setFixtures(STATE_FIXTURES);
+            }).catch(() => {});
+        }
+    }, []);
 
     // FPS counter
     useEffect(() => {
@@ -177,6 +184,29 @@ export function DebugOverlay() {
                     </button>
                 </div>
             </div>
+
+            {import.meta.env.DEV && fixtures.length > 0 && (
+                <div className="debug-section">
+                    <div className="debug-label">Stan startowy (Fixtures)</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 4 }}>
+                        {fixtures.map((f) => (
+                            <button
+                                key={f.id}
+                                type="button"
+                                className="debug-btn"
+                                style={{ fontSize: "11px", padding: "4px 6px", textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                                onClick={() => {
+                                    f.apply(useGameStore);
+                                    useGameStore.setState({ isDevFixture: true });
+                                }}
+                                title={`${f.label} (${f.id}): ${f.description}`}
+                            >
+                                🎯 {f.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="debug-section">
                 <div className="debug-label">{t("debug.alien")}</div>

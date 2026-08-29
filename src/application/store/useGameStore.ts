@@ -93,6 +93,7 @@ export interface GameState {
   gameMode: GameMode;
   alienState: AlienState;
   won: boolean;
+  isDevFixture: boolean;
 
   // Research System
   researchPoints: number;
@@ -295,6 +296,7 @@ function getInitialGameState(
     o2Accumulated: 0,
     waterLevel: initialWaterLevel,
     won: false,
+    isDevFixture: false,
     difficulty: "normal" as DifficultyLevel,
     gameMode: "exploration" as GameMode,
     alienState: INITIAL_ALIEN_STATE,
@@ -1094,6 +1096,7 @@ export const useGameStore = create<GameState>()(
           sun: gameState.sun ?? INITIAL_COLONY_STATE.sun,
           alienState: loadedAlienState,
           won: TerraformingService.isComplete(loadedTerraforming),
+          isDevFixture: false,
           alive: true,
           tick: loadedTick,
           sol: loadedSol,
