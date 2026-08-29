@@ -142,6 +142,29 @@
     color: #fff;
 }
 
+.start-btn-continue {
+    padding: 16px 36px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, #238636, #2ea043);
+    border: 1px solid #3fb950;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(46, 160, 67, 0.4);
+    letter-spacing: 1px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.start-btn-continue:hover {
+    background: linear-gradient(135deg, #2ea043, #3fb950);
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(46, 160, 67, 0.6);
+}
+
 /* ── Glitch overlay ───────────────────────────────────── */
 .glitch-overlay {
     position: absolute;

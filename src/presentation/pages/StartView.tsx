@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { StartScene3D } from "../components/game/MarsStartScene";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -6,6 +7,7 @@ import { useModalStore } from "../../ui/ModalManager/store";
 import { useGameStore } from "../../application/store/useGameStore";
 import { useAuthStore } from "../../application/store/useAuthStore";
 import { useUIStore } from "../../application/store/useUIStore";
+import { LocalSaveService } from "../../application/service/localSaveService";
 import type { DifficultyLevel } from "../../domain/services/TerraformingService";
 import { DIFFICULTY_TARGETS } from "../../domain/services/TerraformingService";
 import type { GameMode } from "../../domain/services/GameModeService";
@@ -15,19 +17,31 @@ import "./StartView.css";
 export default function StartView() {
     usePageTitle("Start");
     const { t } = useTranslation();
+    const navigate = useNavigate();
 
     const { open } = useModalStore();
     const setDifficulty = useGameStore((s) => s.setDifficulty);
     const setGameMode = useGameStore((s) => s.setGameMode);
+    const resumeLocalGame = useGameStore((s) => s.resumeLocalGame);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const isLaunching = useUIStore((s) => s.isLaunching);
     const [selected, setSelected] = useState<DifficultyLevel>("normal");
     const [selectedMode, setSelectedMode] = useState<GameMode>("exploration");
 
+    const localSave = LocalSaveService.loadLocal();
+    const hasLocalSave = !!(localSave && localSave.colonyName);
+
     const DIFFICULTY_DESCRIPTIONS: Record<DifficultyLevel, string> = {
         easy:   t("start.difficulty.easy"),
         normal: t("start.difficulty.normal"),
         hard:   t("start.difficulty.hard"),
+    };
+
+    const handleContinue = () => {
+        const resumed = resumeLocalGame();
+        if (resumed) {
+            navigate("/mars");
+        }
     };
 
     const handleStart = () => {
@@ -85,6 +99,11 @@ export default function StartView() {
                 </div>
 
                 <div className="start-actions">
+                    {hasLocalSave && (
+                        <button className="start-btn-continue" onClick={handleContinue} disabled={isLaunching}>
+                            ▶ {t("start.continueColony", { name: localSave?.colonyName, defaultValue: `Kontynuuj: ${localSave?.colonyName}` })}
+                        </button>
+                    )}
                     <button className="start-btn-primary" onClick={handleStart} disabled={isLaunching}>
                         {t("start.startGame")}
                     </button>

@@ -37,6 +37,7 @@ import { ColonistService } from "../../domain/services/ColonistService";
 import type { PlacedUnit } from "../../domain/entities/Unit";
 import { UNIT_IDS } from "../../domain/config/units";
 import { RTSCommandService, type RTSOrder } from "../../domain/services/RTSCommandService";
+import { LocalSaveService, type SavedGame } from "../service/localSaveService";
 
 export interface GameState {
   // Resources and colony state
@@ -47,6 +48,7 @@ export interface GameState {
   alive: boolean;
   colonyName: string;
   currentScenarioId?: string | null;
+  mapSeed: number;
 
   // Time & Speed Controls (Pauza taktyczna i prędkość symulacji)
   isPaused: boolean;
@@ -122,6 +124,8 @@ export interface GameState {
   startScenarioGame: (scenario: Scenario, colonyName?: string, customSeed?: number) => void;
   saveGame: () => Promise<boolean>;
   loadGame: (name: string) => Promise<boolean>;
+  hydrateSavedState: (savedState: Partial<SavedGame> & { colonyName?: string; name?: string }) => void;
+  resumeLocalGame: () => boolean;
   triggerAlienWave: (wave: 0 | 1 | 2, count?: number) => void;
   forceMeteorShower: (count: number) => void;
   setWeather: (weather: WeatherState) => void;
@@ -275,6 +279,7 @@ function getInitialGameState(
     alive: INITIAL_COLONY_STATE.alive,
     colonyName: "",
     currentScenarioId: null,
+    mapSeed: s,
     tick: 0,
     sol: 1,
     aliensDefeated: 0,
@@ -919,6 +924,7 @@ export const useGameStore = create<GameState>()(
             body: JSON.stringify({
               name: state.colonyName,
               state: {
+                mapSeed: state.mapSeed,
                 resources: state.resources,
                 capacity: state.capacity,
                 placed: state.placed,
@@ -954,6 +960,159 @@ export const useGameStore = create<GameState>()(
         }
       },
 
+      hydrateSavedState: (gameState) => {
+        const loadedSeed = gameState.mapSeed ?? 42;
+        const loadedGrid = gameState.currentMapData
+          ? HexGrid.fromJSON(gameState.currentMapData)
+          : getInitialGameState(null, loadedSeed).hexGrid;
+
+        const loadedNodes: ResourceNode[] = gameState.resourceNodes ?? (
+          gameState.currentMapData?.resourceNodes?.length
+            ? gameState.currentMapData.resourceNodes
+            : generateResources(loadedGrid, loadedSeed, 1)
+        );
+
+        const loadedDecor: DecorItem[] = gameState.decorations ?? (gameState as unknown as { decor?: DecorItem[] }).decor ?? (
+          gameState.currentMapData?.decor?.length
+            ? gameState.currentMapData.decor
+            : generateDecor(loadedGrid, loadedSeed)
+        );
+
+        const loadedPlaced = (gameState.placed ?? []).map((b: PlacedBuilding) => ({
+          ...b,
+          level: b.level ?? 1,
+        }));
+
+        const loadedResources: Resources = {
+          o2: gameState.resources?.o2 ?? INITIAL_COLONY_STATE.resources.o2,
+          power: gameState.resources?.power ?? INITIAL_COLONY_STATE.resources.power,
+          water: gameState.resources?.water ?? INITIAL_COLONY_STATE.resources.water,
+          biomass: gameState.resources?.biomass ?? INITIAL_COLONY_STATE.resources.biomass,
+          minerals: gameState.resources?.minerals ?? INITIAL_COLONY_STATE.resources.minerals,
+        };
+
+        const loadedCapacity: ResourceCapacity = {
+          power: gameState.capacity?.power ?? INITIAL_COLONY_STATE.capacity.power,
+          water: gameState.capacity?.water ?? INITIAL_COLONY_STATE.capacity.water,
+          biomass: gameState.capacity?.biomass ?? INITIAL_COLONY_STATE.capacity.biomass,
+          minerals: gameState.capacity?.minerals ?? INITIAL_COLONY_STATE.capacity.minerals,
+        };
+
+        const loadedTechs = gameState.unlockedTechs ?? [TECH_IDS.BASIC_STRUCTURES];
+        const loadedTerraforming = gameState.terraforming ?? 0;
+        const loadedO2Accumulated = gameState.o2Accumulated ?? 0;
+        const loadedDiff = (gameState.difficulty as DifficultyLevel) ?? "normal";
+        const loadedAlienState = gameState.alienState ?? INITIAL_ALIEN_STATE;
+        const loadedWaterLevel = TerraformingService.calculateWaterLevel(
+          loadedResources.water ?? 0,
+          loadedTerraforming,
+          loadedDiff
+        );
+
+        const initialOrSavedQuests = gameState.activeQuests ?? QuestService.getInitialQuestStates();
+        const loadedEvaluatedQuests = QuestService.evaluateQuests(
+          {
+            placed: loadedPlaced,
+            resources: loadedResources,
+            unlockedTechs: loadedTechs,
+            terraforming: loadedTerraforming,
+            o2Accumulated: loadedO2Accumulated,
+            waterLevel: loadedWaterLevel,
+            alienWave: loadedAlienState.wave,
+          },
+          initialOrSavedQuests
+        );
+
+        const loadedTick = gameState.tick ?? 0;
+        const loadedSol = gameState.sol ?? GameAnalyticsService.tickToSol(loadedTick);
+        const loadedAliensDefeated = gameState.aliensDefeated ?? 0;
+        const loadedSnapshots = gameState.analyticsSnapshots ?? [
+          GameAnalyticsService.createSnapshot({
+            tick: loadedTick,
+            resources: loadedResources,
+            mineralsCount: loadedNodes.filter((n) => n.type === "minerals").length,
+            terraforming: loadedTerraforming,
+            o2Accumulated: loadedO2Accumulated,
+            waterLevel: loadedWaterLevel,
+            buildingsCount: loadedPlaced.length,
+            aliensDefeated: loadedAliensDefeated,
+          })
+        ];
+
+        const loadedPopulation: ColonyPopulation = gameState.population ?? INITIAL_POPULATION;
+        const habCapacity = ColonistService.calculateCapacity(loadedPlaced, BUILDING_DEFINITIONS);
+        const effectivePopulation: ColonyPopulation = {
+          ...loadedPopulation,
+          capacity: habCapacity > 0 ? habCapacity : loadedPopulation.capacity,
+        };
+        const loadedMorale: MoraleState = gameState.morale ?? ColonistService.calculateMorale(
+          loadedResources,
+          loadedCapacity,
+          effectivePopulation
+        );
+
+        const loadedUnits: PlacedUnit[] = gameState.units ?? getInitialGameState().units;
+
+        const centerHab = loadedPlaced.find((b: PlacedBuilding) => b.id === "colony-center-hab");
+        if (centerHab) {
+          useUIStore.getState().setCameraFrustum([], {
+            x: centerHab.position.x,
+            y: centerHab.position.y ?? 0,
+            z: centerHab.position.z,
+          });
+        }
+
+        set({
+          colonyName: gameState.colonyName || (gameState as unknown as { name?: string }).name || "Mars Colony",
+          mapSeed: loadedSeed,
+          hexGrid: loadedGrid,
+          resourceNodes: loadedNodes,
+          decorations: loadedDecor,
+          decor: loadedDecor,
+          currentMapData: gameState.currentMapData ?? null,
+          resources: loadedResources,
+          capacity: loadedCapacity,
+          placed: loadedPlaced,
+          occupied: gameState.occupied ?? {},
+          units: loadedUnits,
+          weather: gameState.weather ?? { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: WeatherService.INITIAL_GRACE_TICKS },
+          terraforming: loadedTerraforming,
+          o2Accumulated: loadedO2Accumulated,
+          waterLevel: loadedWaterLevel,
+          difficulty: loadedDiff,
+          gameMode: (gameState.gameMode as GameMode) ?? "exploration",
+          sun: gameState.sun ?? INITIAL_COLONY_STATE.sun,
+          alienState: loadedAlienState,
+          won: TerraformingService.isComplete(loadedTerraforming),
+          alive: true,
+          tick: loadedTick,
+          sol: loadedSol,
+          aliensDefeated: loadedAliensDefeated,
+          analyticsSnapshots: loadedSnapshots,
+          isEndless: gameState.isEndless ?? false,
+          victoryModalDismissed: false,
+          defeatModalDismissed: false,
+          researchPoints: gameState.researchPoints ?? 0,
+          unlockedTechs: loadedTechs,
+          activeQuests: loadedEvaluatedQuests,
+          population: effectivePopulation,
+          morale: loadedMorale,
+          isPaused: false,
+          gameSpeed: 1,
+          emergencyLifeSupport: (gameState as unknown as { emergencyLifeSupport?: EmergencyLifeSupportState }).emergencyLifeSupport ?? {
+            active: false,
+            secondsRemaining: EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS,
+          },
+        });
+      },
+
+      resumeLocalGame: () => {
+        const saved = LocalSaveService.loadLocal();
+        if (!saved || !saved.colonyName) return false;
+        get().hydrateSavedState(saved);
+        return true;
+      },
+
       loadGame: async (name: string) => {
         try {
           const response = await fetch(`/api/colony/${name}`, {
@@ -964,149 +1123,7 @@ export const useGameStore = create<GameState>()(
           if (!response.ok) return false;
           
           const data = await response.json();
-          const gameState = data.state;
-
-          const loadedGrid = gameState.currentMapData
-            ? HexGrid.fromJSON(gameState.currentMapData)
-            : getInitialGameState().hexGrid;
-
-          const loadedNodes: ResourceNode[] = gameState.resourceNodes ?? (
-            gameState.currentMapData?.resourceNodes?.length
-              ? gameState.currentMapData.resourceNodes
-              : generateResources(loadedGrid, 42, 1)
-          );
-
-          const loadedDecor: DecorItem[] = gameState.decorations ?? gameState.decor ?? (
-            gameState.currentMapData?.decor?.length
-              ? gameState.currentMapData.decor
-              : generateDecor(loadedGrid, 42)
-          );
-
-          const loadedPlaced = (gameState.placed ?? []).map((b: PlacedBuilding) => ({
-            ...b,
-            level: b.level ?? 1,
-          }));
-
-          const loadedResources: Resources = {
-            o2: gameState.resources?.o2 ?? INITIAL_COLONY_STATE.resources.o2,
-            power: gameState.resources?.power ?? INITIAL_COLONY_STATE.resources.power,
-            water: gameState.resources?.water ?? INITIAL_COLONY_STATE.resources.water,
-            biomass: gameState.resources?.biomass ?? INITIAL_COLONY_STATE.resources.biomass,
-            minerals: gameState.resources?.minerals ?? INITIAL_COLONY_STATE.resources.minerals,
-          };
-
-          const loadedCapacity: ResourceCapacity = {
-            power: gameState.capacity?.power ?? INITIAL_COLONY_STATE.capacity.power,
-            water: gameState.capacity?.water ?? INITIAL_COLONY_STATE.capacity.water,
-            biomass: gameState.capacity?.biomass ?? INITIAL_COLONY_STATE.capacity.biomass,
-            minerals: gameState.capacity?.minerals ?? INITIAL_COLONY_STATE.capacity.minerals,
-          };
-
-          const loadedTechs = gameState.unlockedTechs ?? [TECH_IDS.BASIC_STRUCTURES];
-          const loadedTerraforming = gameState.terraforming ?? 0;
-          const loadedO2Accumulated = gameState.o2Accumulated ?? 0;
-          const loadedDiff = gameState.difficulty ?? "normal";
-          const loadedAlienState = gameState.alienState ?? INITIAL_ALIEN_STATE;
-          const loadedWaterLevel = TerraformingService.calculateWaterLevel(
-            loadedResources.water ?? 0,
-            loadedTerraforming,
-            loadedDiff
-          );
-
-          const initialOrSavedQuests = gameState.activeQuests ?? QuestService.getInitialQuestStates();
-          const loadedEvaluatedQuests = QuestService.evaluateQuests(
-            {
-              placed: loadedPlaced,
-              resources: loadedResources,
-              unlockedTechs: loadedTechs,
-              terraforming: loadedTerraforming,
-              o2Accumulated: loadedO2Accumulated,
-              waterLevel: loadedWaterLevel,
-              alienWave: loadedAlienState.wave,
-            },
-            initialOrSavedQuests
-          );
-
-          const loadedTick = gameState.tick ?? 0;
-          const loadedSol = gameState.sol ?? GameAnalyticsService.tickToSol(loadedTick);
-          const loadedAliensDefeated = gameState.aliensDefeated ?? 0;
-          const loadedSnapshots = gameState.analyticsSnapshots ?? [
-            GameAnalyticsService.createSnapshot({
-              tick: loadedTick,
-              resources: loadedResources,
-              mineralsCount: loadedNodes.filter((n) => n.type === "minerals").length,
-              terraforming: loadedTerraforming,
-              o2Accumulated: loadedO2Accumulated,
-              waterLevel: loadedWaterLevel,
-              buildingsCount: loadedPlaced.length,
-              aliensDefeated: loadedAliensDefeated,
-            })
-          ];
-
-          const loadedPopulation: ColonyPopulation = gameState.population ?? INITIAL_POPULATION;
-          const habCapacity = ColonistService.calculateCapacity(loadedPlaced, BUILDING_DEFINITIONS);
-          const effectivePopulation: ColonyPopulation = {
-            ...loadedPopulation,
-            capacity: habCapacity > 0 ? habCapacity : loadedPopulation.capacity,
-          };
-          const loadedMorale: MoraleState = gameState.morale ?? ColonistService.calculateMorale(
-            loadedResources,
-            loadedCapacity,
-            effectivePopulation
-          );
-
-          const loadedUnits: PlacedUnit[] = gameState.units ?? getInitialGameState().units;
-
-          const centerHab = loadedPlaced.find((b: PlacedBuilding) => b.id === "colony-center-hab");
-          if (centerHab) {
-            useUIStore.getState().setCameraFrustum([], {
-              x: centerHab.position.x,
-              y: centerHab.position.y ?? 0,
-              z: centerHab.position.z,
-            });
-          }
-
-          set({
-            colonyName: data.name,
-            hexGrid: loadedGrid,
-            resourceNodes: loadedNodes,
-            decorations: loadedDecor,
-            decor: loadedDecor,
-            currentMapData: gameState.currentMapData ?? null,
-            resources: loadedResources,
-            capacity: loadedCapacity,
-            placed: loadedPlaced,
-            occupied: gameState.occupied,
-            units: loadedUnits,
-            weather: gameState.weather ?? { type: "clear", intensity: 0, remainingTicks: 0, cooldownTicks: 0 },
-            terraforming: loadedTerraforming,
-            o2Accumulated: loadedO2Accumulated,
-            waterLevel: loadedWaterLevel,
-            difficulty: loadedDiff,
-            gameMode: gameState.gameMode ?? "exploration",
-            sun: gameState.sun ?? INITIAL_COLONY_STATE.sun,
-            alienState: loadedAlienState,
-            won: TerraformingService.isComplete(loadedTerraforming),
-            alive: true,
-            tick: loadedTick,
-            sol: loadedSol,
-            aliensDefeated: loadedAliensDefeated,
-            analyticsSnapshots: loadedSnapshots,
-            isEndless: gameState.isEndless ?? false,
-            victoryModalDismissed: false,
-            defeatModalDismissed: false,
-            researchPoints: gameState.researchPoints ?? 0,
-            unlockedTechs: loadedTechs,
-            activeQuests: loadedEvaluatedQuests,
-            population: effectivePopulation,
-            morale: loadedMorale,
-            isPaused: false,
-            gameSpeed: 1,
-            emergencyLifeSupport: gameState.emergencyLifeSupport ?? {
-              active: false,
-              secondsRemaining: EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS,
-            },
-          });
+          get().hydrateSavedState({ ...data.state, colonyName: data.name });
           return true;
         } catch (error) {
           console.error("Load game failed", error);
