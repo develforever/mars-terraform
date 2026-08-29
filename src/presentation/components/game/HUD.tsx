@@ -29,7 +29,7 @@ import { TacticalMinimap } from "./TacticalMinimap";
 import { OffscreenThreatRadar } from "./OffscreenThreatRadar";
 import "./HUD.css";
 
-export function HUD() {
+export const HUD = () => {
     const { t } = useTranslation();
     const resources      = useGameStore((state) => state.resources);
     const capacity       = useGameStore((state) => state.capacity);
@@ -52,6 +52,8 @@ export function HUD() {
     const { loadMapFromFile, loaded: mapLoaded, mapName, clearMap } = useMapConfigStore();
     const isHUDVisible   = useUIStore((state) => state.isHUDVisible);
     const toggleHUD      = useUIStore((state) => state.toggleHUD);
+    const setHUDVisible  = useUIStore((state) => state.setHUDVisible);
+    const requestCameraPan = useUIStore((state) => state.requestCameraPan);
     const isMinimapVisible = useUIStore((state) => state.isMinimapVisible);
     const toggleMinimap    = useUIStore((state) => state.toggleMinimap);
     const saveGame       = useGameStore((state) => state.saveGame);
@@ -131,8 +133,20 @@ export function HUD() {
                 e.preventDefault();
                 togglePause();
             }
-            if (e.key === "b" || e.key === "B") toggleBuildMode();
-            if (e.key === "x" || e.key === "X") toggleDemolishMode();
+            if (e.key === "b" || e.key === "B") {
+                toggleBuildMode();
+                setHUDVisible(true);
+            }
+            if (e.key === "x" || e.key === "X") {
+                toggleDemolishMode();
+                setHUDVisible(true);
+            }
+            if (e.key === "Home") {
+                const hab = placedBuildings.find((b) => b.id === "colony-center-hab");
+                if (hab) {
+                    requestCameraPan({ x: hab.position.x, z: hab.position.z });
+                }
+            }
             if (e.key === "m" || e.key === "M") toggleMinimap();
             if (e.key === "r" || e.key === "R") {
                 setShowResearchTree((v) => {
@@ -153,7 +167,7 @@ export function HUD() {
         }
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, [toggleBuildMode, toggleDemolishMode, toggleMinimap, cancelBuild, togglePause]);
+    }, [toggleBuildMode, toggleDemolishMode, setHUDVisible, requestCameraPan, placedBuildings, toggleMinimap, cancelBuild, togglePause]);
 
     const hint = useMemo(() => {
         if (!lastDelta) return null;

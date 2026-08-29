@@ -56,6 +56,7 @@ export interface UIState {
   cancelBuild: () => void;
   setInspectedInstance: (id: string | null) => void;
   toggleHUD: () => void;
+  setHUDVisible: (visible: boolean) => void;
   toggleDebugOverlay: () => void;
   setLaunching: (value: boolean) => void;
   toggleMinimap: () => void;
@@ -81,7 +82,7 @@ export const useUIStore = create<UIState>()(
       buildMode: null,
       hoverCell: null,
       inspectedInstanceId: null,
-      isHUDVisible: false,
+      isHUDVisible: true,
       debugOverlayVisible: false,
       isLaunching: false,
       isMinimapVisible: true,
@@ -112,6 +113,8 @@ export const useUIStore = create<UIState>()(
       setInspectedInstance: (id) => set({ inspectedInstanceId: id }),
 
       toggleHUD: () => set({ isHUDVisible: !get().isHUDVisible }),
+
+      setHUDVisible: (visible) => set({ isHUDVisible: visible }),
 
       toggleDebugOverlay: () => set({ debugOverlayVisible: !get().debugOverlayVisible }),
 
@@ -177,10 +180,6 @@ export const useUIStore = create<UIState>()(
   )
 );
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && import.meta.env.DEV) {
   (window as unknown as { useUIStore: typeof useUIStore }).useUIStore = useUIStore;
 }
-
-
-
-

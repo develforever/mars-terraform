@@ -12,6 +12,7 @@ import { TerraformingService } from "../../domain/services/TerraformingService";
 import { MeteorService } from "../../domain/services/MeteorService";
 import type { DifficultyLevel } from "../../domain/services/TerraformingService";
 import { useDebugStore } from "./useDebugStore";
+import { useUIStore } from "./useUIStore";
 import type { GameMode } from "../../domain/services/GameModeService";
 import { GAME_MODE_CONFIGS } from "../../domain/services/GameModeService";
 import { AlienService, INITIAL_ALIEN_STATE } from "../../domain/services/AlienService";
@@ -326,6 +327,7 @@ function applyCapacityDelta(
     power:   current.power   + (delta.power   ?? 0),
     water:   current.water   + (delta.water   ?? 0),
     biomass: current.biomass + (delta.biomass ?? 0),
+    minerals: current.minerals + (delta.minerals ?? 0),
   };
 }
 
@@ -655,6 +657,7 @@ export const useGameStore = create<GameState>()(
           power:   state.resources.power   + (tickResult.delta.power   ?? 0),
           water:   state.resources.water   + (tickResult.delta.water   ?? 0),
           biomass: state.resources.biomass + (tickResult.delta.biomass ?? 0),
+          minerals: state.resources.minerals + (tickResult.delta.minerals ?? 0),
         };
         const newTerraforming = modeCfg.hasWinCondition
           ? TerraformingService.calculateProgress(newO2Accumulated, newResources, state.difficulty)
@@ -849,8 +852,17 @@ export const useGameStore = create<GameState>()(
       },
 
       startNewGame: (name: string, diff: DifficultyLevel, mode: GameMode, mapData?: MapExportJSON | null, seed?: number) => {
+        const initState = getInitialGameState(mapData, seed);
+        const centerHab = initState.placed.find((b) => b.id === "colony-center-hab");
+        if (centerHab) {
+          useUIStore.getState().setCameraFrustum([], {
+            x: centerHab.position.x,
+            y: centerHab.position.y ?? 0,
+            z: centerHab.position.z,
+          });
+        }
         set({
-          ...getInitialGameState(mapData, seed),
+          ...initState,
           colonyName: name,
           difficulty: diff,
           gameMode: mode,
@@ -872,6 +884,15 @@ export const useGameStore = create<GameState>()(
             ...INITIAL_ALIEN_STATE,
             wave: scenario.modifiers.initialAlienWave,
           };
+        }
+
+        const centerHab = initialState.placed.find((b) => b.id === "colony-center-hab");
+        if (centerHab) {
+          useUIStore.getState().setCameraFrustum([], {
+            x: centerHab.position.x,
+            y: centerHab.position.y ?? 0,
+            z: centerHab.position.z,
+          });
         }
 
         set({
@@ -966,7 +987,21 @@ export const useGameStore = create<GameState>()(
             level: b.level ?? 1,
           }));
 
-          const loadedResources = gameState.resources ?? INITIAL_COLONY_STATE.resources;
+          const loadedResources: Resources = {
+            o2: gameState.resources?.o2 ?? INITIAL_COLONY_STATE.resources.o2,
+            power: gameState.resources?.power ?? INITIAL_COLONY_STATE.resources.power,
+            water: gameState.resources?.water ?? INITIAL_COLONY_STATE.resources.water,
+            biomass: gameState.resources?.biomass ?? INITIAL_COLONY_STATE.resources.biomass,
+            minerals: gameState.resources?.minerals ?? INITIAL_COLONY_STATE.resources.minerals,
+          };
+
+          const loadedCapacity: ResourceCapacity = {
+            power: gameState.capacity?.power ?? INITIAL_COLONY_STATE.capacity.power,
+            water: gameState.capacity?.water ?? INITIAL_COLONY_STATE.capacity.water,
+            biomass: gameState.capacity?.biomass ?? INITIAL_COLONY_STATE.capacity.biomass,
+            minerals: gameState.capacity?.minerals ?? INITIAL_COLONY_STATE.capacity.minerals,
+          };
+
           const loadedTechs = gameState.unlockedTechs ?? [TECH_IDS.BASIC_STRUCTURES];
           const loadedTerraforming = gameState.terraforming ?? 0;
           const loadedO2Accumulated = gameState.o2Accumulated ?? 0;
@@ -1016,11 +1051,20 @@ export const useGameStore = create<GameState>()(
           };
           const loadedMorale: MoraleState = gameState.morale ?? ColonistService.calculateMorale(
             loadedResources,
-            gameState.capacity ?? INITIAL_COLONY_STATE.capacity,
+            loadedCapacity,
             effectivePopulation
           );
 
           const loadedUnits: PlacedUnit[] = gameState.units ?? getInitialGameState().units;
+
+          const centerHab = loadedPlaced.find((b: PlacedBuilding) => b.id === "colony-center-hab");
+          if (centerHab) {
+            useUIStore.getState().setCameraFrustum([], {
+              x: centerHab.position.x,
+              y: centerHab.position.y ?? 0,
+              z: centerHab.position.z,
+            });
+          }
 
           set({
             colonyName: data.name,
@@ -1030,7 +1074,7 @@ export const useGameStore = create<GameState>()(
             decor: loadedDecor,
             currentMapData: gameState.currentMapData ?? null,
             resources: loadedResources,
-            capacity: gameState.capacity,
+            capacity: loadedCapacity,
             placed: loadedPlaced,
             occupied: gameState.occupied,
             units: loadedUnits,
@@ -1074,7 +1118,7 @@ export const useGameStore = create<GameState>()(
   )
 );
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && import.meta.env.DEV) {
   (window as unknown as { useGameStore: typeof useGameStore }).useGameStore = useGameStore;
 }
 
