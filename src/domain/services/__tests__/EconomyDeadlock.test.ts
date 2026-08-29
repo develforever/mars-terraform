@@ -53,16 +53,12 @@ describe("EconomyDeadlock verification", () => {
         alive: !tickResult.gameOver,
       };
 
-      // Filter definitions that do not require research AND whose dependsOn is satisfied
-      const availableNow = Object.values(BUILDING_DEFINITIONS).filter(
-        (def) => !def.requiredTech && BuildingService.hasRequirements(def, initialBuildings)
-      );
-
-      expect(availableNow.length).toBeGreaterThan(0);
-
-      // Assert: in every tick, player can afford at least one early building definition
-      const canAffordAtLeastOne = availableNow.some((def) =>
-        BuildingService.canAfford(def.cost, colony.resources)
+      // Assert: in every tick, player can afford at least one reachable building definition
+      const canAffordAtLeastOne = BuildingService.hasReachableBuilding(
+        BUILDING_DEFINITIONS,
+        initialBuildings,
+        colony.resources,
+        []
       );
 
       expect(canAffordAtLeastOne).toBe(true);

@@ -50,6 +50,19 @@ export class BuildingService {
     return definition.dependsOn.every(reqId => placedDefIds.has(reqId));
   }
 
+  static hasReachableBuilding(
+    definitions: Record<string, BuildingDefinition>,
+    placed: PlacedBuilding[],
+    resources: Resources,
+    unlockedTechs: string[] = []
+  ): boolean {
+    const available = Object.values(definitions).filter((def) => {
+      const techOk = !def.requiredTech || unlockedTechs.includes(def.requiredTech);
+      return techOk && this.hasRequirements(def, placed);
+    });
+    return available.some((def) => this.canAfford(def.cost, resources));
+  }
+
   static calculateCost(cost: ResourceCost | undefined): ResourceDelta {
     if (!cost) return {};
     const delta: ResourceDelta = {};
