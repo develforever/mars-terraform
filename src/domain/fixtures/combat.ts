@@ -10,13 +10,13 @@ import type { AlienState } from "../entities/Alien";
 export const combatFixture: StateFixture = {
   id: "combat",
   label: "Walka",
-  description: "Fala obcych 2 aktywna, wieżyczki, kilka łazików bojowych i dron naprawczy",
+  description: "Obrona bazy: 9 budynków (w tym wieżyczki obronne), 5 jednostek gracza, aktywna fala 2 obcych (1 statek + 2 jednostki naziemne)",
   seed: 42,
-  difficulty: "normal",
+  difficulty: "hard",
   gameMode: "survival",
   apply: (store, options) => {
     const seed = options?.seed ?? 42;
-    store.getState().startNewGame("DEV: Walka", "normal", "survival", null, seed);
+    store.getState().startNewGame("DEV: Walka", "hard", "survival", null, seed);
 
     const { placed, occupied, capacity } = placeDeterministicBuildings(store, [
       { definitionId: "solar", level: 2 },

@@ -490,7 +490,7 @@
 /* Alien Invasion Alert */
 .alien-alert {
     position: absolute;
-    top: 48px;
+    top: 96px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 110;

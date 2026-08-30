@@ -5,11 +5,12 @@ import { BUILDING_DEFINITIONS } from "../config/buildings";
 import { TECH_IDS } from "../config/technologies";
 import { UNIT_IDS } from "../config/units";
 import type { PlacedUnit } from "../entities/Unit";
+import type { ColonyPopulation } from "../entities/Colonist";
 
 export const midGameFixture: StateFixture = {
   id: "mid-game",
   label: "Środek gry",
-  description: "10–12 budynków w tym lab i szklarnia, część lvl 2, 4 technologie, ~150 minerałów, dodatni bilans",
+  description: "Zbalansowana baza: 16 budynków (w tym szklarnie, solary, RTG, lab, magazyny), 4 technologie, 3 jednostki, dodatni bilans",
   seed: 42,
   difficulty: "normal",
   gameMode: "exploration",
@@ -24,11 +25,16 @@ export const midGameFixture: StateFixture = {
       store,
       [
         { definitionId: "greenhouse", level: 2 },
+        { definitionId: "greenhouse", level: 2 },
         { definitionId: "solar", level: 2 },
         { definitionId: "solar", level: 2 },
+        { definitionId: "solar", level: 2 },
+        { definitionId: "solar", level: 2 },
+        { definitionId: "rtg", level: 1 },
         { definitionId: "ice", level: 2 },
-        { definitionId: "miner", level: 1 },
-        { definitionId: "miner", level: 1 },
+        { definitionId: "ice", level: 2 },
+        { definitionId: "miner", level: 2 },
+        { definitionId: "miner", level: 2 },
         { definitionId: "lab", level: 2 },
         { definitionId: "battery", level: 1 },
         { definitionId: "watertank", level: 1 },
@@ -38,7 +44,17 @@ export const midGameFixture: StateFixture = {
     );
 
     const habCapacity = ColonistService.calculateCapacity(placed, BUILDING_DEFINITIONS);
-    const population = { ...store.getState().population, count: 18, capacity: habCapacity };
+    const population: ColonyPopulation = {
+      total: 10,
+      capacity: habCapacity,
+      roles: {
+        unassigned: 2,
+        engineer: 2,
+        farmer: 2,
+        miner: 2,
+        scientist: 2,
+      },
+    };
 
     const centerHab = placed.find((b) => b.id === "colony-center-hab") || placed[0];
     const spawnX = centerHab.position.x;

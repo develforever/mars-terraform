@@ -6,11 +6,12 @@ import { BUILDING_DEFINITIONS } from "../config/buildings";
 import { TECH_IDS } from "../config/technologies";
 import { UNIT_IDS } from "../config/units";
 import type { PlacedUnit } from "../entities/Unit";
+import type { ColonyPopulation } from "../entities/Colonist";
 
 export const lateGameFixture: StateFixture = {
   id: "late-game",
   label: "Późna gra",
-  description: "Megastruktura, terraformacja ~45%, widoczna woda w kraterach i wegetacja, wysoka populacja",
+  description: "Rozwinięta kolonia: 21 budynków (kopuła biosfery, fabryka atmosfery, RTG, zaawansowane laboratoria), 8 technologii, 6 jednostek, 52% terraformingu",
   seed: 42,
   difficulty: "normal",
   gameMode: "exploration",
@@ -29,8 +30,14 @@ export const lateGameFixture: StateFixture = {
         { definitionId: "fusion_reactor", level: 2 },
         { definitionId: "rtg", level: 2 },
         { definitionId: "rtg", level: 2 },
+        { definitionId: "solar", level: 3 },
+        { definitionId: "solar", level: 3 },
         { definitionId: "greenhouse", level: 3 },
         { definitionId: "greenhouse", level: 3 },
+        { definitionId: "ice", level: 3 },
+        { definitionId: "ice", level: 3 },
+        { definitionId: "miner", level: 3 },
+        { definitionId: "miner", level: 3 },
         { definitionId: "lab", level: 3 },
         { definitionId: "lab", level: 3 },
         { definitionId: "turret", level: 1 },
@@ -43,7 +50,17 @@ export const lateGameFixture: StateFixture = {
     );
 
     const habCapacity = ColonistService.calculateCapacity(placed, BUILDING_DEFINITIONS);
-    const population = { ...store.getState().population, count: 55, capacity: habCapacity };
+    const population: ColonyPopulation = {
+      total: 24,
+      capacity: habCapacity,
+      roles: {
+        unassigned: 8,
+        engineer: 4,
+        farmer: 4,
+        miner: 4,
+        scientist: 4,
+      },
+    };
 
     const centerHab = placed.find((b) => b.id === "colony-center-hab") || placed[0];
     const spawnX = centerHab.position.x;
@@ -76,6 +93,14 @@ export const lateGameFixture: StateFixture = {
         status: "idle",
       },
       {
+        id: "fixture-late-drone-2",
+        definitionId: UNIT_IDS.DRONE_REPAIR,
+        position: { x: spawnX + 2.0, y: spawnY + 2.0, z: spawnZ - 3.0 },
+        heading: -Math.PI / 2,
+        currentHealth: 80,
+        status: "idle",
+      },
+      {
         id: "fixture-late-miner-1",
         definitionId: UNIT_IDS.CRAFT_MINER,
         position: { x: spawnX - 3.0, y: spawnY + 1.5, z: spawnZ + 4.0 },
@@ -83,10 +108,18 @@ export const lateGameFixture: StateFixture = {
         currentHealth: 100,
         status: "idle",
       },
+      {
+        id: "fixture-late-miner-2",
+        definitionId: UNIT_IDS.CRAFT_MINER,
+        position: { x: spawnX - 2.0, y: spawnY + 1.5, z: spawnZ - 4.0 },
+        heading: -Math.PI / 4,
+        currentHealth: 100,
+        status: "idle",
+      },
     ];
 
     const unlockedTechs = Object.values(TECH_IDS);
-    const terraforming = 45.0;
+    const terraforming = 52.0;
     const water = 150;
     const waterLevel = TerraformingService.calculateWaterLevel(water, terraforming, "normal");
 
@@ -97,16 +130,16 @@ export const lateGameFixture: StateFixture = {
       population,
       units,
       unlockedTechs,
-      researchPoints: 120,
+      researchPoints: 150,
       terraforming,
+      o2Accumulated: 85,
       waterLevel,
-      o2Accumulated: 380,
       resources: {
-        o2: 150,
-        power: 180,
-        water,
-        biomass: 120,
-        minerals: 600,
+        o2: 80,
+        power: 120,
+        water: 95,
+        biomass: 75,
+        minerals: 350,
       },
       gameSpeed: options?.speed ?? store.getState().gameSpeed,
       isPaused: options?.paused !== undefined ? options.paused : store.getState().isPaused,

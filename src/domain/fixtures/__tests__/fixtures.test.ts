@@ -101,5 +101,27 @@ describe("State Fixtures Registry", () => {
       expect(hasReachable).toBe(true);
     });
   });
+
+  const STABLE_FIXTURES = STATE_FIXTURES.filter((f) =>
+    ["early-eco", "mid-game", "late-game"].includes(f.id)
+  );
+
+  describe.each(STABLE_FIXTURES)("Stabilnosc ekonomiczna (300 tikow): $id ($label)", (fixture) => {
+    it("po 300 tikach alive === true i zaden zasob utrzymania nie spada do zera", () => {
+      fixture.apply(useGameStore);
+
+      for (let i = 0; i < 300; i++) {
+        useGameStore.getState().applyEconomyTick();
+      }
+
+      const state = useGameStore.getState();
+      expect(state.alive).toBe(true);
+      expect(state.resources.o2).toBeGreaterThan(0);
+      expect(state.resources.power).toBeGreaterThan(0);
+      expect(state.resources.water).toBeGreaterThan(0);
+      expect(state.resources.biomass).toBeGreaterThan(0);
+      expect(state.resources.minerals).toBeGreaterThan(0);
+    });
+  });
 });
 

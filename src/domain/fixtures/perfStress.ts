@@ -7,16 +7,18 @@ import { UNIT_IDS } from "../config/units";
 import type { PlacedUnit } from "../entities/Unit";
 import type { AlienState } from "../entities/Alien";
 
+import type { WeatherState } from "../services/WeatherService";
+
 export const perfStressFixture: StateFixture = {
   id: "perf-stress",
-  label: "Obciążenie",
-  description: "Maksymalna sensowna liczba budynków, jednostek i dekoracji w kadrze",
+  label: "Test wydajności",
+  description: "Test budżetu klatki: 30 budynków, 12 jednostek gracza, 4 jednostki obcych, burza pyłowa, pełna siatka",
   seed: 42,
-  difficulty: "normal",
-  gameMode: "exploration",
+  difficulty: "hard",
+  gameMode: "survival",
   apply: (store, options) => {
     const seed = options?.seed ?? 42;
-    store.getState().startNewGame("DEV: Obciążenie", "normal", "exploration", null, seed);
+    store.getState().startNewGame("DEV: Test wydajności", "hard", "survival", null, seed);
 
     const initialHab = store.getState().placed.find((b) => b.id === "colony-center-hab");
     const upgradedHab = initialHab ? [{ ...initialHab, level: 3 }] : [];
@@ -51,13 +53,14 @@ export const perfStressFixture: StateFixture = {
         { definitionId: "miner", level: 2 },
         { definitionId: "battery", level: 1 },
         { definitionId: "watertank", level: 1 },
+        { definitionId: "watertank", level: 1 },
         { definitionId: "silo", level: 1 },
       ],
       upgradedHab
     );
 
     const habCapacity = ColonistService.calculateCapacity(placed, BUILDING_DEFINITIONS);
-    const population = { ...store.getState().population, count: 70, capacity: habCapacity };
+    const population = { ...store.getState().population, total: 30, count: 30, capacity: habCapacity };
 
     const centerHab = placed.find((b) => b.id === "colony-center-hab") || placed[0];
     const spawnX = centerHab.position.x;
@@ -66,18 +69,18 @@ export const perfStressFixture: StateFixture = {
 
     const units: PlacedUnit[] = [];
     const unitConfigs = [
-      { def: UNIT_IDS.ROVER_COMBAT, count: 6, hp: 250 },
-      { def: UNIT_IDS.ROVER, count: 4, hp: 100 },
-      { def: UNIT_IDS.DRONE_REPAIR, count: 3, hp: 80 },
-      { def: UNIT_IDS.CRAFT_MINER, count: 3, hp: 100 },
-      { def: UNIT_IDS.CRAFT_HAULER, count: 2, hp: 120 },
+      { def: UNIT_IDS.ROVER_COMBAT, count: 4, hp: 250 },
+      { def: UNIT_IDS.ROVER, count: 3, hp: 100 },
+      { def: UNIT_IDS.DRONE_REPAIR, count: 2, hp: 80 },
+      { def: UNIT_IDS.CRAFT_MINER, count: 2, hp: 100 },
+      { def: UNIT_IDS.CRAFT_HAULER, count: 1, hp: 120 },
     ];
 
     let uIdx = 0;
     for (const cfg of unitConfigs) {
       for (let i = 0; i < cfg.count; i++) {
-        const angle = (uIdx / 18) * Math.PI * 2;
-        const radius = 3.0 + (uIdx % 4) * 1.5;
+        const angle = (uIdx / 12) * Math.PI * 2;
+        const radius = 3.0 + (uIdx % 3) * 1.5;
         units.push({
           id: `fixture-perf-unit-${uIdx + 1}`,
           definitionId: cfg.def,
@@ -93,6 +96,13 @@ export const perfStressFixture: StateFixture = {
         uIdx++;
       }
     }
+
+    const weather: WeatherState = {
+      type: "dust_storm",
+      intensity: 0.9,
+      remainingTicks: 60,
+      cooldownTicks: 0,
+    };
 
     const alienState: AlienState = {
       wave: 2,
@@ -143,6 +153,7 @@ export const perfStressFixture: StateFixture = {
       population,
       units,
       alienState,
+      weather,
       unlockedTechs,
       researchPoints: 200,
       terraforming: 30.0,

@@ -158,5 +158,54 @@ test.describe("Dev State Fixtures E2E", () => {
     expect(result.colonyName).toContain("Walka");
     expect(result.placedCount).toBeGreaterThanOrEqual(8);
   });
+
+  test("5. Sekwencja 10 kolejnych wejsc przez pasek adresu (wszystkie 7 fixture'ow) w tej samej karcie", async ({ page }) => {
+    const consoleLogs: string[] = [];
+    page.on("console", (msg) => {
+      consoleLogs.push(msg.text());
+    });
+
+    const fixturesToTest = [
+      "mid-game",
+      "combat",
+      "crisis",
+      "late-game",
+      "perf-stress",
+      "fresh",
+      "early-eco",
+      "mid-game",
+      "combat",
+      "crisis",
+    ];
+
+    for (const fixtureId of fixturesToTest) {
+      await page.goto(`/mars?fixture=${fixtureId}`);
+      await expect(page.locator(".hud-dock")).toBeVisible({ timeout: 15000 });
+
+      await page.waitForFunction(() => {
+        const r = (window as unknown as { __THREE_RENDERER__?: { info?: { render?: { triangles: number } } } }).__THREE_RENDERER__;
+        return (r?.info?.render?.triangles ?? 0) > 10000;
+      }, { timeout: 15000 });
+
+      const stats = await page.evaluate(() => {
+        const r = (window as unknown as { __THREE_RENDERER__?: { info?: { render?: { triangles: number; calls: number }; memory?: { geometries: number } } } }).__THREE_RENDERER__;
+        const s = (window as unknown as { useGameStore?: { getState: () => { colonyName: string; isDevFixture: boolean } } }).useGameStore?.getState();
+        return {
+          colonyName: s?.colonyName,
+          isDevFixture: s?.isDevFixture,
+          triangles: r?.info?.render?.triangles ?? 0,
+          calls: r?.info?.render?.calls ?? 0,
+          geometries: r?.info?.memory?.geometries ?? 0,
+        };
+      });
+
+      expect(stats.isDevFixture).toBe(true);
+      expect(stats.triangles).toBeGreaterThan(10000);
+      expect(stats.geometries).toBeGreaterThan(0);
+    }
+
+    const contextLost = consoleLogs.some((l) => l.includes("Context Lost"));
+    expect(contextLost).toBe(false);
+  });
 });
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { Route, Routes, useSearchParams, useNavigate, useLocation } from "react-router";
 import TopMenu from "../presentation/components/ui/TopMenu";
 import ModalManager from "../presentation/components/ui/ModalManager";
@@ -37,35 +37,42 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const [fixtureError, setFixtureError] = useState<{ notFoundId: string; available: { id: string; label: string }[] } | null>(null);
     const [isFixtureLoading, setIsFixtureLoading] = useState(false);
     const fixtureParam = searchParams.get("fixture");
+    const lastAppliedFixtureRef = useRef<string | null>(null);
+
+    const currentFixtureKey = fixtureParam ? `${fixtureParam}:${searchParams.get("seed") ?? ""}:${searchParams.get("speed") ?? ""}:${searchParams.get("paused") ?? ""}` : null;
 
     useEffect(() => {
-        if (import.meta.env.DEV && fixtureParam && !colonyName) {
-            setIsFixtureLoading(true);
-            import("../domain/fixtures").then(({ getFixtureById, STATE_FIXTURES }) => {
-                const fixture = getFixtureById(fixtureParam);
-                if (fixture) {
-                    const seedParam = searchParams.get("seed");
-                    const speedParam = searchParams.get("speed");
-                    const pausedParam = searchParams.get("paused");
+        if (import.meta.env.DEV && fixtureParam) {
+            if (currentFixtureKey && lastAppliedFixtureRef.current !== currentFixtureKey) {
+                setIsFixtureLoading(true);
+                lastAppliedFixtureRef.current = currentFixtureKey;
+                import("../domain/fixtures").then(({ getFixtureById, STATE_FIXTURES }) => {
+                    const fixture = getFixtureById(fixtureParam);
+                    if (fixture) {
+                        const seedParam = searchParams.get("seed");
+                        const speedParam = searchParams.get("speed");
+                        const pausedParam = searchParams.get("paused");
 
-                    const seed = seedParam ? Number(seedParam) : undefined;
-                    const speed = (speedParam === "1" || speedParam === "2" || speedParam === "4") ? Number(speedParam) as 1 | 2 | 4 : undefined;
-                    const paused = pausedParam !== null ? (pausedParam === "1" || pausedParam === "true") : undefined;
+                        const seed = seedParam ? Number(seedParam) : undefined;
+                        const speed = (speedParam === "1" || speedParam === "2" || speedParam === "4") ? Number(speedParam) as 1 | 2 | 4 : undefined;
+                        const paused = pausedParam !== null ? (pausedParam === "1" || pausedParam === "true") : undefined;
 
-                    fixture.apply(useGameStore, { seed, speed, paused });
-                    useGameStore.setState({ isDevFixture: true });
+                        fixture.apply(useGameStore, { seed, speed, paused });
+                        useGameStore.setState({ isDevFixture: true });
+                        setFixtureError(null);
+                        setIsFixtureLoading(false);
+                    } else {
+                        setFixtureError({
+                            notFoundId: fixtureParam,
+                            available: STATE_FIXTURES.map(f => ({ id: f.id, label: f.label })),
+                        });
+                        setIsFixtureLoading(false);
+                    }
+                }).catch((err: unknown) => {
+                    console.error("Failed to load fixtures:", err);
                     setIsFixtureLoading(false);
-                } else {
-                    setFixtureError({
-                        notFoundId: fixtureParam,
-                        available: STATE_FIXTURES.map(f => ({ id: f.id, label: f.label })),
-                    });
-                    setIsFixtureLoading(false);
-                }
-            }).catch((err: unknown) => {
-                console.error("Failed to load fixtures:", err);
-                setIsFixtureLoading(false);
-            });
+                });
+            }
             return;
         }
 
@@ -76,7 +83,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
                 open("colony-name");
             }
         }
-    }, [colonyName, navigate, open, resumeLocalGame, fixtureParam, searchParams, isFixtureLoading, fixtureError]);
+    }, [colonyName, navigate, open, resumeLocalGame, fixtureParam, searchParams, currentFixtureKey, isFixtureLoading, fixtureError]);
 
     if (fixtureError) {
         return (
