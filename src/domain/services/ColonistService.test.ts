@@ -105,8 +105,8 @@ describe("ColonistService", () => {
         roles: { unassigned: 10, engineer: 0, scientist: 0, farmer: 0, miner: 0 },
       };
       const morale = ColonistService.calculateMorale(
-        { o2: 10, power: 10, water: 10, biomass: 10 },
-        { power: 20, water: 20, biomass: 20 },
+        { o2: 10, power: 10, water: 10, biomass: 10, minerals: 10 },
+        { power: 20, water: 20, biomass: 20, minerals: 20 },
         pop
       );
 
@@ -125,8 +125,8 @@ describe("ColonistService", () => {
         roles: { unassigned: 10, engineer: 0, scientist: 0, farmer: 0, miner: 0 },
       };
       const morale = ColonistService.calculateMorale(
-        { o2: 0, power: 10, water: 0, biomass: 0 },
-        { power: 20, water: 20, biomass: 20 },
+        { o2: 0, power: 10, water: 0, biomass: 0, minerals: 0 },
+        { power: 20, water: 20, biomass: 20, minerals: 20 },
         pop
       );
 

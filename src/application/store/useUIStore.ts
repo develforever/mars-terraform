@@ -48,6 +48,10 @@ export interface UIState {
   selectedUnitIds: string[];
   controlGroups: Record<number, string[]>;
 
+  // Background Auto-Pause (B.5)
+  isAutoPaused: boolean;
+  autoPauseToast: boolean;
+
   // Actions
   setSelectedBuilding: (id: string | null) => void;
   setHoverCell: (cell: { x: number; z: number } | null) => void;
@@ -56,6 +60,7 @@ export interface UIState {
   cancelBuild: () => void;
   setInspectedInstance: (id: string | null) => void;
   toggleHUD: () => void;
+  setHUDVisible: (visible: boolean) => void;
   toggleDebugOverlay: () => void;
   setLaunching: (value: boolean) => void;
   toggleMinimap: () => void;
@@ -71,6 +76,8 @@ export interface UIState {
   clearUnitSelection: () => void;
   setControlGroup: (groupNumber: number, unitIds: string[]) => void;
   selectControlGroup: (groupNumber: number) => void;
+  setIsAutoPaused: (value: boolean) => void;
+  setAutoPauseToast: (value: boolean) => void;
   resetUI: () => void;
 }
 
@@ -81,7 +88,7 @@ export const useUIStore = create<UIState>()(
       buildMode: null,
       hoverCell: null,
       inspectedInstanceId: null,
-      isHUDVisible: false,
+      isHUDVisible: true,
       debugOverlayVisible: false,
       isLaunching: false,
       isMinimapVisible: true,
@@ -92,6 +99,8 @@ export const useUIStore = create<UIState>()(
       offscreenThreats: [],
       selectedUnitIds: [],
       controlGroups: {},
+      isAutoPaused: false,
+      autoPauseToast: false,
 
       setSelectedBuilding: (id) => set({ selectedBuildingId: id }),
       
@@ -112,6 +121,8 @@ export const useUIStore = create<UIState>()(
       setInspectedInstance: (id) => set({ inspectedInstanceId: id }),
 
       toggleHUD: () => set({ isHUDVisible: !get().isHUDVisible }),
+
+      setHUDVisible: (visible) => set({ isHUDVisible: visible }),
 
       toggleDebugOverlay: () => set({ debugOverlayVisible: !get().debugOverlayVisible }),
 
@@ -162,6 +173,10 @@ export const useUIStore = create<UIState>()(
         }
       },
 
+      setIsAutoPaused: (value) => set({ isAutoPaused: value }),
+
+      setAutoPauseToast: (value) => set({ autoPauseToast: value }),
+
       resetUI: () =>
         set({
           buildMode: null,
@@ -171,16 +186,15 @@ export const useUIStore = create<UIState>()(
           cameraPanRequest: null,
           selectedUnitIds: [],
           controlGroups: {},
+          isAutoPaused: false,
+          autoPauseToast: false,
         }),
     }),
     { name: "UIStore", enabled: true }
   )
 );
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && import.meta.env.DEV) {
   (window as unknown as { useUIStore: typeof useUIStore }).useUIStore = useUIStore;
 }
-
-
-
 

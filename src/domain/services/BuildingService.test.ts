@@ -176,14 +176,14 @@ describe("BuildingService - Building Upgrades & Logistics Units", () => {
   it("should validate canUpgrade based on resources and max level", () => {
     const b1: PlacedBuilding = { id: "b1", definitionId: "ice", position: { x: 0, y: 0, z: 0 }, condition: 100, level: 1 };
     
-    // Insufficient resources for Lvl 2 ({ power: 4, biomass: 2 })
-    const poorResources = { o2: 100, power: 1, water: 10, biomass: 0 };
+    // Insufficient resources for Lvl 2 ({ minerals: 23 })
+    const poorResources = { o2: 100, power: 100, water: 10, biomass: 10, minerals: 5 };
     const checkPoor = BuildingService.canUpgrade(b1, iceDef, poorResources);
     expect(checkPoor.canUpgrade).toBe(false);
     expect(checkPoor.error).toBe("Cannot afford upgrade");
 
     // Sufficient resources
-    const richResources = { o2: 100, power: 50, water: 50, biomass: 50 };
+    const richResources = { o2: 100, power: 50, water: 50, biomass: 50, minerals: 50 };
     const checkRich = BuildingService.canUpgrade(b1, iceDef, richResources);
     expect(checkRich.canUpgrade).toBe(true);
 
@@ -196,13 +196,12 @@ describe("BuildingService - Building Upgrades & Logistics Units", () => {
 
   it("should successfully upgrade building and return updated level and cost delta", () => {
     const b1: PlacedBuilding = { id: "b1", definitionId: "ice", position: { x: 0, y: 0, z: 0 }, condition: 100, level: 1 };
-    const resources = { o2: 100, power: 20, water: 20, biomass: 20 };
+    const resources = { o2: 100, power: 20, water: 20, biomass: 20, minerals: 50 };
 
     const result = BuildingService.upgradeBuilding(b1, iceDef, resources);
     expect(result.success).toBe(true);
     expect(result.building?.level).toBe(2);
-    expect(result.costDelta?.power).toBe(-4);
-    expect(result.costDelta?.biomass).toBe(-2);
+    expect(result.costDelta?.minerals).toBe(-23);
   });
 
   it("should detect distant deposits when extraction radius increases with level", () => {

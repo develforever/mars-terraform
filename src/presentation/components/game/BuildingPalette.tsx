@@ -41,10 +41,11 @@ const BuildingIcon = ({ id, name, color }: BuildingIconProps) => {
 };
 
 const RESOURCE_LABELS: Record<ResourceKey, string> = {
-    o2:      "O₂",
-    power:   "⚡",
-    water:   "💧",
-    biomass: "🧪",
+    o2:       "O₂",
+    power:    "⚡",
+    water:    "💧",
+    biomass:  "🧪",
+    minerals: "⛏️",
 };
 
 interface BuildingPaletteProps {
@@ -58,7 +59,7 @@ interface BuildingPaletteProps {
     onResourceShortage?: (missingResources: ResourceKey[]) => void;
 }
 
-export function BuildingPalette({
+export const BuildingPalette = ({
     resources,
     placedBuildings,
     selectedBuildingId,
@@ -67,7 +68,7 @@ export function BuildingPalette({
     onOpenResearch,
     onOpenDependencies,
     onResourceShortage,
-}: BuildingPaletteProps) {
+}: BuildingPaletteProps) => {
     const { t } = useTranslation();
 
     const CATEGORY_LABELS: Record<string, string> = {
@@ -159,10 +160,10 @@ export function BuildingPalette({
                                             </thead>
                                             <tbody>
                                                 {costEntries.map(([key, cost]) => (
-                                                    <tr key={key} className={resources[key] < cost ? "deficit" : ""}>
+                                                    <tr key={key} className={(resources[key] ?? 0) < cost ? "deficit" : ""}>
                                                         <td>{RESOURCE_LABELS[key]}</td>
                                                         <td>{cost}</td>
-                                                        <td>{resources[key].toFixed(1)}</td>
+                                                        <td>{(resources[key] ?? 0).toFixed(1)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>

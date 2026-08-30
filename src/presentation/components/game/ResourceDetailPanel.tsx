@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { ResourceKey } from "../../../domain/entities/Resources";
+import type { ResourceKey, Resources, ResourceCapacity } from "../../../domain/entities/Resources";
 import type { PlacedBuilding, BuildingDefinition } from "../../../domain/entities/Building";
 import type { ResourceDelta } from "../../../domain/entities/Resources";
 import type { DifficultyLevel } from "../../../domain/services/TerraformingService";
@@ -14,6 +14,7 @@ const CAPACITY_KEYS: Partial<Record<ResourceKey, boolean>> = {
     power: true,
     water: true,
     biomass: true,
+    minerals: true,
 };
 
 interface ResourceDetailPanelProps {
@@ -22,8 +23,8 @@ interface ResourceDetailPanelProps {
     definitions: Record<string, BuildingDefinition>;
     sunFactor: number;
     productionModifier: number;
-    resources: { o2: number; power: number; water: number; biomass: number };
-    capacity: { power: number; water: number; biomass: number };
+    resources: Resources;
+    capacity: ResourceCapacity;
     terraforming: number;
     o2Accumulated: number;
     difficulty: DifficultyLevel;
@@ -32,7 +33,7 @@ interface ResourceDetailPanelProps {
     onClose: () => void;
 }
 
-export function ResourceDetailPanel({
+export const ResourceDetailPanel = ({
     activePanel,
     placed,
     definitions,
@@ -46,13 +47,14 @@ export function ResourceDetailPanel({
     lastDelta,
     resourceNodes = [],
     onClose,
-}: ResourceDetailPanelProps) {
+}: ResourceDetailPanelProps) => {
     const { t } = useTranslation();
     const RESOURCE_LABELS: Record<ResourceKey, string> = {
-        o2:      t("hud.resource_labels.o2"),
-        power:   t("hud.resource_labels.power"),
-        water:   t("hud.resource_labels.water"),
-        biomass: t("hud.resource_labels.biomass"),
+        o2:       t("hud.resource_labels.o2"),
+        power:    t("hud.resource_labels.power"),
+        water:    t("hud.resource_labels.water"),
+        biomass:  t("hud.resource_labels.biomass"),
+        minerals: t("hud.resource_labels.minerals"),
     };
     if (activePanel === "terraforming") {
         return <TerraformingPanel
@@ -168,12 +170,12 @@ interface TerraformingPanelProps {
     terraforming: number;
     o2Accumulated: number;
     difficulty: DifficultyLevel;
-    resources: { o2: number; power: number; water: number; biomass: number };
+    resources: Resources;
     lastDelta?: ResourceDelta;
     onClose: () => void;
 }
 
-function TerraformingPanel({ terraforming, o2Accumulated, difficulty, resources, lastDelta, onClose }: TerraformingPanelProps) {
+const TerraformingPanel = ({ terraforming, o2Accumulated, difficulty, resources, lastDelta, onClose }: TerraformingPanelProps) => {
     const { t } = useTranslation();
     const targets = DIFFICULTY_TARGETS[difficulty];
 

@@ -14,7 +14,7 @@ describe("Megastructures Domain & Economy Engine (Phase 7.2)", () => {
     it("should correctly configure biosphere_dome megastructure", () => {
       const def = BUILDING_DEFINITIONS.biosphere_dome;
       expect(def).toBeDefined();
-      expect(def.cost).toEqual({ biomass: 200, water: 100 });
+      expect(def.cost).toEqual({ minerals: 600, biomass: 60 });
       expect(def.production?.power).toBe(-20);
       expect(def.production?.o2).toBe(2.0);
       expect(def.production?.biomass).toBe(1.5);
@@ -27,7 +27,7 @@ describe("Megastructures Domain & Economy Engine (Phase 7.2)", () => {
     it("should correctly configure atmosphere_factory megastructure", () => {
       const def = BUILDING_DEFINITIONS.atmosphere_factory;
       expect(def).toBeDefined();
-      expect(def.cost).toEqual({ biomass: 300, power: 50 });
+      expect(def.cost).toEqual({ minerals: 800, power: 40 });
       expect(def.production?.biomass).toBe(-0.2);
       expect(def.production?.power).toBe(-5);
       expect(def.production?.o2).toBe(1.2);
@@ -39,7 +39,7 @@ describe("Megastructures Domain & Economy Engine (Phase 7.2)", () => {
     it("should correctly configure fusion_reactor megastructure", () => {
       const def = BUILDING_DEFINITIONS.fusion_reactor;
       expect(def).toBeDefined();
-      expect(def.cost).toEqual({ biomass: 400 });
+      expect(def.cost).toEqual({ minerals: 1000, biomass: 80 });
       expect(def.production?.power).toBe(150);
       expect(def.production?.water).toBe(-0.1);
       expect(def.requiredTech).toBe("fusion_power");
@@ -149,8 +149,8 @@ describe("Megastructures Domain & Economy Engine (Phase 7.2)", () => {
 
     it("should run economy tick with active megastructures", () => {
       const colony: ColonyState = {
-        resources: { o2: 100, power: 50, water: 50, biomass: 50 },
-        capacity: { power: 500, water: 500, biomass: 500 },
+        resources: { o2: 100, power: 50, water: 50, biomass: 50, minerals: 500 },
+        capacity: { power: 500, water: 500, biomass: 500, minerals: 1000 },
         sun: 1.0,
         alive: true,
       };

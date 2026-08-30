@@ -1,10 +1,11 @@
-import { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useRef, useMemo, useEffect } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { PostProcessingComposer } from "./PostProcessingComposer";
 import * as THREE from "three";
 import { Mars } from "./Mars";
 import { Sun } from "./Sun";
+import { registerWebGLContext, unregisterWebGLContext } from "../../utils/webglContextTracker";
 
 const WARP_LINE_COUNT = 8000;
 
@@ -124,12 +125,125 @@ interface Scene3DProps {
 const CAM_POS: [number, number, number] = [52, -10, 44];
 const LOOK_AT = new THREE.Vector3(0, 6, 0);
 
+function StartSceneDiagnosticLogger() {
+    const three = useThree();
+    const gl = three?.gl;
+    const frameStatsRef = useRef({ calls: 0, triangles: 0 });
+
+    useEffect(() => {
+        if (gl?.info) {
+            gl.info.autoReset = false;
+        }
+        if (gl?.getContext) {
+            registerWebGLContext(gl.getContext());
+        }
+        return () => {
+            if (gl?.getContext) {
+                unregisterWebGLContext(gl.getContext());
+            }
+        };
+    }, [gl]);
+
+    useFrame(() => {
+        if (gl?.info) {
+            gl.info.reset();
+        }
+    }, -1);
+
+    useFrame(() => {
+        if (gl?.info?.render) {
+            frameStatsRef.current.calls = gl.info.render.calls;
+            frameStatsRef.current.triangles = gl.info.render.triangles;
+        }
+    }, 2);
+
+    useEffect(() => {
+        const startTime = Date.now();
+        const interval = setInterval(() => {
+            const sec = Math.round((Date.now() - startTime) / 1000);
+            const calls = frameStatsRef.current.calls;
+            const triangles = frameStatsRef.current.triangles;
+            const geometries = gl?.info?.memory?.geometries || 0;
+            const textures = gl?.info?.memory?.textures || 0;
+            const programs = gl?.info?.programs?.length ?? 0;
+            console.log(
+                `[DIAG-START +${sec}s] ` +
+                `geometries=${geometries} ` +
+                `textures=${textures} ` +
+                `programs=${programs} ` +
+                `calls=${calls} ` +
+                `triangles=${triangles}`
+            );
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [gl]);
+
+    return null;
+}
+
+function StartSceneCleanup() {
+    const three = useThree();
+    const gl = three?.gl;
+    const scene = three?.scene;
+
+    useEffect(() => {
+        return () => {
+            if (!gl || !scene) return;
+            // 1. Traverse scene and dispose all geometries, materials, and textures
+            if (typeof scene.traverse === "function") {
+                scene.traverse((obj) => {
+                    const mesh = obj as THREE.Mesh;
+                    if (mesh.geometry) {
+                        mesh.geometry.dispose();
+                    }
+                    if (mesh.material) {
+                        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                        for (const mat of materials) {
+                            for (const key of Object.keys(mat)) {
+                                const val = (mat as unknown as Record<string, unknown>)[key];
+                                if (val && typeof val === "object" && "isTexture" in val && typeof (val as THREE.Texture).dispose === "function") {
+                                    (val as THREE.Texture).dispose();
+                                }
+                            }
+                            mat.dispose();
+                        }
+                    }
+                });
+            }
+
+            // 2. Dispose render lists and renderer
+            gl.renderLists?.dispose();
+            gl.dispose();
+
+            // 3. Explicitly release WebGL context slot via WEBGL_lose_context extension
+            try {
+                const rawContext = gl.getContext ? gl.getContext() : null;
+                unregisterWebGLContext(rawContext);
+                const loseContextExt = rawContext?.getExtension?.("WEBGL_lose_context");
+                if (loseContextExt) {
+                    loseContextExt.loseContext();
+                } else if (typeof gl.forceContextLoss === "function") {
+                    gl.forceContextLoss();
+                }
+            } catch (e) {
+                console.warn("StartScene WebGL context cleanup error:", e);
+            }
+        };
+    }, [gl, scene]);
+
+    return null;
+}
+
 export function StartScene3D({ onClick, warpSpeed = false }: Scene3DProps) {
     return (
         <Canvas
             className="main-canvas"
+            gl={{ antialias: false, powerPreference: "high-performance" }}
+            dpr={[1, 1.5]}
             camera={{ fov: 45, position: CAM_POS, near: 0.1, far: 250000 }}
         >
+            <StartSceneDiagnosticLogger />
+            <StartSceneCleanup />
             <World onClick={onClick} warpSpeed={warpSpeed} />
         </Canvas>
     );

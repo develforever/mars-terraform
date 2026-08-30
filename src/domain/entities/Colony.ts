@@ -10,14 +10,16 @@ export interface ColonyState {
 export const INITIAL_COLONY_STATE: ColonyState = {
   resources: {
     o2: 5,
-    power: 5,
-    water: 3,
-    biomass: 1,
+    power: 8,
+    water: 6,
+    biomass: 3,
+    minerals: 60,
   },
   capacity: {
-    power: 10,
-    water: 10,
-    biomass: 10,
+    power: 20,
+    water: 20,
+    biomass: 20,
+    minerals: 200,
   },
   sun: 1,
   alive: true,

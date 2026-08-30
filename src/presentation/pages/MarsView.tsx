@@ -6,9 +6,10 @@ export default function MarsView() {
     usePageTitle("Play");
 
     return (
-        <>
+        <div className="w-full h-full relative">
             <Scene3D />
             <HUD />
-        </>
+        </div>
     );
 }
+

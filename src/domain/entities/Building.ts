@@ -7,7 +7,7 @@ export interface NeighborBonus {
   description: string;
 }
 
-export type ConnectionType = "power" | "water" | "biomass" | "data";
+export type ConnectionType = "power" | "water" | "biomass" | "data" | "minerals";
 
 export interface BuildingUpgrade {
   level: number;

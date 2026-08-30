@@ -70,12 +70,14 @@ export interface SavedResources {
   power: number;
   water: number;
   biomass: number;
+  minerals: number;
 }
 
 export interface SavedCapacity {
   power: number;
   water: number;
   biomass: number;
+  minerals: number;
 }
 
 export interface SavedBuilding {

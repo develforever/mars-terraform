@@ -32,7 +32,7 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
     expect(production.power).toBeCloseTo(-0.20, 4);
   });
 
-  it("should boost biomass production for miner adjacent to mineral deposits", () => {
+  it("should boost minerals production for miner adjacent to mineral deposits", () => {
     const neighbors = hexNeighbors(0, 0);
     const placed: PlacedBuilding[] = [
       { id: "miner-1", definitionId: "miner", position: { x: wx, y: 0, z: wz }, condition: 100 },
@@ -42,8 +42,8 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
       { id: "m2", type: "minerals", pos: neighbors[0], amount: 1000, richness: "med", model: "mineral_pile_01" },
     ];
 
-    // Miner base biomass is 0.40, power is -0.30
-    // 2 deposits -> 2.0x multiplier -> biomass = 0.80
+    // Miner base minerals is 0.80, power is -0.30
+    // 2 deposits -> 2.0x multiplier -> minerals = 1.60
     const production = EconomyService.calculateProduction(
       placed,
       BUILDING_DEFINITIONS,
@@ -52,7 +52,7 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
       deposits
     );
 
-    expect(production.biomass).toBeCloseTo(0.80, 4);
+    expect(production.minerals).toBeCloseTo(1.60, 4);
     expect(production.power).toBeCloseTo(-0.30, 4);
   });
 
@@ -96,8 +96,8 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
 
   it("should run economy tick and update resources with deposit bonuses and depletion", () => {
     const colony: ColonyState = {
-      resources: { o2: 10, power: 20, water: 10, biomass: 5 },
-      capacity: { power: 100, water: 100, biomass: 100 },
+      resources: { o2: 10, power: 20, water: 10, biomass: 5, minerals: 50 },
+      capacity: { power: 100, water: 100, biomass: 100, minerals: 500 },
       sun: 1.0,
       alive: true,
     };
@@ -153,8 +153,8 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
   describe("Emergency Life Support Buffer Mechanics", () => {
     it("should activate emergency life support without immediate gameOver when O2 drops to 0", () => {
       const colony: ColonyState = {
-        resources: { o2: 0.02, power: 10, water: 10, biomass: 10 },
-        capacity: { power: 100, water: 100, biomass: 100 },
+        resources: { o2: 0.02, power: 10, water: 10, biomass: 10, minerals: 50 },
+        capacity: { power: 100, water: 100, biomass: 100, minerals: 500 },
         sun: 1.0,
         alive: true,
       };
@@ -183,8 +183,8 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
 
     it("should decrement secondsRemaining on consecutive O2 depleted ticks", () => {
       const colony: ColonyState = {
-        resources: { o2: 0, power: 10, water: 10, biomass: 10 },
-        capacity: { power: 100, water: 100, biomass: 100 },
+        resources: { o2: 0, power: 10, water: 10, biomass: 10, minerals: 50 },
+        capacity: { power: 100, water: 100, biomass: 100, minerals: 500 },
         sun: 1.0,
         alive: true,
       };
@@ -212,8 +212,8 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
 
     it("should trigger gameOver when secondsRemaining reaches 0", () => {
       const colony: ColonyState = {
-        resources: { o2: 0, power: 10, water: 10, biomass: 10 },
-        capacity: { power: 100, water: 100, biomass: 100 },
+        resources: { o2: 0, power: 10, water: 10, biomass: 10, minerals: 50 },
+        capacity: { power: 100, water: 100, biomass: 100, minerals: 500 },
         sun: 1.0,
         alive: true,
       };
@@ -240,8 +240,8 @@ describe("EconomyService - Extraction & Deposit Mechanics", () => {
 
     it("should deactivate emergency life support and reset timer to 60s when O2 is restored", () => {
       const colony: ColonyState = {
-        resources: { o2: 0, power: 10, water: 10, biomass: 10 },
-        capacity: { power: 100, water: 100, biomass: 100 },
+        resources: { o2: 0, power: 10, water: 10, biomass: 10, minerals: 50 },
+        capacity: { power: 100, water: 100, biomass: 100, minerals: 500 },
         sun: 1.0,
         alive: true,
       };

@@ -11,6 +11,7 @@ describe("QuestService", () => {
     power: 50,
     water: 50,
     biomass: 10,
+    minerals: 60,
   };
 
   it("initializes quests with correct initial statuses", () => {

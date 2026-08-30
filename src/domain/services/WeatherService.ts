@@ -65,6 +65,8 @@ export class WeatherService {
   static readonly MAX_IMPACTS = 3;
   /** Minimum ticks between any two hazard events */
   static readonly HAZARD_COOLDOWN = 120;
+  /** Okres ochronny na starcie gry — brak katastrof zanim gracz postawi pierwsze budynki (180 ticks = 3 minuty) */
+  static readonly INITIAL_GRACE_TICKS = 180;
   /** Half-extents of the terrain grid */
   static readonly HALF_X = 50;
   static readonly HALF_Z = 25;
@@ -142,9 +144,8 @@ export class WeatherService {
     }
 
     // Phase: Clear — tick down cooldown, then chance to trigger hazard
-    const cooldownTicks = Math.max(0, (currentWeather.cooldownTicks ?? 0) - 1);
-    if (cooldownTicks > 0) {
-      return { ...currentWeather, cooldownTicks };
+    if ((currentWeather.cooldownTicks ?? 0) > 0) {
+      return { ...currentWeather, cooldownTicks: (currentWeather.cooldownTicks ?? 0) - 1 };
     }
 
     if (hazardsOn && Math.random() < this.SANDSTORM_CHANCE * sandstormMult) {
@@ -173,7 +174,7 @@ export class WeatherService {
       };
     }
 
-    return { ...currentWeather, cooldownTicks };
+    return currentWeather;
   }
 
   static generateImpactZones(count?: number): ImpactZone[] {

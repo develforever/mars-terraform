@@ -124,10 +124,11 @@ const pl = {
                 defense:        "Obrona",
             },
             resource_labels: {
-                o2:      "💨 Tlen (O₂)",
-                power:   "⚡ Energia",
-                water:   "💧 Woda",
-                biomass: "🧪 Biomasa",
+                o2:       "💨 Tlen (O₂)",
+                power:    "⚡ Energia",
+                water:    "💧 Woda",
+                biomass:  "🧪 Biomasa",
+                minerals: "⛏️ Minerały",
             },
             win: {
                 title:   "🌍 MARS OŻYWA!",

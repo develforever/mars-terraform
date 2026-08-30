@@ -145,18 +145,18 @@ describe("ResearchService.isBuildingUnlocked", () => {
   });
 
   it("returns false for buildings with requiredTech that is not unlocked", () => {
-    // 'greenhouse' requires 'advanced_hab'
+    // 'o2-gen' requires 'o2_synthesis'
     expect(
-      ResearchService.isBuildingUnlocked("greenhouse", BUILDING_DEFINITIONS, [TECH_IDS.BASIC_STRUCTURES])
+      ResearchService.isBuildingUnlocked("o2-gen", BUILDING_DEFINITIONS, [TECH_IDS.BASIC_STRUCTURES])
     ).toBe(false);
   });
 
   it("returns true for buildings with requiredTech that IS unlocked", () => {
     expect(
       ResearchService.isBuildingUnlocked(
-        "greenhouse",
+        "o2-gen",
         BUILDING_DEFINITIONS,
-        [TECH_IDS.BASIC_STRUCTURES, TECH_IDS.ADVANCED_HAB]
+        [TECH_IDS.BASIC_STRUCTURES, TECH_IDS.O2_SYNTHESIS]
       )
     ).toBe(true);
   });
