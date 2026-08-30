@@ -85,17 +85,88 @@ const DiagnosticLogger = () => {
                 `triangles=${triangles}`
             );
         }, 5000);
-        return () => clearInterval(interval);
+
+        return () => {
+            clearInterval(interval);
+            if (typeof window !== "undefined" && (window as unknown as { __THREE_RENDERER__?: THREE.WebGLRenderer }).__THREE_RENDERER__ === gl) {
+                (window as unknown as { __THREE_RENDERER__?: THREE.WebGLRenderer }).__THREE_RENDERER__ = undefined;
+            }
+        };
     }, [gl]);
     return null;
 };
+
+function SceneCleanup({ isUnmountingRef }: { isUnmountingRef: React.RefObject<boolean> }) {
+    const three = useThree();
+    const gl = three?.gl;
+    const scene = three?.scene;
+
+    useEffect(() => {
+        return () => {
+            if (!gl || !scene) return;
+            isUnmountingRef.current = true;
+
+            // 1. Traverse scene and dispose all geometries, materials, and textures
+            if (typeof scene.traverse === "function") {
+                scene.traverse((obj) => {
+                    const mesh = obj as THREE.Mesh;
+                    if (mesh.geometry) {
+                        mesh.geometry.dispose();
+                    }
+                    if (mesh.material) {
+                        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                        for (const mat of materials) {
+                            for (const key of Object.keys(mat)) {
+                                const val = (mat as unknown as Record<string, unknown>)[key];
+                                if (val && typeof val === "object" && "isTexture" in val && typeof (val as THREE.Texture).dispose === "function") {
+                                    (val as THREE.Texture).dispose();
+                                }
+                            }
+                            mat.dispose();
+                        }
+                    }
+                });
+            }
+
+            // 2. Dispose render lists and renderer
+            gl.renderLists?.dispose?.();
+            if (typeof gl.dispose === "function") {
+                gl.dispose();
+            }
+
+            // 3. Explicitly release WebGL context slot via WEBGL_lose_context extension
+            try {
+                const rawContext = gl.getContext ? gl.getContext() : null;
+                unregisterWebGLContext(rawContext);
+                const loseContextExt = rawContext?.getExtension?.("WEBGL_lose_context");
+                if (loseContextExt) {
+                    loseContextExt.loseContext();
+                } else if (typeof gl.forceContextLoss === "function") {
+                    gl.forceContextLoss();
+                }
+            } catch (e) {
+                console.warn("Scene3D WebGL context cleanup error:", e);
+            }
+        };
+    }, [gl, scene, isUnmountingRef]);
+
+    return null;
+}
 
 export const Scene3D = () => {
     const [sceneKey, setSceneKey] = useState(0);
     const [contextLost, setContextLost] = useState(false);
     const [tooFrequentLoss, setTooFrequentLoss] = useState(false);
     const lastLossTimeRef = useRef<number>(0);
+    const isUnmountingRef = useRef<boolean>(false);
     const saveGame = useGameStore((state) => state.saveGame);
+
+    useEffect(() => {
+        isUnmountingRef.current = false;
+        return () => {
+            isUnmountingRef.current = true;
+        };
+    }, []);
 
     const handleSaveAndReload = useCallback(() => {
         saveGame();
@@ -137,8 +208,11 @@ export const Scene3D = () => {
                 onCreated={({ gl }) => {
                     if (typeof window !== "undefined") {
                         (window as unknown as { __THREE_RENDERER__?: THREE.WebGLRenderer }).__THREE_RENDERER__ = gl;
+                        (window as unknown as { __SCENE_MOUNT_COUNT__?: number }).__SCENE_MOUNT_COUNT__ =
+                            ((window as unknown as { __SCENE_MOUNT_COUNT__?: number }).__SCENE_MOUNT_COUNT__ ?? 0) + 1;
                     }
                     gl.domElement.addEventListener('webglcontextlost', (e) => {
+                        if (isUnmountingRef.current) return;
                         e.preventDefault();
                         console.warn('WebGL context lost - attempting recovery');
                         const now = Date.now();
@@ -149,6 +223,7 @@ export const Scene3D = () => {
                         setContextLost(true);
                     });
                     gl.domElement.addEventListener('webglcontextrestored', () => {
+                        if (isUnmountingRef.current) return;
                         console.info('WebGL context restored - rebuilding scene graph');
                         setContextLost(false);
                         setSceneKey((prev) => prev + 1);
@@ -163,6 +238,7 @@ export const Scene3D = () => {
                     far: 1000
                 }}>
                 <DiagnosticLogger />
+                <SceneCleanup isUnmountingRef={isUnmountingRef} />
                 <World />
             </Canvas>
             <Loader />

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Route, Routes, useSearchParams, useNavigate, useLocation } from "react-router";
 import TopMenu from "../presentation/components/ui/TopMenu";
 import ModalManager from "../presentation/components/ui/ModalManager";
@@ -35,17 +35,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [fixtureError, setFixtureError] = useState<{ notFoundId: string; available: { id: string; label: string }[] } | null>(null);
-    const [isFixtureLoading, setIsFixtureLoading] = useState(false);
-    const fixtureParam = searchParams.get("fixture");
-    const lastAppliedFixtureRef = useRef<string | null>(null);
+    const [appliedFixtureKey, setAppliedFixtureKey] = useState<string | null>(null);
+    const [resumeAttempted, setResumeAttempted] = useState(false);
 
+    const fixtureParam = searchParams.get("fixture");
     const currentFixtureKey = fixtureParam ? `${fixtureParam}:${searchParams.get("seed") ?? ""}:${searchParams.get("speed") ?? ""}:${searchParams.get("paused") ?? ""}` : null;
+
+    const isFixtureHydrating = Boolean(import.meta.env.DEV && currentFixtureKey !== null && appliedFixtureKey !== currentFixtureKey);
+    const isPlayerResuming = Boolean(!fixtureParam && !colonyName && !resumeAttempted);
+    const isHydrating = isFixtureHydrating || isPlayerResuming;
 
     useEffect(() => {
         if (import.meta.env.DEV && fixtureParam) {
-            if (currentFixtureKey && lastAppliedFixtureRef.current !== currentFixtureKey) {
-                setIsFixtureLoading(true);
-                lastAppliedFixtureRef.current = currentFixtureKey;
+            if (currentFixtureKey && appliedFixtureKey !== currentFixtureKey) {
                 import("../domain/fixtures").then(({ getFixtureById, STATE_FIXTURES }) => {
                     const fixture = getFixtureById(fixtureParam);
                     if (fixture) {
@@ -60,30 +62,31 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
                         fixture.apply(useGameStore, { seed, speed, paused });
                         useGameStore.setState({ isDevFixture: true });
                         setFixtureError(null);
-                        setIsFixtureLoading(false);
+                        setAppliedFixtureKey(currentFixtureKey);
                     } else {
                         setFixtureError({
                             notFoundId: fixtureParam,
                             available: STATE_FIXTURES.map(f => ({ id: f.id, label: f.label })),
                         });
-                        setIsFixtureLoading(false);
+                        setAppliedFixtureKey(currentFixtureKey);
                     }
                 }).catch((err: unknown) => {
                     console.error("Failed to load fixtures:", err);
-                    setIsFixtureLoading(false);
+                    setAppliedFixtureKey(currentFixtureKey);
                 });
             }
             return;
         }
 
-        if (!colonyName && !isFixtureLoading && !fixtureError) {
+        if (!fixtureParam && !colonyName && !resumeAttempted) {
+            setResumeAttempted(true);
             const resumed = resumeLocalGame();
             if (!resumed) {
                 navigate("/", { replace: true });
                 open("colony-name");
             }
         }
-    }, [colonyName, navigate, open, resumeLocalGame, fixtureParam, searchParams, currentFixtureKey, isFixtureLoading, fixtureError]);
+    }, [colonyName, navigate, open, resumeLocalGame, fixtureParam, searchParams, currentFixtureKey, appliedFixtureKey, resumeAttempted]);
 
     if (fixtureError) {
         return (
@@ -125,12 +128,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         );
     }
 
-    if (!colonyName) {
-        if (import.meta.env.DEV && fixtureParam) {
-            return <MarsLoadingFallback />;
-        }
-        const resumed = resumeLocalGame();
-        if (!resumed) return null;
+    if (isHydrating || !colonyName) {
+        return <MarsLoadingFallback />;
     }
 
     return <>{children}</>;

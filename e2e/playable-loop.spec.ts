@@ -258,6 +258,23 @@ test.describe("Playable Game Loop E2E Test", () => {
     expect(stateAfterReload.minerals).toBe(stateBeforeReload.minerals);
     expect(stateAfterReload.placedCount).toBe(stateBeforeReload.placedCount);
 
+    // Wait for at least one rendered frame and verify 3D scene rehydration
+    await page.waitForFunction(() => {
+      const win = window as unknown as GlobalStoreWindow;
+      const r = win.__THREE_RENDERER__;
+      return (r?.info?.render?.triangles ?? 0) > 10000 && (r?.info?.memory?.geometries ?? 0) > 100;
+    }, { timeout: 15000 });
+
+    const reloadRenderStats = await page.evaluate(() => {
+      const win = window as unknown as GlobalStoreWindow;
+      return {
+        triangles: win.__THREE_RENDERER__?.info?.render?.triangles ?? 0,
+        geometries: win.__THREE_RENDERER__?.info?.memory?.geometries ?? 0,
+      };
+    });
+    expect(reloadRenderStats.triangles).toBeGreaterThan(10000);
+    expect(reloadRenderStats.geometries).toBeGreaterThan(100);
+
     // Verify right rail container exists
     const rightRail = page.locator(".hud-right-rail");
     await expect(rightRail).toBeAttached();
