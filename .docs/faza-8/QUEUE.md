@@ -24,11 +24,12 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
 | T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | DONE(06cc25c) |
 | T3b | Błędy biznesowe → 4xx (`HttpError`), bez 500 dla złego hasła itp. | T3 | — | general-purpose | `src_backend/errors/HttpError.ts` (nowy), `src_backend/service/{MapService,authService,emailService,oauthService}.ts`, `src_backend/controller/{Users,Auth,Groups}Controller.ts` + testy | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:06Z) |
-| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | REVIEW(c69dfd8; obraz Docker NIEZWERYFIKOWANY) |
+| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | REVIEW(c69dfd8; build obrazu zablokowany w sesji: 403 dl-cdn.alpinelinux.org, więc weryfikacja w CI T8) |
+| T4b | Odchudzenie prod deps: paczki tylko frontendowe → `devDependencies` | T4 | zgoda ✔ | general-purpose | `package.json` (sekcje deps), `package-lock.json` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:17Z) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
-| T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | TODO |
-| T7 | Skrypt migracji produkcyjnych (Turso) | T4 | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | TODO |
-| T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | TODO |
+| T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:17Z) |
+| T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | TODO |
+| T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:17Z) |
 | T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
 
 ### Równoległość (macierz konfliktów)
@@ -36,7 +37,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 - Fala 1 (równolegle, rozłączne pliki): **T0a ∥ T1 ∥ T2**
 - Fala 2: **T3** (po T2) ∥ **T5** (po T1)
 - Fala 3: **T4 ∥ T3b** (po T3, rozłączne pliki)
-- Fala 4 (równolegle): **T6 ∥ T7 ∥ T8** (po T4). Uwaga: T7 i T8 mogą oba dotykać `package.json`, więc T7 przed T8, jeśli T8 dodaje skrypty.
+- Fala 4 (równolegle): **T4b ∥ T6 ∥ T8** (T4 w REVIEW, bo obraz weryfikuje CI z T8). Potem **T7** (po T4b, wspólny `package.json`). T8 nie dotyka `package.json`.
 - Fala 5: **T9**
 
 Zadania ze wspólnym plikiem NIGDY nie idą równolegle. Równoległe subagenty pracują w `isolation: "worktree"`,
@@ -69,6 +70,9 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-24T17:06Z · nadzorca · T3b · NOWE zadanie: serwisy rzucają zwykły `Error` (np. „Invalid credentials”), więc 500, a po T3 w prod „Internal Server Error”. Regresja UX logowania przed wdrożeniem. Blokuje T9. · —
 - 2026-09-24T17:06Z · nadzorca · T4, T3b · Start równoległy (worktree resetowane do HEAD brancha). · —
 - 2026-09-24T17:15Z · nadzorca · T4 · Scalono. Gate: 601 / 102, lint/tsc/build OK. `docker build/run` NIEZWERYFIKOWANE (subagent: brak daemona; build nadzorcy przerwany przez użytkownika). Czeka na wybór: build w kontenerze sesji albo lokalnie na Docker Desktop. Otwarte: rozmiar obrazu (frontendowe paczki w `dependencies`, zmiana `package.json` wymaga zgody), brak handlera SIGTERM w `index.ts` (jest tini). · c69dfd8
+- 2026-09-24T17:17Z · nadzorca · T4 · Próba `docker build` w sesji (lokalny dockerd): `apk` → HTTP 403 dla `dl-cdn.alpinelinux.org` (polityka sieci środowiska). Obejścia nie stosowano. Użytkownik może dodać domenę w ustawieniach środowiska. Weryfikacja obrazu przeniesiona do joba CI w T8. · —
+- 2026-09-24T17:17Z · nadzorca · T4b · NOWE zadanie (zgoda użytkownika na zmianę `package.json`). · —
+- 2026-09-24T17:17Z · nadzorca · T4b, T6, T8 · Start równoległy. · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
