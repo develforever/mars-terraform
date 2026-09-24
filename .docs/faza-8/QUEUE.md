@@ -3,6 +3,8 @@
 > Jedyne źródło prawdy o postępie. Nadzorca aktualizuje ten plik i commituje go
 > **po każdej zmianie statusu** (commit + push), żeby przerwana sesja nie gubiła stanu.
 
+**STATUS KOLEJKI: PAUZA** (od 2026-09-24T17:45Z; wznowienie tylko na polecenie użytkownika)
+
 Branch roboczy: `claude/compassionate-hawking-nc14kk` (bazuje na `main` @ `f119afb`)
 Baseline (zmierzony 2026-09-24T16:46Z, HEAD `0b7499c`, Node v22.22.2): **573 front / 33 back / 606 razem**, lint 0, tsc 0, build OK.
 
@@ -90,6 +92,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-24T17:41Z · nadzorca · T7 · Scalono. Gate: 613 / 108 back (+6), lint/tsc/build OK. `dist_backend/{index,migrate}.js` + wspólny chunk. `release_command` aktywny w `fly.toml`. Migracja wymaga `jwt_secret` (config), do rozważenia po T3b. · b75b526
 - 2026-09-24T17:41Z · nadzorca · T7b · BLOKER WDROŻENIA (zweryfikowany przez nadzorcę): journal zawiera tylko `0000` (6 tabel); `maps` bez migracji; `0001_colonies.sql` poza journalem, więc ignorowany. Świeża baza nie ma `maps`/`colonies`. Nowe zadanie T7b; czeka na D10, D11. · —
 - 2026-09-24T17:42Z · nadzorca · T7b · D10 = tak, D11 = push. Start T7b (drizzle-kit 0.31.x + migracja 0001 z `maps`, `colonies`). · —
+- 2026-09-24T17:45Z · nadzorca · — · PAUZA na polecenie użytkownika. Nowe zadania nie są uruchamiane, a wyniki nie są scalane. W toku (commity tylko lokalnie w worktree agentów, NIE na zdalnym branchu): T3b, T8, T7b. Przy wznowieniu w nowej sesji worktree nie będą dostępne, więc te 3 zadania trzeba uruchomić od nowa (ustawić READY). · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
