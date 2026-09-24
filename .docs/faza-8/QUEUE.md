@@ -18,13 +18,13 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 
 | ID | Zadanie | Zależy od | Decyzja | Agent | Pliki (zakres wyłączny) | Status |
 |----|---------|-----------|---------|-------|--------------------------|--------|
-| T0a | Untrack `.env` + `.env.example` | — | — | general-purpose | `.env`, `.env.example`, `.gitignore` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:46Z) |
-| T0b | Rotacja `turso_token`, `jwt_secret` (bez przepisywania historii, D4) | T0a | D4 ✔ | **człowiek** | — | HUMAN |
-| T1 | Resolver `VITE_API_URL` + podmiana fetchy | — | — | general-purpose | `src/application/config/apiConfig.ts`, `src/vite-env.d.ts`, `mapApiService.ts`, `authService.ts`, `useGameStore.ts`, `LoadGameModal.tsx`, `ColonyNameModal.tsx` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:46Z) |
+| T0a | Untrack `.env` + `.env.example` | — | — | general-purpose | `.env`, `.env.example`, `.gitignore` | DONE(17c32ee) |
+| T0b | Rotacja `turso_token`, `jwt_secret` (bez przepisywania historii, D4) | T0a | D4 ✔ | **człowiek** | — | HUMAN (odblokowane, T0a DONE) |
+| T1 | Resolver `VITE_API_URL` + podmiana fetchy | — | — | general-purpose | `src/application/config/apiConfig.ts`, `src/vite-env.d.ts`, `mapApiService.ts`, `authService.ts`, `useGameStore.ts`, `LoadGameModal.tsx`, `ColonyNameModal.tsx` | DONE(fee17c2) |
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:46Z) |
 | T3 | Tryb API-only + health z DB | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts` | TODO |
 | T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | TODO |
-| T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | TODO |
+| T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:54Z) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | TODO |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4 | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | TODO |
 | T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | TODO |
@@ -58,6 +58,9 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-24 · plan · — · Utworzono PLAN.md / QUEUE.md / SUPERVISOR_PROMPT.md. Odkryto śledzony `.env` z sekretami (P0 → T0). · 2cba36c
 - 2026-09-24 · plan · — · Użytkownik podjął decyzje D1–D5; T5–T8 odblokowane (TODO, czekają tylko na zależności). · 0b7499c
 - 2026-09-24T16:46Z · nadzorca · — · Baseline gate zielony (606 testów). Start fali 1: T0a ∥ T1 ∥ T2 (worktree). · —
+- 2026-09-24T16:54Z · nadzorca · T0a · Scalono (cherry-pick z worktree). Gate: 573/33, lint/tsc/build OK. `.env` zostaje lokalnie, ignorowany. · 17c32ee
+- 2026-09-24T16:54Z · nadzorca · T1 · Scalono. Gate: 591 front (+18) / 33 back, lint/tsc/build OK. Odstępstwo: sprawdzenie grep zastąpione typem `ApiPath` (uzasadnione). · fee17c2
+- 2026-09-24T16:54Z · nadzorca · T5 · Start (zależność T1 DONE). Uwaga: worktree agentów bazują na `main` (f119afb), więc scalanie przez cherry-pick. · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -65,3 +68,6 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Wersjonowanie nazw assetów w `public/` (umożliwi `immutable` cache).
 - Hardcodowane hosty ngrok w `vite.config.ts` `server.allowedHosts`.
 - Rozjazd wersji Node: `.nvmrc` v25, `Dockerfile` node 24, backend target node22.
+- `useGameStore.ts`: `/api/colony/${name}` bez `encodeURIComponent` (w `LoadGameModal.tsx` jest kodowane).
+- Walidacja `VITE_API_URL` przy starcie aplikacji (dziś błędna wartość wychodzi dopiero przy pierwszym żądaniu).
+- `.dockerignore` monolitu nie wyklucza `.env` / `local.db*` (T4 obejmie obraz API).
