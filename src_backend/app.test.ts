@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
@@ -28,9 +28,12 @@ vi.mock("./config", () => ({
 }));
 
 import { createApp, type CreateAppOptions } from "./app";
+import { db } from "./data-source";
 
 const ALLOWED = "https://mars-terraform.vercel.app";
 const INDEX_HTML = "<!doctype html><title>spa</title>";
+const VERSION = "9.9.9-test";
+const SECRET_DETAIL = "libsql://secret-host.turso.io password=hunter2";
 
 interface Running {
   readonly baseUrl: string;
@@ -44,7 +47,15 @@ const start = async (options: Partial<CreateAppOptions> = {}): Promise<Running> 
   const distPath = mkdtempSync(path.join(tmpdir(), "mars-app-test-"));
   writeFileSync(path.join(distPath, "index.html"), INDEX_HTML);
 
-  const app = createApp({ corsOrigins: [], distPath, ...options });
+  const app = createApp({
+    corsOrigins: [],
+    distPath,
+    serveFrontend: true,
+    checkDatabase: async (): Promise<void> => {},
+    version: VERSION,
+    isProduction: false,
+    ...options,
+  });
   const server = await new Promise<Server>((resolve) => {
     const s = app.listen(0, "127.0.0.1", () => resolve(s));
   });
@@ -53,7 +64,12 @@ const start = async (options: Partial<CreateAppOptions> = {}): Promise<Running> 
   return running;
 };
 
+beforeEach(() => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
 afterEach(async () => {
+  vi.restoreAllMocks();
   if (running) {
     const { server, distPath } = running;
     running = null;
@@ -70,7 +86,7 @@ describe("createApp", () => {
 
     const res = await fetch(`${baseUrl}/api/health`, { headers: { Origin: ALLOWED } });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ status: "ok" });
+    expect(await res.json()).toEqual({ status: "ok", version: VERSION });
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 
@@ -95,7 +111,7 @@ describe("createApp", () => {
 
     const res = await fetch(`${baseUrl}/api/health`, { headers: { Origin: ALLOWED } });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ status: "ok" });
+    expect(await res.json()).toEqual({ status: "ok", version: VERSION });
     expect(res.headers.get("access-control-allow-origin")).toBe(ALLOWED);
     expect(res.headers.get("vary")).toContain("Origin");
   });
@@ -125,5 +141,166 @@ describe("createApp", () => {
     const res = await fetch(`${baseUrl}/generate`);
     expect(res.status).toBe(200);
     expect(await res.text()).toBe(INDEX_HTML);
+  });
+
+  it("answers unknown /api paths with a JSON 404 when serving the frontend", async () => {
+    const { baseUrl } = await start();
+
+    for (const [method, route] of [
+      ["GET", "/api/nieistniejace"],
+      ["POST", "/api/nieistniejace/deeper"],
+      ["GET", "/api"],
+    ] as const) {
+      const res = await fetch(`${baseUrl}${route}`, { method });
+      expect(res.status).toBe(404);
+      expect(res.headers.get("content-type")).toContain("application/json");
+      expect(await res.json()).toEqual({ error: "Not Found" });
+    }
+  });
+});
+
+describe("createApp serveFrontend=false (API-only)", () => {
+  it("does not serve static files or the SPA fallback", async () => {
+    const { baseUrl } = await start({ serveFrontend: false });
+
+    for (const route of ["/", "/generate", "/index.html", "/mars/deep/link"]) {
+      const res = await fetch(`${baseUrl}${route}`);
+      expect(res.status).toBe(404);
+      expect(res.headers.get("content-type")).toContain("application/json");
+      expect(await res.json()).toEqual({ error: "Not Found" });
+    }
+  });
+
+  it("answers unknown /api paths with a JSON 404", async () => {
+    const { baseUrl } = await start({ serveFrontend: false });
+
+    const res = await fetch(`${baseUrl}/api/nieistniejace`, { method: "DELETE" });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Not Found" });
+  });
+
+  it("still serves the API and CORS", async () => {
+    const { baseUrl } = await start({ serveFrontend: false, corsOrigins: [ALLOWED] });
+
+    const health = await fetch(`${baseUrl}/api/health`, { headers: { Origin: ALLOWED } });
+    expect(health.status).toBe(200);
+    expect(await health.json()).toEqual({ status: "ok", version: VERSION });
+    expect(health.headers.get("access-control-allow-origin")).toBe(ALLOWED);
+
+    const missing = await fetch(`${baseUrl}/generate`, { headers: { Origin: "https://evil.example.net" } });
+    expect(missing.status).toBe(404);
+    expect(missing.headers.get("access-control-allow-origin")).toBeNull();
+    expect(missing.headers.get("vary")).toContain("Origin");
+  });
+});
+
+describe("GET /api/health", () => {
+  it("returns 200 with the version and Cache-Control: no-store when the database answers", async () => {
+    const checkDatabase = vi.fn(async (): Promise<void> => {});
+    const { baseUrl } = await start({ checkDatabase });
+
+    const res = await fetch(`${baseUrl}/api/health`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ status: "ok", version: VERSION });
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(checkDatabase).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 503 without error details when the database check fails", async () => {
+    const { baseUrl } = await start({
+      checkDatabase: async (): Promise<void> => {
+        throw new Error(SECRET_DETAIL);
+      },
+    });
+
+    const res = await fetch(`${baseUrl}/api/health`);
+    expect(res.status).toBe(503);
+    const text = await res.text();
+    expect(JSON.parse(text)).toEqual({ status: "degraded", database: "unavailable" });
+    expect(text).not.toContain("hunter2");
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(console.error).toHaveBeenCalled();
+  });
+
+  it("returns 503 when the database check exceeds the timeout", async () => {
+    const { baseUrl } = await start({
+      databaseCheckTimeoutMs: 50,
+      checkDatabase: (): Promise<void> => new Promise<void>(() => {}),
+    });
+
+    const startedAt = Date.now();
+    const res = await fetch(`${baseUrl}/api/health`);
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ status: "degraded", database: "unavailable" });
+    expect(Date.now() - startedAt).toBeLessThan(1500);
+  });
+});
+
+describe("error handler", () => {
+  const login = (baseUrl: string, body: unknown): Promise<Response> =>
+    fetch(`${baseUrl}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  const failDatabase = (): void => {
+    vi.mocked(db.select).mockImplementation(() => {
+      throw new Error(SECRET_DETAIL);
+    });
+  };
+
+  it("hides 5xx details in production and logs the full error", async () => {
+    failDatabase();
+    const { baseUrl } = await start({ isProduction: true });
+
+    const res = await login(baseUrl, { email: "a@b.c", password: "x" });
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: "Internal Server Error" });
+    expect(console.error).toHaveBeenCalledWith(
+      "[app] unhandled error:",
+      expect.objectContaining({ message: SECRET_DETAIL }),
+    );
+  });
+
+  it("keeps the 5xx message outside production", async () => {
+    failDatabase();
+    const { baseUrl } = await start({ isProduction: false });
+
+    const res = await login(baseUrl, { email: "a@b.c", password: "x" });
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: SECRET_DETAIL });
+  });
+
+  it.each([true, false])("keeps 401 auth messages (isProduction=%s)", async (isProduction) => {
+    const { baseUrl } = await start({ isProduction });
+
+    const res = await fetch(`${baseUrl}/api/maps`);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Missing or invalid Authorization header" });
+  });
+
+  it.each([true, false])("keeps TSOA validation fields for 400 (isProduction=%s)", async (isProduction) => {
+    const { baseUrl } = await start({ isProduction });
+
+    const res = await login(baseUrl, { email: 1 });
+    expect(res.status).toBe(400);
+    const body: unknown = await res.json();
+    expect(body).toMatchObject({ error: expect.any(String), fields: expect.any(Object) });
+    expect(JSON.stringify(body)).toContain("password");
+  });
+
+  it("keeps the JSON parse error message for 400 in production", async () => {
+    const { baseUrl } = await start({ isProduction: true });
+
+    const res = await fetch(`${baseUrl}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{bad",
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).not.toBe("Internal Server Error");
+    expect(body.error.length).toBeGreaterThan(0);
   });
 });

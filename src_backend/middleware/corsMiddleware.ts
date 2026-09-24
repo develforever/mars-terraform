@@ -10,7 +10,9 @@ const isPreflight = (req: Request): boolean =>
 /**
  * CORS z dokładną allowlistą originów (bez wildcardów, bez odbijania dowolnego originu,
  * bez `Access-Control-Allow-Credentials` — auth idzie przez `Authorization: Bearer`).
- * Pusta lista = no-op (monolit same-origin).
+ * Pusta lista = no-op (monolit same-origin). Przy niepustej liście `Vary: Origin` trafia na KAŻDĄ
+ * odpowiedź (także bez `Origin` i z niedozwolonym originem), żeby współdzielony cache nie podał
+ * odpowiedzi z nagłówkami CORS innemu originowi.
  */
 export const createCorsMiddleware = (allowedOrigins: readonly string[]): RequestHandler => {
   const allowed = new Set<string>(allowedOrigins);
@@ -20,6 +22,8 @@ export const createCorsMiddleware = (allowedOrigins: readonly string[]): Request
       next();
       return;
     }
+
+    res.vary("Origin");
 
     const origin = req.headers.origin;
     if (origin === undefined) {
@@ -37,7 +41,6 @@ export const createCorsMiddleware = (allowedOrigins: readonly string[]): Request
     }
 
     res.setHeader("Access-Control-Allow-Origin", origin);
-    res.vary("Origin");
 
     if (isPreflight(req)) {
       res.setHeader("Access-Control-Allow-Methods", CORS_ALLOWED_METHODS);

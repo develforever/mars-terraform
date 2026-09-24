@@ -90,7 +90,7 @@ describe("createCorsMiddleware", () => {
     expect(res.headers.get("access-control-allow-methods")).toBeNull();
   });
 
-  it("passes a disallowed origin through without CORS headers", async () => {
+  it("passes a disallowed origin through without CORS headers but with Vary: Origin", async () => {
     const { baseUrl } = await startServer([ALLOWED]);
 
     const res = await fetch(`${baseUrl}/api/ping`, { headers: { Origin: FOREIGN } });
@@ -98,6 +98,7 @@ describe("createCorsMiddleware", () => {
     expect(await res.json()).toEqual({ pong: true });
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
     expect(res.headers.get("access-control-allow-methods")).toBeNull();
+    expect(res.headers.get("vary")).toBe("Origin");
   });
 
   it("requires an exact origin match (no prefix, suffix, port or scheme variants)", async () => {
@@ -114,6 +115,7 @@ describe("createCorsMiddleware", () => {
     for (const origin of variants) {
       const res = await fetch(`${baseUrl}/api/ping`, { headers: { Origin: origin } });
       expect(res.headers.get("access-control-allow-origin")).toBeNull();
+      expect(res.headers.get("vary")).toBe("Origin");
     }
   });
 
@@ -134,7 +136,7 @@ describe("createCorsMiddleware", () => {
     expect(res.headers.get("vary")).toBe("Origin");
   });
 
-  it("rejects a preflight from a disallowed origin with 403 and no CORS headers", async () => {
+  it("rejects a preflight from a disallowed origin with 403, no CORS headers and Vary: Origin", async () => {
     const { baseUrl } = await startServer([ALLOWED]);
 
     const res = await fetch(`${baseUrl}/api/ping`, {
@@ -146,16 +148,17 @@ describe("createCorsMiddleware", () => {
     expect(res.headers.get("access-control-allow-methods")).toBeNull();
     expect(res.headers.get("access-control-allow-headers")).toBeNull();
     expect(res.headers.get("access-control-max-age")).toBeNull();
+    expect(res.headers.get("vary")).toBe("Origin");
   });
 
-  it("passes requests without an Origin header through unchanged", async () => {
+  it("passes requests without an Origin header through, adding only Vary: Origin", async () => {
     const { baseUrl } = await startServer([ALLOWED]);
 
     const res = await fetch(`${baseUrl}/api/ping`);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ pong: true });
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
-    expect(res.headers.get("vary")).toBeNull();
+    expect(res.headers.get("vary")).toBe("Origin");
 
     const options = await fetch(`${baseUrl}/api/ping`, {
       method: "OPTIONS",
@@ -163,6 +166,7 @@ describe("createCorsMiddleware", () => {
     });
     expect(options.status).toBe(200);
     expect(await options.json()).toEqual({ reachedRoute: true });
+    expect(options.headers.get("vary")).toBe("Origin");
   });
 
   it("appends Origin to an existing Vary header instead of overwriting it", async () => {
@@ -173,6 +177,17 @@ describe("createCorsMiddleware", () => {
     const { baseUrl } = await startServer([ALLOWED], [setVary]);
 
     const res = await fetch(`${baseUrl}/api/ping`, { headers: { Origin: ALLOWED } });
+    expect(res.headers.get("vary")).toBe("Accept-Encoding, Origin");
+  });
+
+  it("appends Origin to an existing Vary header when the request has no Origin", async () => {
+    const setVary: RequestHandler = (_req, res, next) => {
+      res.setHeader("Vary", "Accept-Encoding");
+      next();
+    };
+    const { baseUrl } = await startServer([ALLOWED], [setVary]);
+
+    const res = await fetch(`${baseUrl}/api/ping`);
     expect(res.headers.get("vary")).toBe("Accept-Encoding, Origin");
   });
 });
