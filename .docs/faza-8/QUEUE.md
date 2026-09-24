@@ -24,7 +24,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
 | T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | DONE(06cc25c) |
 | T3b | Błędy biznesowe → 4xx (`HttpError`), bez 500 dla złego hasła itp. | T3 | — | general-purpose | `src_backend/errors/HttpError.ts` (nowy), `src_backend/service/{MapService,authService,emailService,oauthService}.ts`, `src_backend/controller/{Users,Auth,Groups}Controller.ts` + testy | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:06Z) |
-| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:06Z) |
+| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | REVIEW(c69dfd8; obraz Docker NIEZWERYFIKOWANY) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | TODO |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4 | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | TODO |
@@ -68,6 +68,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-24T17:06Z · nadzorca · T3 · Scalono. Gate: 601 / 102 back (+47), lint/tsc/build OK; smoke: API-only 404 JSON, health 200/503, 5xx w prod bez szczegółów. Odstępstwa zaakceptowane (`/api` → 404 JSON, `statusCode`, `headersSent`, opcja timeoutu). · 06cc25c
 - 2026-09-24T17:06Z · nadzorca · T3b · NOWE zadanie: serwisy rzucają zwykły `Error` (np. „Invalid credentials”), więc 500, a po T3 w prod „Internal Server Error”. Regresja UX logowania przed wdrożeniem. Blokuje T9. · —
 - 2026-09-24T17:06Z · nadzorca · T4, T3b · Start równoległy (worktree resetowane do HEAD brancha). · —
+- 2026-09-24T17:15Z · nadzorca · T4 · Scalono. Gate: 601 / 102, lint/tsc/build OK. `docker build/run` NIEZWERYFIKOWANE (subagent: brak daemona; build nadzorcy przerwany przez użytkownika). Czeka na wybór: build w kontenerze sesji albo lokalnie na Docker Desktop. Otwarte: rozmiar obrazu (frontendowe paczki w `dependencies`, zmiana `package.json` wymaga zgody), brak handlera SIGTERM w `index.ts` (jest tini). · c69dfd8
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -81,3 +82,6 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - `res.sendFile` w SPA fallbacku ignoruje dotfiles w ścieżce absolutnej (np. deploy w katalogu z `.` w nazwie → 404). Rozważyć `{ dotfiles: "allow" }` albo `root` w opcjach.
 - CSP: dodać `report-to` przed trybem enforce; zawęzić `connect-src https:` do domeny API po jej ustaleniu; uwzględnić `vercel.live` na preview.
 - HSTS `includeSubDomains`: potwierdzić przed podpięciem domeny własnej.
+- Graceful shutdown: handler SIGTERM/SIGINT w `src_backend/index.ts` (`server.close()`, zamknięcie klienta libsql).
+- Odchudzenie obrazu API: paczki tylko frontendowe z `dependencies` do `devDependencies` (wymaga zgody, bo zmienia `package.json`).
+- Monolit (`Dockerfile`) nie dostaje już `.env` w obrazie (`.dockerignore`), więc sekrety tylko przez zmienne środowiskowe.
