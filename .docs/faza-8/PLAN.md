@@ -110,6 +110,14 @@ Konwencja: każde zadanie kończy się zielonym **Gate** (sekcja 6), jednym comm
 - Pliki: `app.ts`, `config.ts`, `middleware/corsMiddleware.ts`, testy.
 - Zależność: T2 (ten sam plik `app.ts`).
 
+### T3b — Backend: błędy biznesowe jako 4xx (dodane w trakcie, po T3)
+- Problem: serwisy/kontrolery rzucają zwykły `Error` („Invalid credentials”, „User not found”…) → status 500; po T3 w produkcji klient dostaje „Internal Server Error” (regresja UX logowania, rejestracji, map).
+- `src_backend/errors/HttpError.ts`: `class HttpError extends Error { constructor(readonly status: 400|401|403|404|409|422|429, message: string) }` + ewentualne fabryki (`badRequest`, `unauthorized`, `notFound`, `conflict`). Error handler z T3 już czyta `status`, więc nie wymaga zmian.
+- Przejrzeć każdy `throw new Error` w: `service/{MapService,authService,emailService,oauthService}.ts`, `controller/{Users,Auth,Groups}Controller.ts`. Błąd wywołany przez klienta → `HttpError` z właściwym kodem. Błąd infrastruktury (brak konfiguracji SMTP, awaria providera OAuth) zostaje 5xx. Komunikaty bez zmian (frontend może je wyświetlać). Nie ujawniać, czy e-mail istnieje, tam, gdzie dziś nie jest ujawniany.
+- Logowanie: zły login/hasło → 401 z tym samym komunikatem dla obu przypadków (bez enumeracji użytkowników).
+- Testy: istniejące testy serwisów + asercje statusów; integracyjnie przez `createApp` (np. login ze złym hasłem → 401 w trybie `isProduction=true`).
+- Zależność: T3.
+
 ### T4 — Backend: obraz `Dockerfile.api`
 - Multi-stage: `npm ci` → `npm run build:back` (BEZ builda frontendu) → `npm prune --omit=dev` → runtime `node:<LTS>-alpine`, `USER node`, `NODE_ENV=production`, `serve_frontend=false`, `EXPOSE 8080`, `HEALTHCHECK` na `/api/health`, `CMD ["node","dist_backend/index.js"]` (bez `npm` jako PID 1).
 - `bcrypt` = natywny moduł: toolchain tylko w stage build, zgodna libc między stage'ami.

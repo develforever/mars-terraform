@@ -22,19 +22,20 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T0b | Rotacja `turso_token`, `jwt_secret` (bez przepisywania historii, D4) | T0a | D4 ✔ | **człowiek** | — | HUMAN (odblokowane, T0a DONE) |
 | T1 | Resolver `VITE_API_URL` + podmiana fetchy | — | — | general-purpose | `src/application/config/apiConfig.ts`, `src/vite-env.d.ts`, `mapApiService.ts`, `authService.ts`, `useGameStore.ts`, `LoadGameModal.tsx`, `ColonyNameModal.tsx` | DONE(fee17c2) |
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
-| T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:57Z) |
-| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | TODO |
+| T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | DONE(06cc25c) |
+| T3b | Błędy biznesowe → 4xx (`HttpError`), bez 500 dla złego hasła itp. | T3 | — | general-purpose | `src_backend/errors/HttpError.ts` (nowy), `src_backend/service/{MapService,authService,emailService,oauthService}.ts`, `src_backend/controller/{Users,Auth,Groups}Controller.ts` + testy | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:06Z) |
+| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:06Z) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | TODO |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4 | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | TODO |
 | T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | TODO |
-| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8 | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
+| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
 
 ### Równoległość (macierz konfliktów)
 
 - Fala 1 (równolegle, rozłączne pliki): **T0a ∥ T1 ∥ T2**
 - Fala 2: **T3** (po T2) ∥ **T5** (po T1)
-- Fala 3: **T4** (po T3)
+- Fala 3: **T4 ∥ T3b** (po T3, rozłączne pliki)
 - Fala 4 (równolegle): **T6 ∥ T7 ∥ T8** (po T4). Uwaga: T7 i T8 mogą oba dotykać `package.json`, więc T7 przed T8, jeśli T8 dodaje skrypty.
 - Fala 5: **T9**
 
@@ -64,6 +65,9 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-24T16:57Z · nadzorca · T2 · Scalono. Gate: 591 front / 55 back (+22), lint/tsc(app+backend)/build OK, smoke CORS OK. Zakres T3 rozszerzony o `Vary: Origin` na wszystkich odpowiedziach przy niepustej allowliście (poprawność cache CDN). · a90013f
 - 2026-09-24T16:57Z · nadzorca · T3 · Start. Worktree resetowany do HEAD brancha roboczego (wymaga T2). · —
 - 2026-09-24T17:01Z · nadzorca · T5 · Scalono. Gate: 601 front (+10) / 55 back, lint/tsc/build OK, `tsc -b && vite build` OK. Odstępstwa zaakceptowane: catch-all `/(.*)` z `no-cache` (reguły nagłówków dopasowują się przed rewrite), `connect-src` + `blob: data:` (GLTFLoader). Semantyka „ostatnia reguła wygrywa” NIEZWERYFIKOWANA (vercel.com zablokowane w sieci sesji), więc sprawdzenie w T9. · 33999eb
+- 2026-09-24T17:06Z · nadzorca · T3 · Scalono. Gate: 601 / 102 back (+47), lint/tsc/build OK; smoke: API-only 404 JSON, health 200/503, 5xx w prod bez szczegółów. Odstępstwa zaakceptowane (`/api` → 404 JSON, `statusCode`, `headersSent`, opcja timeoutu). · 06cc25c
+- 2026-09-24T17:06Z · nadzorca · T3b · NOWE zadanie: serwisy rzucają zwykły `Error` (np. „Invalid credentials”), więc 500, a po T3 w prod „Internal Server Error”. Regresja UX logowania przed wdrożeniem. Blokuje T9. · —
+- 2026-09-24T17:06Z · nadzorca · T4, T3b · Start równoległy (worktree resetowane do HEAD brancha). · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
