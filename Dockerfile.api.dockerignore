@@ -1,0 +1,19 @@
+# Kontekst builda dla `Dockerfile.api` (BuildKit czyta `<Dockerfile>.dockerignore`).
+# Allowlist: domyślnie wykluczamy wszystko, wpuszczamy tylko pliki potrzebne do builda backendu.
+*
+
+!package.json
+!package-lock.json
+!vite.config.backend.ts
+!src_backend
+!drizzle
+
+# Testy backendu nie są potrzebne do builda.
+src_backend/**/*.test.ts
+src_backend/test
+
+# Na wszelki wypadek (gdyby coś z tego trafiło do wpuszczonych katalogów).
+**/.env
+**/.env.*
+**/local.db*
+**/node_modules
