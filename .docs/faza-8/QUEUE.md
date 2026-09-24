@@ -29,9 +29,10 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7 | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | TODO |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | DONE(40a4822) |
-| T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | READY |
+| T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | DONE(b75b526) |
+| T7b | Naprawa rozjazdu migracji: brak `maps` w migracjach, `0001_colonies.sql` poza journalem; test: wszystkie tabele `schema.ts` po migracji | T7 | D10, D11 | general-purpose | `drizzle/**`, `src_backend/db/migrate.test.ts`, (D10) `package.json`/`package-lock.json` (drizzle-kit) | BLOCKED(D10, D11) |
 | T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:17Z) |
-| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T4c | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
+| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T4c, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
 
 ### Równoległość (macierz konfliktów)
 
@@ -58,6 +59,8 @@ a nadzorca scala ich commity na branch roboczy po kolei i po każdym scaleniu ur
 | D7 | Usunąć nieużywany `@tursodatabase/database` | 2026-09-24 | użytkownik |
 | D8 | Fly: region `fra`, `min_machines_running = 0` | 2026-09-24 | użytkownik |
 | D9 | Weryfikacja obrazu API w CI (job `docker-api`, T8) zamiast w sesji | 2026-09-24 | użytkownik |
+| D10 | Aktualizacja `drizzle-kit` 0.18.1 → 0.31.x (lokalna wersja nie ma `generate/migrate/push` dla sqlite; journal v7 wygenerowany nowszą)? | — | — |
+| D11 | Jak powstała produkcyjna baza Turso (`drizzle-kit push` / `migrate` / ręcznie) i czy ma tabele `maps`, `colonies`? (decyduje o baseline `__drizzle_migrations`) | — | — |
 
 ## Dziennik
 
@@ -84,6 +87,8 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-24T17:32Z · nadzorca · T4 · Użytkownik odblokował `dl-cdn.alpinelinux.org` (200). Docker Hub 429 (limit anonimowy w chmurze). Decyzja użytkownika: weryfikacja obrazu w CI (T8). · —
 - 2026-09-24T17:32Z · nadzorca · — · Czeka na zgodę użytkownika: (1) `tsoa` → `@tsoa/runtime` w prod (93 → 54 MB, zmiana importów kontrolerów po T3b); (2) usunięcie nieużywanego `@tursodatabase/database`. · —
 - 2026-09-24T17:36Z · nadzorca · — · Decyzje D6–D9 zapisane; nowe zadanie T4c (po T3b, T7). · —
+- 2026-09-24T17:41Z · nadzorca · T7 · Scalono. Gate: 613 / 108 back (+6), lint/tsc/build OK. `dist_backend/{index,migrate}.js` + wspólny chunk. `release_command` aktywny w `fly.toml`. Migracja wymaga `jwt_secret` (config), do rozważenia po T3b. · b75b526
+- 2026-09-24T17:41Z · nadzorca · T7b · BLOKER WDROŻENIA (zweryfikowany przez nadzorcę): journal zawiera tylko `0000` (6 tabel); `maps` bez migracji; `0001_colonies.sql` poza journalem, więc ignorowany. Świeża baza nie ma `maps`/`colonies`. Nowe zadanie T7b; czeka na D10, D11. · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -102,3 +107,5 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Monolit (`Dockerfile`) nie dostaje już `.env` w obrazie (`.dockerignore`), więc sekrety tylko przez zmienne środowiskowe.
 - `/api/health` zależy od DB: awaria Turso → Fly oznacza maszyny jako unhealthy. Rozważyć rozdział liveness (proces) / readiness (DB).
 - Limity concurrency Fly (100/150) oszacowane, nie zmierzone.
+- Migracja z `file:` w produkcji tylko ostrzega (celowo, dla smoke testów kontenera).
+- `drizzle-kit` 0.18.1: `npm run db:push|db:generate|db:migrate` nie działają lokalnie (zależne od D10).
