@@ -24,11 +24,11 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
 | T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | DONE(06cc25c) |
 | T3b | Błędy biznesowe → 4xx (`HttpError`), bez 500 dla złego hasła itp. | T3 | — | general-purpose | `src_backend/errors/HttpError.ts` (nowy), `src_backend/service/{MapService,authService,emailService,oauthService}.ts`, `src_backend/controller/{Users,Auth,Groups}Controller.ts` + testy | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:06Z) |
-| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | REVIEW(c69dfd8; build obrazu zablokowany w sesji: 403 dl-cdn.alpinelinux.org, więc weryfikacja w CI T8) |
-| T4b | Odchudzenie prod deps: paczki tylko frontendowe → `devDependencies` | T4 | zgoda ✔ | general-purpose | `package.json` (sekcje deps), `package-lock.json` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:17Z) |
+| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | REVIEW(c69dfd8; weryfikacja obrazu w CI (job docker-api z T8), decyzja użytkownika: opcja C) |
+| T4b | Odchudzenie prod deps: paczki tylko frontendowe → `devDependencies` | T4 | zgoda ✔ | general-purpose | `package.json` (sekcje deps), `package-lock.json` | DONE(cf5d07b) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
-| T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:17Z) |
-| T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | TODO |
+| T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | DONE(40a4822) |
+| T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | READY |
 | T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T17:17Z) |
 | T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
 
@@ -73,6 +73,10 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-24T17:17Z · nadzorca · T4 · Próba `docker build` w sesji (lokalny dockerd): `apk` → HTTP 403 dla `dl-cdn.alpinelinux.org` (polityka sieci środowiska). Obejścia nie stosowano. Użytkownik może dodać domenę w ustawieniach środowiska. Weryfikacja obrazu przeniesiona do joba CI w T8. · —
 - 2026-09-24T17:17Z · nadzorca · T4b · NOWE zadanie (zgoda użytkownika na zmianę `package.json`). · —
 - 2026-09-24T17:17Z · nadzorca · T4b, T6, T8 · Start równoległy. · —
+- 2026-09-24T17:32Z · nadzorca · T6 · Scalono. Gate: 613 (+12) / 102, lint/tsc/build OK. `fly config validate` NIEZWERYFIKOWANE (brak flyctl). Region `fra` (pewność co do `waw` niska), `ignorefile` do weryfikacji przy 1. deployu, `release_command` zakomentowany do T7. · 40a4822
+- 2026-09-24T17:32Z · nadzorca · T4b · Scalono. Prod `node_modules` 437 → 93 MB, smoke prod deps OK (health, register/bcrypt, JWT 401). Gate po `npm ci`: 613 / 102, OK. · cf5d07b
+- 2026-09-24T17:32Z · nadzorca · T4 · Użytkownik odblokował `dl-cdn.alpinelinux.org` (200). Docker Hub 429 (limit anonimowy w chmurze). Decyzja użytkownika: weryfikacja obrazu w CI (T8). · —
+- 2026-09-24T17:32Z · nadzorca · — · Czeka na zgodę użytkownika: (1) `tsoa` → `@tsoa/runtime` w prod (93 → 54 MB, zmiana importów kontrolerów po T3b); (2) usunięcie nieużywanego `@tursodatabase/database`. · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -89,3 +93,5 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Graceful shutdown: handler SIGTERM/SIGINT w `src_backend/index.ts` (`server.close()`, zamknięcie klienta libsql).
 - Odchudzenie obrazu API: paczki tylko frontendowe z `dependencies` do `devDependencies` (wymaga zgody, bo zmienia `package.json`).
 - Monolit (`Dockerfile`) nie dostaje już `.env` w obrazie (`.dockerignore`), więc sekrety tylko przez zmienne środowiskowe.
+- `/api/health` zależy od DB: awaria Turso → Fly oznacza maszyny jako unhealthy. Rozważyć rozdział liveness (proces) / readiness (DB).
+- Limity concurrency Fly (100/150) oszacowane, nie zmierzone.
