@@ -24,7 +24,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
 | T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:57Z) |
 | T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | TODO |
-| T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:54Z) |
+| T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | TODO |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4 | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | TODO |
 | T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | TODO |
@@ -63,6 +63,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-24T16:54Z · nadzorca · T5 · Start (zależność T1 DONE). Uwaga: worktree agentów bazują na `main` (f119afb), więc scalanie przez cherry-pick. · —
 - 2026-09-24T16:57Z · nadzorca · T2 · Scalono. Gate: 591 front / 55 back (+22), lint/tsc(app+backend)/build OK, smoke CORS OK. Zakres T3 rozszerzony o `Vary: Origin` na wszystkich odpowiedziach przy niepustej allowliście (poprawność cache CDN). · a90013f
 - 2026-09-24T16:57Z · nadzorca · T3 · Start. Worktree resetowany do HEAD brancha roboczego (wymaga T2). · —
+- 2026-09-24T17:01Z · nadzorca · T5 · Scalono. Gate: 601 front (+10) / 55 back, lint/tsc/build OK, `tsc -b && vite build` OK. Odstępstwa zaakceptowane: catch-all `/(.*)` z `no-cache` (reguły nagłówków dopasowują się przed rewrite), `connect-src` + `blob: data:` (GLTFLoader). Semantyka „ostatnia reguła wygrywa” NIEZWERYFIKOWANA (vercel.com zablokowane w sieci sesji), więc sprawdzenie w T9. · 33999eb
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -74,3 +75,5 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Walidacja `VITE_API_URL` przy starcie aplikacji (dziś błędna wartość wychodzi dopiero przy pierwszym żądaniu).
 - `.dockerignore` monolitu nie wyklucza `.env` / `local.db*` (T4 obejmie obraz API).
 - `res.sendFile` w SPA fallbacku ignoruje dotfiles w ścieżce absolutnej (np. deploy w katalogu z `.` w nazwie → 404). Rozważyć `{ dotfiles: "allow" }` albo `root` w opcjach.
+- CSP: dodać `report-to` przed trybem enforce; zawęzić `connect-src https:` do domeny API po jej ustaleniu; uwzględnić `vercel.live` na preview.
+- HSTS `includeSubDomains`: potwierdzić przed podpięciem domeny własnej.

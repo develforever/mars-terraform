@@ -149,6 +149,7 @@ Konwencja: każde zadanie kończy się zielonym **Gate** (sekcja 6), jednym comm
 - `.docs/faza-8/DEPLOYMENT.md` (runbook): ustawienie sekretów, pierwsze wdrożenie API, migracje, ustawienie `VITE_API_URL` na Vercel, `cors_origins`, OAuth redirect URI w Google/GitHub, rollback, smoke test (health, rejestracja, zapis mapy, `/generate` i `/mars` z CDN).
 - **Człowiek**: założenie kont, podpięcie repo do Vercel, `fly launch`/Render i ustawienie sekretów. Agent NIE wykonuje wdrożeń na zewnętrzne usługi bez wyraźnej zgody.
 - Aktualizacja `ROADMAP.md` i `CLAUDE.md` (Faza 8 → zrobione, liczba testów).
+- Obowiązkowa weryfikacja na pierwszym preview deployu Vercel: `curl -I` dla `/`, `/generate`, `/assets/<hash>.js`, `/textures/2k_mars.jpg`. Oczekiwane `Cache-Control`: no-cache / no-cache / immutable / SWR. Jeśli Vercel stosuje „pierwsza reguła wygrywa”, odwróć kolejność reguł w `vercel.json` i zaktualizuj test.
 - Zależność: wszystkie poprzednie.
 
 ## 6. Gate (definicja „zrobione” dla każdego zadania)
