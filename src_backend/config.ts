@@ -29,6 +29,7 @@ class Config {
   readonly githubClientSecret: string;
   readonly openRouterApiKey: string;
   readonly backendUrl: string;
+  readonly corsOrigins: readonly string[];
 
   constructor() {
     this.tursoUrl = this.getOptional("turso_url", "file:./local.db");
@@ -57,6 +58,7 @@ class Config {
     this.githubClientSecret = this.getOptional("github_client_secret", "");
     this.openRouterApiKey = this.getOptional("openrouter_api_key", "");
     this.backendUrl = this.getOptional("backend_url", `http://localhost:${this.port}`);
+    this.corsOrigins = this.getOriginList("cors_origins");
   }
 
   private getRequired(key: string): string {
@@ -69,6 +71,30 @@ class Config {
 
   private getOptional(key: string, fallback: string): string {
     return process.env[key] ?? fallback;
+  }
+
+  private getOriginList(key: string): readonly string[] {
+    const entries = this.getOptional(key, "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+
+    for (const entry of entries) {
+      if (!this.isOrigin(entry)) {
+        throw new Error(
+          `Invalid env variable ${key}: "${entry}" is not an origin (expected scheme://host[:port] without path or trailing slash)`,
+        );
+      }
+    }
+    return Object.freeze(entries);
+  }
+
+  private isOrigin(value: string): boolean {
+    try {
+      return new URL(value).origin === value;
+    } catch {
+      return false;
+    }
   }
 }
 
