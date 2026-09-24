@@ -19,23 +19,23 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | ID | Zadanie | Zależy od | Decyzja | Agent | Pliki (zakres wyłączny) | Status |
 |----|---------|-----------|---------|-------|--------------------------|--------|
 | T0a | Untrack `.env` + `.env.example` | — | — | general-purpose | `.env`, `.env.example`, `.gitignore` | READY |
-| T0b | Rotacja `turso_token`, `jwt_secret` | T0a | D4 | **człowiek** | — | HUMAN |
+| T0b | Rotacja `turso_token`, `jwt_secret` (bez przepisywania historii, D4) | T0a | D4 ✔ | **człowiek** | — | HUMAN |
 | T1 | Resolver `VITE_API_URL` + podmiana fetchy | — | — | general-purpose | `src/application/config/apiConfig.ts`, `src/vite-env.d.ts`, `mapApiService.ts`, `authService.ts`, `useGameStore.ts`, `LoadGameModal.tsx`, `ColonyNameModal.tsx` | READY |
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | READY |
 | T3 | Tryb API-only + health z DB | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts` | TODO |
 | T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | TODO |
-| T5 | `vercel.json` + test konfiguracji | T1 | D3 | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | BLOCKED(D3) |
-| T6 | Manifest platformy API | T4 | D1, D2 | general-purpose | `fly.toml` / `render.yaml` / `railway.json` | BLOCKED(D1,D2) |
-| T7 | Skrypt migracji produkcyjnych | T4 | D2 | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | BLOCKED(D2) |
-| T8 | CI GitHub Actions | T4 | D5 | general-purpose | `.github/workflows/ci.yml` | BLOCKED(D5) |
+| T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | TODO |
+| T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | TODO |
+| T7 | Skrypt migracji produkcyjnych (Turso) | T4 | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | TODO |
+| T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | TODO |
 | T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8 | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
 
 ### Równoległość (macierz konfliktów)
 
 - Fala 1 (równolegle, rozłączne pliki): **T0a ∥ T1 ∥ T2**
-- Fala 2: **T3** (po T2) ∥ **T5** (po T1 + D3)
+- Fala 2: **T3** (po T2) ∥ **T5** (po T1)
 - Fala 3: **T4** (po T3)
-- Fala 4 (równolegle): **T6 ∥ T7 ∥ T8** (po T4 i decyzjach). Uwaga: T7 i T8 mogą oba dotykać `package.json`, więc T7 przed T8, jeśli T8 dodaje skrypty.
+- Fala 4 (równolegle): **T6 ∥ T7 ∥ T8** (po T4). Uwaga: T7 i T8 mogą oba dotykać `package.json`, więc T7 przed T8, jeśli T8 dodaje skrypty.
 - Fala 5: **T9**
 
 Zadania ze wspólnym plikiem NIGDY nie idą równolegle. Równoległe subagenty pracują w `isolation: "worktree"`,
@@ -45,17 +45,18 @@ a nadzorca scala ich commity na branch roboczy po kolei i po każdym scaleniu ur
 
 | ID | Odpowiedź | Data | Kto |
 |----|-----------|------|-----|
-| D1 | — | — | — |
-| D2 | — | — | — |
-| D3 | — | — | — |
-| D4 | — | — | — |
-| D5 | — | — | — |
+| D1 | Fly.io | 2026-09-24 | użytkownik |
+| D2 | Turso (bez wolumenu) | 2026-09-24 | użytkownik |
+| D3 | Bezpośrednio `VITE_API_URL` + CORS (bez proxy na Vercel) | 2026-09-24 | użytkownik |
+| D4 | Tylko rotacja sekretów, bez przepisywania historii gita | 2026-09-24 | użytkownik |
+| D5 | Tak, CI w GitHub Actions (T8) | 2026-09-24 | użytkownik |
 
 ## Dziennik
 
 Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/uwagi>`
 
-- 2026-09-24 · plan · — · Utworzono PLAN.md / QUEUE.md / SUPERVISOR_PROMPT.md. Odkryto śledzony `.env` z sekretami (P0 → T0). · —
+- 2026-09-24 · plan · — · Utworzono PLAN.md / QUEUE.md / SUPERVISOR_PROMPT.md. Odkryto śledzony `.env` z sekretami (P0 → T0). · 2cba36c
+- 2026-09-24 · plan · — · Użytkownik podjął decyzje D1–D5; T5–T8 odblokowane (TODO, czekają tylko na zależności). · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
