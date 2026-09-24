@@ -1,4 +1,5 @@
 import { authClient } from "./authService";
+import { apiUrl } from "../config/apiConfig";
 import type { MapExportJSON } from "../../domain/mapEditorTypes";
 
 export interface SaveMapDTO {
@@ -24,8 +25,6 @@ export interface MapSummaryResponse {
 export interface MapDetailResponse extends MapSummaryResponse {
   data: string;
 }
-
-const API_BASE = "/api/maps";
 
 const authHeaders = (): Record<string, string> => {
   const token = authClient.getToken();
@@ -71,7 +70,7 @@ export const mapApiService = {
       dto = mapDataOrDto as SaveMapDTO;
     }
 
-    const response = await fetch(API_BASE, {
+    const response = await fetch(apiUrl("/api/maps"), {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify(dto),
@@ -84,7 +83,7 @@ export const mapApiService = {
    * Lists all map summaries for the authenticated user.
    */
   listMaps: async (): Promise<MapSummaryResponse[]> => {
-    const response = await fetch(API_BASE, {
+    const response = await fetch(apiUrl("/api/maps"), {
       method: "GET",
       headers: authHeaders(),
     });
@@ -96,7 +95,7 @@ export const mapApiService = {
    * Retrieves a specific map by ID for the authenticated user.
    */
   getMap: async (id: number): Promise<MapDetailResponse> => {
-    const response = await fetch(`${API_BASE}/${id}`, {
+    const response = await fetch(apiUrl(`/api/maps/${id}`), {
       method: "GET",
       headers: authHeaders(),
     });
@@ -108,7 +107,7 @@ export const mapApiService = {
    * Deletes a map by ID for the authenticated user.
    */
   deleteMap: async (id: number): Promise<{ message: string }> => {
-    const response = await fetch(`${API_BASE}/${id}`, {
+    const response = await fetch(apiUrl(`/api/maps/${id}`), {
       method: "DELETE",
       headers: authHeaders(),
     });

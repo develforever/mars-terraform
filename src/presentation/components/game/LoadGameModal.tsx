@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
+import { apiUrl } from "../../../application/config/apiConfig";
 
 interface ColonyEntry {
     name: string;
@@ -29,7 +30,7 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
         const fetchColonies = async () => {
             setLoading(true);
             try {
-                const res = await fetch("/api/colony", {
+                const res = await fetch(apiUrl("/api/colony"), {
                     headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
                 });
                 if (!res.ok) throw new Error(t("modal.loadGame.errorList"));
@@ -60,7 +61,7 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
     const handleDelete = async (name: string) => {
         setDeletingName(name);
         try {
-            const res = await fetch(`/api/colony/${encodeURIComponent(name)}`, {
+            const res = await fetch(apiUrl(`/api/colony/${encodeURIComponent(name)}`), {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
             });
