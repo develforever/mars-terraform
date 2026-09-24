@@ -138,12 +138,10 @@ describe('fly.toml (API na Fly.io)', () => {
     expect(checks.get('grace_period')).toBe('"10s"')
   })
 
-  it('[deploy] używa rolling; release_command z T7 jest jeszcze zakomentowany', () => {
+  it('[deploy] używa rolling i uruchamia migracje (T7) jako release_command', () => {
     const deploy = section('deploy')
     expect(deploy.get('strategy')).toBe('"rolling"')
-    // Po T7 zamień tę asercję na: expect(deploy.get('release_command')).toBe('"node dist_backend/migrate.js"')
-    expect(deploy.has('release_command')).toBe(false)
-    expect(raw).toMatch(/^\s*#\s*release_command = "node dist_backend\/migrate\.js"\s*$/m)
+    expect(deploy.get('release_command')).toBe('"node dist_backend/migrate.js"')
   })
 
   it('[[vm]] to shared-cpu-1x z 512 MB', () => {

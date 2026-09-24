@@ -84,8 +84,9 @@ kill_timeout = "10s"
 
 [deploy]
   # Migracje przed przełączeniem ruchu (tymczasowa maszyna z tym samym obrazem i sekretami).
-  # Włączyć po T7 (skrypt `src_backend/db/migrate.ts` budowany do `dist_backend/migrate.js`):
-  # release_command = "node dist_backend/migrate.js"
+  # T7: `src_backend/migrate.ts` (entrypoint) + `src_backend/db/migrate.ts` -> `dist_backend/migrate.js`.
+  # Błąd migracji (exit != 0) przerywa deploy, zanim nowa wersja dostanie ruch.
+  release_command = "node dist_backend/migrate.js"
   strategy = "rolling"
 
 [[vm]]
