@@ -4,6 +4,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { config } from "../config";
 import type { JwtPayload } from "./authService";
+import { HttpError } from "../errors/HttpError";
 
 export interface OAuthUserInfo {
   email: string;
@@ -225,7 +226,7 @@ const exchangeGithubCode = async (code: string): Promise<OAuthUserInfo> => {
   }
 
   if (!email) {
-    throw new Error("GitHub user has no email");
+    throw new HttpError(422, "GitHub user has no email");
   }
 
   return {

@@ -125,7 +125,11 @@ describe("MapService", () => {
           name: "Non-existent",
           data: "{}",
         }),
-      ).rejects.toThrow("Map not found or unauthorized");
+      ).rejects.toMatchObject({
+        name: "HttpError",
+        status: 404,
+        message: "Map not found or unauthorized",
+      });
     });
   });
 

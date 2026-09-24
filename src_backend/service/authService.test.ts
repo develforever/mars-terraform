@@ -25,7 +25,9 @@ vi.mock("./emailService", () => ({
   },
 }));
 
+import * as bcrypt from "bcrypt";
 import { authService } from "../service/authService";
+import { HttpError } from "../errors/HttpError";
 import { db } from "../data-source";
 
 describe("authService", () => {
@@ -66,9 +68,7 @@ describe("authService", () => {
       });
       (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
 
-      await expect(authService.loginLocal("no@user.com", "pass")).rejects.toThrow(
-        "Invalid credentials",
-      );
+      await expect(authService.loginLocal("no@user.com", "pass")).rejects.toMatchObject({ name: "HttpError", status: 401, message: "Invalid credentials" });
     });
   });
 
@@ -83,7 +83,7 @@ describe("authService", () => {
 
       await expect(
         authService.registerLocal("exists@test.com", "pass", "name"),
-      ).rejects.toThrow("User with this email already exists");
+      ).rejects.toMatchObject({ name: "HttpError", status: 409, message: "User with this email already exists" });
     });
   });
 
@@ -96,9 +96,7 @@ describe("authService", () => {
       });
       (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
 
-      await expect(authService.loginLocal("test@test.com", "pass")).rejects.toThrow(
-        "Email not verified",
-      );
+      await expect(authService.loginLocal("test@test.com", "pass")).rejects.toMatchObject({ name: "HttpError", status: 403, message: expect.stringContaining("Email not verified") });
     });
   });
 
@@ -124,9 +122,7 @@ describe("authService", () => {
       });
       (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
 
-      await expect(authService.resetPassword("invalid-token", "newpass")).rejects.toThrow(
-        "Invalid or expired reset token",
-      );
+      await expect(authService.resetPassword("invalid-token", "newpass")).rejects.toMatchObject({ name: "HttpError", status: 400, message: "Invalid or expired reset token" });
     });
   });
 
@@ -139,9 +135,7 @@ describe("authService", () => {
       });
       (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
 
-      await expect(authService.verifyEmail("invalid-token")).rejects.toThrow(
-        "Invalid or expired verification token",
-      );
+      await expect(authService.verifyEmail("invalid-token")).rejects.toMatchObject({ name: "HttpError", status: 400, message: "Invalid or expired verification token" });
     });
   });
 
@@ -154,7 +148,7 @@ describe("authService", () => {
       });
       (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
 
-      await expect(authService.resendVerification("no@user.com")).rejects.toThrow("User not found");
+      await expect(authService.resendVerification("no@user.com")).rejects.toMatchObject({ name: "HttpError", status: 404, message: "User not found" });
     });
 
     it("should throw if email already verified", async () => {
@@ -165,9 +159,77 @@ describe("authService", () => {
       });
       (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
 
-      await expect(authService.resendVerification("test@test.com")).rejects.toThrow(
-        "Email already verified",
+      await expect(authService.resendVerification("test@test.com")).rejects.toMatchObject({ name: "HttpError", status: 409, message: "Email already verified" });
+    });
+  });
+
+  describe("client error statuses", () => {
+    const VERIFIED_USER = { id: 1, email: "test@test.com", emailVerifiedAt: new Date() };
+
+    const mockSelectResults = (...results: unknown[][]): void => {
+      const mockSelect = vi.fn();
+      for (const rows of results) {
+        mockSelect.mockReturnValueOnce({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockResolvedValue(rows),
+          }),
+        });
+      }
+      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
+    };
+
+    const INVALID_CREDENTIALS = { name: "HttpError", status: 401, message: "Invalid credentials" };
+
+    it("loginLocal answers an unknown email and a wrong password with the same 401", async () => {
+      const passwordHash = await bcrypt.hash("correct", 4);
+
+      mockSelectResults([]);
+      await expect(authService.loginLocal("no@user.com", "correct")).rejects.toMatchObject(
+        INVALID_CREDENTIALS,
       );
+
+      mockSelectResults([VERIFIED_USER], [{ id: 10, userId: 1, provider: "local", passwordHash }]);
+      await expect(authService.loginLocal("test@test.com", "wrong")).rejects.toMatchObject(
+        INVALID_CREDENTIALS,
+      );
+    });
+
+    it("loginLocal answers a user without a local auth method with the same 401", async () => {
+      mockSelectResults([VERIFIED_USER], []);
+
+      await expect(authService.loginLocal("test@test.com", "pass")).rejects.toMatchObject(
+        INVALID_CREDENTIALS,
+      );
+    });
+
+    it("changePassword rejects an account without a local auth method with 400", async () => {
+      mockSelectResults([]);
+
+      await expect(authService.changePassword(1, "old", "new")).rejects.toMatchObject({
+        name: "HttpError",
+        status: 400,
+        message: "No local auth method found",
+      });
+    });
+
+    it("changePassword rejects a wrong current password with 403 (not 401, which means logged out)", async () => {
+      const passwordHash = await bcrypt.hash("correct", 4);
+      mockSelectResults([{ id: 10, userId: 1, provider: "local", passwordHash }]);
+
+      await expect(authService.changePassword(1, "wrong", "new")).rejects.toMatchObject({
+        name: "HttpError",
+        status: 403,
+        message: "Invalid current password",
+      });
+    });
+
+    it("requestEmailVerification keeps a missing user as a server error (internal invariant)", async () => {
+      mockSelectResults([]);
+
+      const error: unknown = await authService.requestEmailVerification(1).catch((err: unknown) => err);
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toBeInstanceOf(HttpError);
+      expect(error).toMatchObject({ message: "User not found" });
     });
   });
 });

@@ -9,6 +9,7 @@ import {
   Body,
   Security,
 } from "tsoa";
+import { HttpError } from "../errors/HttpError";
 import { groupService } from "../service/groupService";
 import { GroupResponse, CreateGroupRequest, AddMemberRequest } from "../model/types";
 
@@ -34,8 +35,7 @@ export class GroupsController extends Controller {
   public async getById(@Path() id: number): Promise<GroupResponse> {
     const group = await groupService.getById(id);
     if (!group) {
-      this.setStatus(404);
-      throw new Error("Group not found");
+      throw new HttpError(404, "Group not found");
     }
     return group as GroupResponse;
   }

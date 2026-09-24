@@ -4,6 +4,8 @@ import type { AddressInfo } from "net";
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
+import * as bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 vi.mock("./data-source", () => ({
   db: {
@@ -302,5 +304,89 @@ describe("error handler", () => {
     const body = (await res.json()) as { error: string };
     expect(body.error).not.toBe("Internal Server Error");
     expect(body.error.length).toBeGreaterThan(0);
+  });
+});
+
+describe("client errors (HttpError) in production", () => {
+  /** Kolejne wywołania `db.select()` zwracają podane wiersze (`where()` jest awaitable i ma `limit()`). */
+  const selectReturning = (...results: unknown[][]): void => {
+    for (const rows of results) {
+      const where = vi.fn().mockReturnValue(
+        Object.assign(Promise.resolve(rows), { limit: vi.fn().mockResolvedValue(rows) }),
+      );
+      vi.mocked(db.select).mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({ where }),
+      } as unknown as ReturnType<typeof db.select>);
+    }
+  };
+
+  const post = (url: string, body: unknown, token?: string): Promise<Response> =>
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+  const bearer = (): string =>
+    jwt.sign({ userId: 7, email: "u@mars.test" }, "test-secret", { expiresIn: "1h" });
+
+  it("answers an unknown email and a wrong password with the same 401", async () => {
+    const passwordHash = await bcrypt.hash("correct", 4);
+    const { baseUrl } = await start({ isProduction: true });
+
+    selectReturning([]);
+    const unknown = await post(`${baseUrl}/api/auth/login`, { email: "no@mars.test", password: "correct" });
+
+    selectReturning(
+      [{ id: 7, email: "u@mars.test", emailVerifiedAt: new Date() }],
+      [{ id: 1, userId: 7, provider: "local", passwordHash }],
+    );
+    const wrong = await post(`${baseUrl}/api/auth/login`, { email: "u@mars.test", password: "wrong" });
+
+    for (const res of [unknown, wrong]) {
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "Invalid credentials" });
+    }
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it("answers an invalid reset token with 400 and its message", async () => {
+    const { baseUrl } = await start({ isProduction: true });
+    selectReturning([]);
+
+    const res = await post(`${baseUrl}/api/auth/reset-password`, { token: "nope", newPassword: "secret123" });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Invalid or expired reset token" });
+  });
+
+  it("answers a missing user in a controller with 404 instead of 500", async () => {
+    const { baseUrl } = await start({ isProduction: true });
+    selectReturning([]);
+
+    const res = await fetch(`${baseUrl}/api/users/999`, {
+      headers: { Authorization: `Bearer ${bearer()}` },
+    });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "User not found" });
+  });
+
+  it("answers updating a map the user does not own with 404", async () => {
+    const { baseUrl } = await start({ isProduction: true });
+    selectReturning([]);
+
+    const res = await post(`${baseUrl}/api/maps`, { id: 42, name: "Tharsis", data: "{}" }, bearer());
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Map not found or unauthorized" });
+  });
+
+  it("answers an invalid bearer token with 401", async () => {
+    const { baseUrl } = await start({ isProduction: true });
+
+    const res = await fetch(`${baseUrl}/api/maps`, { headers: { Authorization: "Bearer garbage" } });
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Invalid or expired token" });
   });
 });
