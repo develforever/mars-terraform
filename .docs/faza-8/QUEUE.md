@@ -21,8 +21,8 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T0a | Untrack `.env` + `.env.example` | — | — | general-purpose | `.env`, `.env.example`, `.gitignore` | DONE(17c32ee) |
 | T0b | Rotacja `turso_token`, `jwt_secret` (bez przepisywania historii, D4) | T0a | D4 ✔ | **człowiek** | — | HUMAN (odblokowane, T0a DONE) |
 | T1 | Resolver `VITE_API_URL` + podmiana fetchy | — | — | general-purpose | `src/application/config/apiConfig.ts`, `src/vite-env.d.ts`, `mapApiService.ts`, `authService.ts`, `useGameStore.ts`, `LoadGameModal.tsx`, `ColonyNameModal.tsx` | DONE(fee17c2) |
-| T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:46Z) |
-| T3 | Tryb API-only + health z DB | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts` | TODO |
+| T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
+| T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:57Z) |
 | T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | TODO |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-24T16:54Z) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | TODO |
@@ -61,6 +61,8 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-24T16:54Z · nadzorca · T0a · Scalono (cherry-pick z worktree). Gate: 573/33, lint/tsc/build OK. `.env` zostaje lokalnie, ignorowany. · 17c32ee
 - 2026-09-24T16:54Z · nadzorca · T1 · Scalono. Gate: 591 front (+18) / 33 back, lint/tsc/build OK. Odstępstwo: sprawdzenie grep zastąpione typem `ApiPath` (uzasadnione). · fee17c2
 - 2026-09-24T16:54Z · nadzorca · T5 · Start (zależność T1 DONE). Uwaga: worktree agentów bazują na `main` (f119afb), więc scalanie przez cherry-pick. · —
+- 2026-09-24T16:57Z · nadzorca · T2 · Scalono. Gate: 591 front / 55 back (+22), lint/tsc(app+backend)/build OK, smoke CORS OK. Zakres T3 rozszerzony o `Vary: Origin` na wszystkich odpowiedziach przy niepustej allowliście (poprawność cache CDN). · a90013f
+- 2026-09-24T16:57Z · nadzorca · T3 · Start. Worktree resetowany do HEAD brancha roboczego (wymaga T2). · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -71,3 +73,4 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - `useGameStore.ts`: `/api/colony/${name}` bez `encodeURIComponent` (w `LoadGameModal.tsx` jest kodowane).
 - Walidacja `VITE_API_URL` przy starcie aplikacji (dziś błędna wartość wychodzi dopiero przy pierwszym żądaniu).
 - `.dockerignore` monolitu nie wyklucza `.env` / `local.db*` (T4 obejmie obraz API).
+- `res.sendFile` w SPA fallbacku ignoruje dotfiles w ścieżce absolutnej (np. deploy w katalogu z `.` w nazwie → 404). Rozważyć `{ dotfiles: "allow" }` albo `root` w opcjach.

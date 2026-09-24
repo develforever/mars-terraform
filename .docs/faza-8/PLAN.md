@@ -105,8 +105,9 @@ Konwencja: każde zadanie kończy się zielonym **Gate** (sekcja 6), jednym comm
 - Gdy `false`: brak `express.static` i SPA fallbacku; nieznane ścieżki → JSON 404 `{ error: "Not Found" }`.
 - `/api/health` zwraca `{ status: "ok", version }` i sprawdza DB (`select 1`, timeout; błąd → 503). Bez wycieku szczegółów błędu w produkcji.
 - Error handler: w `NODE_ENV=production` dla 5xx zwraca ogólny komunikat, pełny błąd tylko w logu.
+- CORS: przy niepustej allowliście `Vary: Origin` na KAŻDEJ odpowiedzi (także bez `Origin` i z niedozwolonym originem), żeby współdzielony cache nie serwował odpowiedzi z nagłówkiem CORS innemu originowi.
 - Testy dla obu trybów + health (DB OK / DB error przez wstrzyknięcie zależności).
-- Pliki: `app.ts`, `config.ts`, testy.
+- Pliki: `app.ts`, `config.ts`, `middleware/corsMiddleware.ts`, testy.
 - Zależność: T2 (ten sam plik `app.ts`).
 
 ### T4 — Backend: obraz `Dockerfile.api`
@@ -174,4 +175,4 @@ z dowodem (ten sam błąd na `f119afb`) i nie maskuj go.
 | `bcrypt` na alpine (musl) nie działa w runtime | Build i runtime na tej samej bazie; smoke test kontenera w T4 |
 | 68 MB tekstur bez hasha a długi cache daje nieświeże assety po zmianie | `max-age=1d` + SWR; dla długiego cache: wersjonowanie nazw (follow-up) |
 | Równoległe subagenty edytują te same pliki | Macierz konfliktów w `QUEUE.md`; równolegle tylko zadania o rozłącznych plikach, w worktree |
-| Zmiana `index.ts` psuje dev (`tsx watch`) | `npm run dev:back` smoke test w T2 (start + `/api/health`) |
+| Zmiana `index.ts` psuje dev (`tsx watch`) | Smoke: `npx tsx --tsconfig src_backend/tsconfig.json src_backend/index.ts` (bez `--tsconfig` dekoratory TSOA nie działają) + `/api/health` |
