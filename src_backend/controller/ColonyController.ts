@@ -9,7 +9,7 @@ import {
   Request,
   Path,
   Tags,
-} from "tsoa";
+} from "@tsoa/runtime";
 import { ColonyService } from "../service/ColonyService";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import type { ColonyData, ColonyResponse } from "../model/types";

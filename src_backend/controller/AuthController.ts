@@ -8,7 +8,7 @@ import {
   Request,
   Security,
   Query,
-} from "tsoa";
+} from "@tsoa/runtime";
 import { HttpError } from "../errors/HttpError";
 import { authService } from "../service/authService";
 import { userService } from "../service/userService";

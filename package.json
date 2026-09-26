@@ -28,12 +28,12 @@
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
+    "@tsoa/runtime": "^7.0.0-alpha.0",
     "bcrypt": "^6.0.0",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "tsoa": "^7.0.0-alpha.0"
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
@@ -47,7 +47,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@tsoa/cli": "^7.0.0-alpha.0",
-    "@tursodatabase/database": "^0.5.3",
     "@types/bcrypt": "^6.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.6.0",
@@ -74,6 +73,7 @@
     "simplex-noise": "^4.0.3",
     "tailwindcss": "^4.2.1",
     "three": "^0.180.0",
+    "tsoa": "^7.0.0-alpha.0",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.45.0",

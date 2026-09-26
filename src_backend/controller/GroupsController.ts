@@ -8,7 +8,7 @@ import {
   Path,
   Body,
   Security,
-} from "tsoa";
+} from "@tsoa/runtime";
 import { HttpError } from "../errors/HttpError";
 import { groupService } from "../service/groupService";
 import { GroupResponse, CreateGroupRequest, AddMemberRequest } from "../model/types";

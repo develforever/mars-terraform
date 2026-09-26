@@ -9,7 +9,7 @@ import {
   Body,
   Security,
   Request,
-} from "tsoa";
+} from "@tsoa/runtime";
 import { HttpError } from "../errors/HttpError";
 import { userService } from "../service/userService";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";

@@ -9,7 +9,7 @@ import {
   Request,
   Path,
   Tags,
-} from "tsoa";
+} from "@tsoa/runtime";
 import { MapService } from "../service/MapService";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import type { SaveMapDTO, MapSummaryResponse, MapDetailResponse } from "../model/mapTypes";
