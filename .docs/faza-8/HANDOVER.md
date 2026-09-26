@@ -9,7 +9,8 @@ Branch: `claude/compassionate-hawking-nc14kk`
 ## Stan w skrócie
 - DONE (agenci): T0a, T1, T2, T3, T3b, T3c, T4, T4b, T4c, T4d, T4e, T4f, T5, T6, T7, T7b, T8, T9 (dokumentacja)
 - DONE (człowiek): T0b (stare tokeny Turso unieważnione, nowy token działa, nowy `jwt_secret`; sekrety w `.env.local`)
-- W toku: brak. Aktywnych subagentów: brak. Kolejka aktywna; czeka na wynik `db-inspect.mjs` od użytkownika.
+- W toku: brak. Aktywnych subagentów: brak.
+- DEPLOYMENT.md §2 ZROBIONE (2026-09-26): baza była w stanie C (brak `maps`, pusta `__drizzle_migrations` po nieudanym migratorze). Naprawa `db-repair-c.mjs` (poza repo, `$HOME\mars-ops`) + baseline A; `__drizzle_migrations` = 2 wiersze. Backup przed zmianami w `$HOME\mars-terraform-backups`.
 - Pozostaje: wdrożenie produkcyjne przez człowieka wg `.docs/faza-8/DEPLOYMENT.md` (sekcje 2–6); nadzorca wspiera krok po kroku.
 - Gate na HEAD: lint/tsc OK, front 619, back 166, build OK; CI run #1 zielony (verify + docker-api).
 
@@ -17,9 +18,10 @@ Branch: `claude/compassionate-hawking-nc14kk`
 Brak. Stare worktree `.claude/worktrees/agent-*` są już scalone (do usunięcia przy sprzątaniu).
 
 ## Czeka na użytkownika
-- DEPLOYMENT.md §2: `db-inspect.mjs`, a potem wynik (lista tabel + stan `__drizzle_migrations`) wkleić nadzorcy; wybór wariantu A/B/C baseline.
+- DEPLOYMENT.md §3 (Fly.io): instalacja flyctl, `fly launch --no-deploy --copy-config`, sekrety, `fly deploy`.
+- Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups	est-repair` do usunięcia po wdrożeniu.
 - PR https://github.com/develforever/mars-terraform/pull/6 SCALONY do `main` (`518964a`), więc DEPLOYMENT.md §0 spełnione.
-- Otwarte pytanie: osobny `jwt_secret` dla produkcji i dla lokalnego dev (rekomendacja: tak).
+- Otwarte pytanie: osobny `jwt_secret` dla produkcji i dla lokalnego dev (rekomendacja: tak; lokalny ma tylko 31 znaków, więc produkcyjny wygenerować świeżo, 48 bajtów).
 
 ## Pułapki środowiska (lekcje z sesji 1)
 - **Worktree subagentów startują z `main` (f119afb), nie z HEAD brancha.** W prompcie subagenta zawsze KROK 0: `git fetch origin <branch> && git reset --hard FETCH_HEAD`. Wymaga wcześniejszego push stanu.
@@ -31,10 +33,12 @@ Brak. Stare worktree `.claude/worktrees/agent-*` są już scalone (do usunięcia
 - **`dockerd` nie startuje sam.** Można go uruchomić w tle (`dockerd &`), ale pull i tak ogranicza 429.
 - **`tsx` backendu wymaga `--tsconfig src_backend/tsconfig.json`** (dekoratory TSOA).
 - Node w sesji: v22.22.2; obraz API: node 24 (`ARG NODE_VERSION`); `.nvmrc` = v25 (nie zmieniać bez zgody).
+- **Lokalny checkout Windows ma 209 plików z CRLF** mimo `eol=lf` (checkout sprzed `.gitattributes`). `drizzle/` odtworzone z LF; reszta nieistotna dla deployu, ale hashe plików liczone z dysku mogą się różnić od gita.
+- **Tryb auto blokuje agentowi odczyt produkcji** (np. dry-run na Turso). Komendy na produkcji uruchamia użytkownik i wkleja wynik.
 - Zasada projektu: brak nowych paczek npm bez zgody użytkownika (RULES.md).
 
 ## Najbliższe kroki (kolejność)
-1. Użytkownik: DEPLOYMENT.md §2 krok 1 (`db-inspect.mjs`). Nadzorca: dobór wariantu baseline na podstawie wyniku.
+1. (zrobione) DEPLOYMENT.md §2: naprawa stanu C + baseline A.
 2. (zrobione) PR #6 scalony. Branch roboczy odtworzony od `main`; nowe prace = nowy PR.
 3. Użytkownik: §3 Fly.io → §4 Vercel (w tym obowiązkowy `curl -I` nagłówków) → §5 CORS/OAuth → §6 smoke test.
 4. Po wdrożeniu: follow-upy z QUEUE.md (CSP `connect-src`, timing resend/forgot, walidacja nazwy kolonii, graceful shutdown, liveness/readiness).
