@@ -64,6 +64,11 @@ jobs:
       - name: Test (backend)
         run: npm run test:back
 
+      # T4d: `routes.ts`/`swagger.json` są generowane z `model/types.ts` i commitowane. Przy
+      # `throw-on-extras` nieaktualne trasy odrzucają poprawne żądania z 400 (np. brak `minerals`).
+      - name: TSOA routes up to date
+        run: npm run tsoa:gen && git diff --exit-code -- src_backend/routes/routes.ts src_backend/api/swagger.json
+
       - name: Build
         run: npm run build
 

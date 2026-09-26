@@ -274,13 +274,18 @@
 					"biomass": {
 						"type": "number",
 						"format": "double"
+					},
+					"minerals": {
+						"type": "number",
+						"format": "double"
 					}
 				},
 				"required": [
 					"o2",
 					"power",
 					"water",
-					"biomass"
+					"biomass",
+					"minerals"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -298,12 +303,17 @@
 					"biomass": {
 						"type": "number",
 						"format": "double"
+					},
+					"minerals": {
+						"type": "number",
+						"format": "double"
 					}
 				},
 				"required": [
 					"power",
 					"water",
-					"biomass"
+					"biomass",
+					"minerals"
 				],
 				"type": "object",
 				"additionalProperties": false
