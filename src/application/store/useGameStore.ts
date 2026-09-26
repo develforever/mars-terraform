@@ -18,6 +18,7 @@ import { GAME_MODE_CONFIGS } from "../../domain/services/GameModeService";
 import { AlienService, INITIAL_ALIEN_STATE } from "../../domain/services/AlienService";
 import type { AlienState, AlienShip, AlienGroundUnit } from "../../domain/entities/Alien";
 import { authClient } from "../service/authService";
+import { apiUrl } from "../config/apiConfig";
 import { HexGrid } from "../../presentation/generator/hex/HexGrid";
 import { applyProceduralTerrain } from "../../presentation/generator/terrain/ProceduralTerrain";
 import { generateResources, generateDecor, generateSpawns } from "../../presentation/generator/terrain/ProceduralPlacement";
@@ -917,7 +918,7 @@ export const useGameStore = create<GameState>()(
         if (!state.colonyName) return false;
 
         try {
-          const response = await fetch("/api/colony", {
+          const response = await fetch(apiUrl("/api/colony"), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -1128,7 +1129,7 @@ export const useGameStore = create<GameState>()(
 
       loadGame: async (name: string) => {
         try {
-          const response = await fetch(`/api/colony/${name}`, {
+          const response = await fetch(apiUrl(`/api/colony/${encodeURIComponent(name)}`), {
             headers: {
               "Authorization": `Bearer ${authClient.getToken()}`
             }

@@ -127,76 +127,21 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "SavedResources": {
-        "dataType": "refObject",
-        "properties": {
-            "o2": {"dataType":"double","required":true},
-            "power": {"dataType":"double","required":true},
-            "water": {"dataType":"double","required":true},
-            "biomass": {"dataType":"double","required":true},
-        },
-        "additionalProperties": false,
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "SavedCapacity": {
-        "dataType": "refObject",
-        "properties": {
-            "power": {"dataType":"double","required":true},
-            "water": {"dataType":"double","required":true},
-            "biomass": {"dataType":"double","required":true},
-        },
-        "additionalProperties": false,
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "SavedBuilding": {
-        "dataType": "refObject",
-        "properties": {
-            "id": {"dataType":"string","required":true},
-            "definitionId": {"dataType":"string","required":true},
-            "position": {"dataType":"nestedObjectLiteral","nestedProperties":{"z":{"dataType":"double","required":true},"y":{"dataType":"double","required":true},"x":{"dataType":"double","required":true}},"required":true},
-            "condition": {"dataType":"double","required":true},
-        },
-        "additionalProperties": false,
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "Record_string.string_": {
+    "Record_string.unknown_": {
         "dataType": "refAlias",
-        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"validators":{}},
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"any"},"validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "SavedWeather": {
-        "dataType": "refObject",
-        "properties": {
-            "type": {"dataType":"string","required":true},
-            "intensity": {"dataType":"double","required":true},
-            "remainingTicks": {"dataType":"double","required":true},
-            "cooldownTicks": {"dataType":"double","required":true},
-            "impactZones": {"dataType":"array","array":{"dataType":"nestedObjectLiteral","nestedProperties":{"z":{"dataType":"double","required":true},"x":{"dataType":"double","required":true}}}},
-        },
-        "additionalProperties": false,
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "SavedGameState": {
-        "dataType": "refObject",
-        "properties": {
-            "resources": {"ref":"SavedResources","required":true},
-            "capacity": {"ref":"SavedCapacity","required":true},
-            "placed": {"dataType":"array","array":{"dataType":"refObject","ref":"SavedBuilding"},"required":true},
-            "occupied": {"ref":"Record_string.string_","required":true},
-            "weather": {"ref":"SavedWeather","required":true},
-            "terraforming": {"dataType":"double","required":true},
-            "o2Accumulated": {"dataType":"double","required":true},
-            "difficulty": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["easy"]},{"dataType":"enum","enums":["normal"]},{"dataType":"enum","enums":["hard"]}],"required":true},
-            "gameMode": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["exploration"]},{"dataType":"enum","enums":["survival"]}],"required":true},
-        },
-        "additionalProperties": false,
+    "ColonyState": {
+        "dataType": "refAlias",
+        "type": {"ref":"Record_string.unknown_","validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ColonyData": {
         "dataType": "refObject",
         "properties": {
             "name": {"dataType":"string","required":true},
-            "state": {"ref":"SavedGameState","required":true},
+            "state": {"ref":"ColonyState","required":true},
         },
         "additionalProperties": false,
     },
@@ -207,9 +152,20 @@ const models: TsoaRoute.Models = {
             "id": {"dataType":"double","required":true},
             "userId": {"dataType":"double","required":true},
             "name": {"dataType":"string","required":true},
-            "state": {"ref":"SavedGameState","required":true},
+            "state": {"ref":"ColonyState","required":true},
             "updatedAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
             "createdAt": {"dataType":"union","subSchemas":[{"dataType":"datetime"},{"dataType":"enum","enums":[null]}],"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ColonySummary": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"double","required":true},
+            "name": {"dataType":"string","required":true},
+            "createdAt": {"dataType":"string","required":true},
+            "updatedAt": {"dataType":"string","required":true},
         },
         "additionalProperties": false,
     },

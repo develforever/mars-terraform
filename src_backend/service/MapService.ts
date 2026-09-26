@@ -1,6 +1,7 @@
 import { db } from "../data-source";
 import { mapsTable } from "../db/schema";
 import { eq, and } from "drizzle-orm";
+import { HttpError } from "../errors/HttpError";
 import type { SaveMapDTO, MapSummaryResponse, MapDetailResponse } from "../model/mapTypes";
 
 export class MapService {
@@ -17,7 +18,7 @@ export class MapService {
         .limit(1);
 
       if (existing.length === 0) {
-        throw new Error("Map not found or unauthorized");
+        throw new HttpError(404, "Map not found or unauthorized");
       }
 
       await db

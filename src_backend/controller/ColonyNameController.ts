@@ -1,4 +1,4 @@
-import { Controller, Post, Route, Security, Tags } from "tsoa";
+import { Controller, Post, Route, Security, Tags } from "@tsoa/runtime";
 import { ColonyNameService } from "../service/ColonyNameService";
 
 interface ColonyNamesResponse {

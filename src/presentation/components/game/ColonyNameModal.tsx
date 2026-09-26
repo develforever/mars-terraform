@@ -6,6 +6,7 @@ import { useUIStore } from "../../../application/store/useUIStore";
 import { useAuthStore } from "../../../application/store/useAuthStore";
 import { generateLocalNames } from "../../../domain/services/ColonyNameGenerator";
 import { authClient } from "../../../application/service/authService";
+import { apiUrl } from "../../../application/config/apiConfig";
 import { mapApiService, type MapSummaryResponse } from "../../../application/service/mapApiService";
 import { parseMapJSON } from "../../generator/schema/mapSchema";
 import type { MapExportJSON } from "../../../domain/mapEditorTypes";
@@ -108,7 +109,7 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
         try {
             if (isAuthenticated) {
                 const token = authClient.getToken();
-                const res = await fetch("/api/colony-names/generate", {
+                const res = await fetch(apiUrl("/api/colony-names/generate"), {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${token}`,

@@ -1,1 +1,17 @@
 fly.toml
+
+# Sekrety i lokalna baza nigdy nie trafiają do obrazu (sekrety = zmienne platformy).
+.env
+.env.*
+!.env.example
+local.db*
+
+# Artefakty i zależności budowane w obrazie od zera.
+node_modules
+dist
+dist_backend
+
+# Metadane narzędzi / repo.
+.claude
+.git
+test-results

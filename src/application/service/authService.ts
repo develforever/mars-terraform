@@ -1,4 +1,4 @@
-const API_BASE = "/api";
+import { apiUrl } from "../config/apiConfig";
 
 export interface User {
   id: number;
@@ -73,7 +73,7 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
 };
 
 const register = async (data: RegisterRequest): Promise<{ message: string; userId: number; email: string }> => {
-  const response = await fetch(`${API_BASE}/auth/register`, {
+  const response = await fetch(apiUrl("/api/auth/register"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -82,7 +82,7 @@ const register = async (data: RegisterRequest): Promise<{ message: string; userI
 };
 
 const login = async (data: LoginRequest): Promise<AuthResponse> => {
-  const response = await fetch(`${API_BASE}/auth/login`, {
+  const response = await fetch(apiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -97,14 +97,14 @@ const logout = (): void => {
 };
 
 const me = async (): Promise<User> => {
-  const response = await fetch(`${API_BASE}/auth/me`, {
+  const response = await fetch(apiUrl("/api/auth/me"), {
     headers: authHeaders(),
   });
   return handleResponse(response);
 };
 
 const changePassword = async (oldPassword: string, newPassword: string): Promise<{ message: string }> => {
-  const response = await fetch(`${API_BASE}/auth/change-password`, {
+  const response = await fetch(apiUrl("/api/auth/change-password"), {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ oldPassword, newPassword }),
@@ -113,7 +113,7 @@ const changePassword = async (oldPassword: string, newPassword: string): Promise
 };
 
 const forgotPassword = async (data: ForgotPasswordRequest): Promise<{ message: string }> => {
-  const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+  const response = await fetch(apiUrl("/api/auth/forgot-password"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -122,7 +122,7 @@ const forgotPassword = async (data: ForgotPasswordRequest): Promise<{ message: s
 };
 
 const resetPassword = async (data: ResetPasswordRequest): Promise<{ message: string }> => {
-  const response = await fetch(`${API_BASE}/auth/reset-password`, {
+  const response = await fetch(apiUrl("/api/auth/reset-password"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -131,7 +131,7 @@ const resetPassword = async (data: ResetPasswordRequest): Promise<{ message: str
 };
 
 const verifyEmail = async (data: VerifyEmailRequest): Promise<{ message: string }> => {
-  const response = await fetch(`${API_BASE}/auth/verify-email`, {
+  const response = await fetch(apiUrl("/api/auth/verify-email"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -140,7 +140,7 @@ const verifyEmail = async (data: VerifyEmailRequest): Promise<{ message: string 
 };
 
 const resendVerification = async (data: ResendVerificationRequest): Promise<{ message: string }> => {
-  const response = await fetch(`${API_BASE}/auth/resend-verification`, {
+  const response = await fetch(apiUrl("/api/auth/resend-verification"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -149,18 +149,18 @@ const resendVerification = async (data: ResendVerificationRequest): Promise<{ me
 };
 
 const getAuthProviders = async (): Promise<AuthProviders> => {
-  const response = await fetch(`${API_BASE}/auth/providers`);
+  const response = await fetch(apiUrl("/api/auth/providers"));
   return handleResponse<AuthProviders>(response);
 };
 
 const getGoogleAuthUrl = async (): Promise<string> => {
-  const response = await fetch(`${API_BASE}/auth/google`);
+  const response = await fetch(apiUrl("/api/auth/google"));
   const result = await handleResponse<{ url: string }>(response);
   return result.url;
 };
 
 const getGithubAuthUrl = async (): Promise<string> => {
-  const response = await fetch(`${API_BASE}/auth/github`);
+  const response = await fetch(apiUrl("/api/auth/github"));
   const result = await handleResponse<{ url: string }>(response);
   return result.url;
 };

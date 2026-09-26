@@ -1,7 +1,7 @@
 import { db } from "../data-source";
 import { coloniesTable } from "../db/schema";
-import { eq, and } from "drizzle-orm";
-import type { ColonyData, ColonyResponse, SavedGameState } from "../model/types";
+import { eq, and, desc } from "drizzle-orm";
+import type { ColonyData, ColonyResponse, ColonyState, ColonySummary } from "../model/types";
 
 export class ColonyService {
   static async saveColony(userId: number, data: ColonyData): Promise<number> {
@@ -41,19 +41,31 @@ export class ColonyService {
 
     return {
       ...colonies[0],
-      state: JSON.parse(colonies[0].state) as SavedGameState,
+      state: JSON.parse(colonies[0].state) as ColonyState,
     };
   }
 
-  static async listColonies(userId: number): Promise<ColonyResponse[]> {
-    const colonies = await db
-      .select()
+  /**
+   * Lekka lista (D14): SELECT tylko `id`, `name`, `created_at`, `updated_at` (bez kolumny `state`,
+   * bez `JSON.parse`). Kolejność: `updatedAt` malejąco, remis rozstrzyga `id` malejąco.
+   */
+  static async listColonies(userId: number): Promise<ColonySummary[]> {
+    const rows = await db
+      .select({
+        id: coloniesTable.id,
+        name: coloniesTable.name,
+        createdAt: coloniesTable.createdAt,
+        updatedAt: coloniesTable.updatedAt,
+      })
       .from(coloniesTable)
-      .where(eq(coloniesTable.userId, userId));
-    
-    return colonies.map(c => ({
-      ...c,
-      state: JSON.parse(c.state) as SavedGameState,
+      .where(eq(coloniesTable.userId, userId))
+      .orderBy(desc(coloniesTable.updatedAt), desc(coloniesTable.id));
+
+    return rows.map((row): ColonySummary => ({
+      id: row.id,
+      name: row.name,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
     }));
   }
 

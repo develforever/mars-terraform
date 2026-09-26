@@ -1,36 +1,23 @@
-import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import "./data-source";
+import { sql } from "drizzle-orm";
+import { db } from "./data-source";
 import { config } from "./config";
-import { RegisterRoutes } from "./routes/routes";
+import { createApp } from "./app";
+import { readPackageVersion } from "./health";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-app.use(express.json());
-
-RegisterRoutes(app);
-
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok" });
-});
-
-const distPath = path.join(__dirname, "../dist");
-app.use(express.static(distPath));
-
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api/")) {
-    return next();
-  }
-  res.sendFile(path.join(distPath, "index.html"));
-});
-
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  void _next;
-  const status = (err as { status?: number }).status ?? 500;
-  res.status(status).json({ error: err.message });
+const app = createApp({
+  corsOrigins: config.corsOrigins,
+  distPath: path.join(__dirname, "../dist"),
+  serveFrontend: config.serveFrontend,
+  checkDatabase: async (): Promise<void> => {
+    await db.run(sql`select 1`);
+  },
+  version: readPackageVersion(path.join(__dirname, "../package.json")),
+  isProduction: config.isProduction,
 });
 
 app.listen(config.port, "0.0.0.0", () => {

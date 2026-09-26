@@ -1,0 +1,94 @@
+# fly.toml: API Mars Terraform na Fly.io (Faza 8, T6; decyzje D1 = Fly.io, D2 = Turso).
+#
+# Obraz: `Dockerfile.api` (sam backend, serve_frontend=false). Frontend jest na Vercel.
+# Baza: Turso (zdalny libsql), więc BEZ wolumenu: kontener jest bezstanowy i można go skalować poziomo.
+#
+# Wdrożenie (wykonuje człowiek, agent niczego nie wdraża):
+#   1. fly launch --no-deploy --copy-config
+#        Tworzy aplikację z tego pliku bez wdrażania. Jeśli nazwa `mars-terraform-api` jest zajęta,
+#        wybierz inną i popraw `app` oraz `backend_url` poniżej.
+#   2. fly secrets set jwt_secret=... turso_url=libsql://... turso_token=...
+#        (plus opcjonalne sekrety z listy niżej; wartości NIGDY nie trafiają do repo)
+#   3. fly deploy
+#   4. Po poznaniu domeny Vercel: ustaw `frontend_url` i `cors_origins` (sekcja [env]) i wdroż ponownie.
+#
+# Sekrety (`fly secrets set`), NAZWY kluczy z `src_backend/config.ts`:
+#   wymagane:  jwt_secret, turso_url, turso_token
+#   OAuth:     google_client_id, google_client_secret, github_client_id, github_client_secret
+#   e-mail:    email_strategy, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from,
+#              sendgrid_api_key, mailgun_api_key, mailgun_domain, resend_api_key,
+#              mailjet_api_key, mailjet_api_secret, mailtrap_api_token, mailtrap_inbox_id
+#   AI:        openrouter_api_key
+#   (email_strategy, smtp_host, smtp_port, smtp_from i mailgun_domain nie są tajne; można je
+#    zamiast tego dopisać do [env]. Domyślnie email_strategy = "console".)
+#
+# Uwaga: `fly.toml` jest wykluczony w `.dockerignore` celowo; flyctl czyta go lokalnie,
+# a nie z kontekstu builda.
+
+# Nazwę ustala użytkownik przy `fly launch --no-deploy --copy-config` (musi być globalnie unikalna).
+app = "mars-terraform-api"
+
+# Frankfurt. Docelowo chcieliśmy Warszawy (`waw`), ale nie ma pewności, że ten region jest nadal
+# dostępny dla nowych maszyn. Sprawdź `fly platform regions`; jeśli `waw` jest dostępny, można go
+# tu wpisać. Region ustaw blisko regionu bazy Turso (opóźnienie zapytań do DB).
+primary_region = "fra"
+
+# Obraz uruchamia node pod tini (PID 1), który przekazuje SIGTERM do procesu.
+kill_signal = "SIGTERM"
+kill_timeout = "10s"
+
+[build]
+  dockerfile = "Dockerfile.api"
+  # Jawnie wskazany allowlist kontekstu builda (bez `.env`, `local.db`, `public/`, `dist/`).
+  # Do weryfikacji przy pierwszym deployu: log builda powinien pokazać mały kontekst.
+  ignorefile = "Dockerfile.api.dockerignore"
+
+[env]
+  # Tylko wartości NIEsekretne. Sekrety: `fly secrets set` (lista na górze pliku).
+  NODE_ENV = "production"
+  serve_frontend = "false"
+  PORT = "8080"
+  # Publiczny adres API (callbacki OAuth: ${backend_url}/api/auth/*/callback).
+  # Zmień, jeśli `app` ma inną nazwę albo gdy podepniesz własną domenę.
+  backend_url = "https://mars-terraform-api.fly.dev"
+  # `frontend_url` i `cors_origins` ustawia się PO poznaniu domeny Vercel, np.:
+  #   frontend_url = "https://<app>.vercel.app"
+  #   cors_origins = "https://<app>.vercel.app,https://<domena>"
+  # Celowo nie są tu ustawione pustymi wartościami: brak `cors_origins` = CORS wyłączony
+  # (przeglądarka z Vercel nie dostanie odpowiedzi API), co jest zamierzone do czasu ustawienia.
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # 0 = maszyna zasypia bez ruchu (koszt ~0, ale pierwszy request ma cold start).
+  # 1 = brak cold startu kosztem stale działającej maszyny.
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    # Proxy Fly woli inne maszyny powyżej soft_limit i nie wysyła więcej niż hard_limit
+    # równoczesnych żądań do jednej maszyny (shared-cpu-1x, 512 MB).
+    soft_limit = 100
+    hard_limit = 150
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/api/health"
+    interval = "15s"
+    # Health ma wewnętrzny timeout zapytania do DB 2 s (DATABASE_CHECK_TIMEOUT_MS), więc 5 s wystarcza.
+    timeout = "5s"
+    grace_period = "10s"
+
+[deploy]
+  # Migracje przed przełączeniem ruchu (tymczasowa maszyna z tym samym obrazem i sekretami).
+  # T7: `src_backend/migrate.ts` (entrypoint) + `src_backend/db/migrate.ts` -> `dist_backend/migrate.js`.
+  # Błąd migracji (exit != 0) przerywa deploy, zanim nowa wersja dostanie ruch.
+  release_command = "node dist_backend/migrate.js"
+  strategy = "rolling"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

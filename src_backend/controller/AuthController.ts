@@ -8,7 +8,8 @@ import {
   Request,
   Security,
   Query,
-} from "tsoa";
+} from "@tsoa/runtime";
+import { HttpError } from "../errors/HttpError";
 import { authService } from "../service/authService";
 import { userService } from "../service/userService";
 import { oauthService } from "../service/oauthService";
@@ -48,8 +49,7 @@ export class AuthController extends Controller {
   public async me(@Request() req: AuthenticatedRequest): Promise<UserResponse> {
     const user = await userService.getById(req.user!.userId);
     if (!user) {
-      this.setStatus(404);
-      throw new Error("User not found");
+      throw new HttpError(404, "User not found");
     }
     return user as UserResponse;
   }
@@ -85,7 +85,7 @@ export class AuthController extends Controller {
   @Post("resend-verification")
   public async resendVerification(@Body() body: ResendVerificationRequest): Promise<{ message: string }> {
     await authService.resendVerification(body.email);
-    return { message: "Verification email has been sent." };
+    return { message: "If the account exists and is unverified, a verification email has been sent." };
   }
 
   @Get("providers")
@@ -99,8 +99,7 @@ export class AuthController extends Controller {
   @Get("google")
   public async googleAuth(): Promise<{ url: string }> {
     if (!config.googleClientId || !config.googleClientSecret) {
-      this.setStatus(404);
-      throw new Error("Google authentication is not configured");
+      throw new HttpError(404, "Google authentication is not configured");
     }
 
     const url = oauthService.getGoogleAuthUrl();
@@ -119,8 +118,7 @@ export class AuthController extends Controller {
   @Get("github")
   public async githubAuth(): Promise<{ url: string }> {
     if (!config.githubClientId || !config.githubClientSecret) {
-      this.setStatus(404);
-      throw new Error("GitHub authentication is not configured");
+      throw new HttpError(404, "GitHub authentication is not configured");
     }
 
     const url = oauthService.getGithubAuthUrl();

@@ -1,0 +1,56 @@
+# syntax=docker/dockerfile:1
+#
+# Obraz TYLKO z backendem (API) — Faza 8, T4. Frontend hostowany osobno (Vercel).
+# Build:  docker build -f Dockerfile.api -t mars-api .
+# Run:    docker run -p 8080:8080 -e jwt_secret=... -e turso_url=libsql://... -e turso_token=... mars-api
+# Kontekst builda filtruje `Dockerfile.api.dockerignore` (BuildKit), nie `.dockerignore`.
+#
+# Wersja Node: 24 (Active LTS). `vite.config.backend.ts` celuje w `node22` (dolna granica składni),
+# monolityczny `Dockerfile` używa `node:24-alpine`; `.nvmrc` (v25) nie jest LTS.
+# Build i runtime MUSZĄ mieć tę samą bazę (alpine/musl), bo `bcrypt` i `@libsql/client` są natywne.
+ARG NODE_VERSION=24
+
+# --- ETAP 1: build backendu (z devDependencies, bo vite buduje backend) ---
+FROM node:${NODE_VERSION}-alpine AS build
+WORKDIR /app
+# Toolchain tylko tutaj: fallback, gdyby natywny moduł (bcrypt) nie miał prebuilda dla musl.
+RUN apk add --no-cache python3 make g++
+
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
+
+# Tylko to, czego potrzebuje `vite build -c vite.config.backend.ts`:
+# config vite + źródła backendu (z `src_backend/tsconfig.json` = dekoratory TSOA dla esbuild).
+# `src_backend/routes/routes.ts` jest commitowany — tsoa NIE jest generowane w obrazie.
+COPY vite.config.backend.ts ./
+COPY src_backend ./src_backend
+RUN npm run build:back
+
+RUN npm prune --omit=dev --no-audit --no-fund
+
+# --- ETAP 2: runtime ---
+FROM node:${NODE_VERSION}-alpine AS runtime
+# tini jako PID 1: przekazuje SIGTERM/SIGINT do node (node jako PID 1 ignoruje je bez handlerów).
+RUN apk add --no-cache tini
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    serve_frontend=false \
+    PORT=8080
+
+# Pliki należą do root (tylko do odczytu dla `node`); zapis wyłącznie poza /app (np. /tmp).
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist_backend ./dist_backend
+# `readPackageVersion(dist_backend/../package.json)` -> wersja w /api/health.
+COPY --from=build /app/package.json ./package.json
+# Migracje SQL (używane przez skrypt migracji, T7).
+COPY drizzle ./drizzle
+
+USER node
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "dist_backend/index.js"]

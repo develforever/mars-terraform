@@ -65,58 +65,37 @@ export interface ResendVerificationRequest {
   email: string;
 }
 
-export interface SavedResources {
-  o2: number;
-  power: number;
-  water: number;
-  biomass: number;
-  minerals: number;
-}
-
-export interface SavedCapacity {
-  power: number;
-  water: number;
-  biomass: number;
-  minerals: number;
-}
-
-export interface SavedBuilding {
-  id: string;
-  definitionId: string;
-  position: { x: number; y: number; z: number };
-  condition: number;
-}
-
-export interface SavedWeather {
-  type: string;
-  intensity: number;
-  remainingTicks: number;
-  cooldownTicks: number;
-  impactZones?: { x: number; z: number }[];
-}
-
-export interface SavedGameState {
-  resources: SavedResources;
-  capacity: SavedCapacity;
-  placed: SavedBuilding[];
-  occupied: Record<string, string>;
-  weather: SavedWeather;
-  terraforming: number;
-  o2Accumulated: number;
-  difficulty: "easy" | "normal" | "hard";
-  gameMode: "exploration" | "survival";
-}
+/**
+ * Stan gry kolonii (D13 = c): otwarty obiekt JSON, dla backendu nieprzezroczysty blob.
+ * Jedynym źródłem prawdy o kształcie jest frontend (`useGameStore.saveGame` / `hydrateSavedState`),
+ * który odpowiada za treść przy wczytaniu. Backend (walidacja TSOA) sprawdza tylko, że to obiekt
+ * (tablica, null i prymityw → 400), a rozmiar ogranicza limit body w `app.ts` (→ 413).
+ */
+export type ColonyState = Record<string, unknown>;
 
 export interface ColonyData {
   name: string;
-  state: SavedGameState;
+  state: ColonyState;
 }
 
 export interface ColonyResponse {
   id: number;
   userId: number;
   name: string;
-  state: SavedGameState;
+  state: ColonyState;
   updatedAt: Date | null;
   createdAt: Date | null;
+}
+
+/**
+ * Element lekkiej listy kolonii (`GET /api/colony`, D14): bez `state` i bez `userId`.
+ * Daty w tym samym formacie co w `ColonyResponse` na drucie: ISO 8601 UTC (`Date.prototype.toISOString`).
+ */
+export interface ColonySummary {
+  id: number;
+  name: string;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
 }

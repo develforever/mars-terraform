@@ -7,9 +7,13 @@ export default defineConfig({
     outDir: 'dist_backend',
     ssr: true,
     lib: {
-      entry: 'src_backend/index.ts',
+      // Dwa entry (T7): serwer API i skrypt migracji. Wspólne moduły trafiają do chunków obok.
+      entry: {
+        index: 'src_backend/index.ts',
+        migrate: 'src_backend/migrate.ts'
+      },
       formats: ['es'],
-      fileName: 'index'
+      fileName: (_format, name) => `${name}.js`
     },
     rollupOptions: {
       external: (id) => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\\0') && !id.startsWith('C:') && !id.startsWith('C\\') && !id.startsWith('c:') && !id.startsWith('c\\')

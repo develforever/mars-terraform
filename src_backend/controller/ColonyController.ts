@@ -9,10 +9,10 @@ import {
   Request,
   Path,
   Tags,
-} from "tsoa";
+} from "@tsoa/runtime";
 import { ColonyService } from "../service/ColonyService";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
-import type { ColonyData, ColonyResponse } from "../model/types";
+import type { ColonyData, ColonyResponse, ColonySummary } from "../model/types";
 
 @Route("colony")
 @Tags("Colony")
@@ -50,13 +50,13 @@ export class ColonyController extends Controller {
   }
 
   /**
-   * Lists all colonies for the authenticated user.
+   * Lists colonies of the authenticated user (id, name, dates; without state), newest `updatedAt` first.
    */
   @Security("jwt")
   @Get()
   public async listColonies(
     @Request() request: AuthenticatedRequest,
-  ): Promise<ColonyResponse[]> {
+  ): Promise<ColonySummary[]> {
     const userId = request.user!.userId;
     return await ColonyService.listColonies(userId);
   }
