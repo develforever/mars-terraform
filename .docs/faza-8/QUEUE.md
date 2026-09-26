@@ -3,7 +3,7 @@
 > Jedyne źródło prawdy o postępie. Nadzorca aktualizuje ten plik i commituje go
 > **po każdej zmianie statusu** (commit + push), żeby przerwana sesja nie gubiła stanu.
 
-**STATUS KOLEJKI: PAUZA** (od 2026-09-26T07:31Z; PR #6 scalony do `main` jako 518964a; wznowienie tylko na polecenie użytkownika)
+**STATUS KOLEJKI: AKTYWNA** (wznowiona 2026-09-26T12:53Z; zadania agentowe zakończone, trwa wdrożenie przez człowieka wg DEPLOYMENT.md)
 
 Branch roboczy: `claude/compassionate-hawking-nc14kk` (bazuje na `main` @ `f119afb`)
 Baseline (zmierzony 2026-09-24T16:46Z, HEAD `0b7499c`, Node v22.22.2): **573 front / 33 back / 606 razem**, lint 0, tsc 0, build OK.
@@ -127,6 +127,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T07:23Z · nadzorca · — · PR do `main`: https://github.com/develforever/mars-terraform/pull/6 (na prośbę użytkownika). · —
 - 2026-09-26T07:31Z · nadzorca · — · PR https://github.com/develforever/mars-terraform/pull/6 scalony (squash) do `main` jako `518964a`, CI zielone. Branch roboczy odtworzony od `main`. · 518964a
 - 2026-09-26T07:31Z · nadzorca · — · PAUZA na polecenie użytkownika. Następny krok: człowiek, DEPLOYMENT.md §2 (`db-inspect.mjs`). · —
+- 2026-09-26T12:53Z · nadzorca · — · Wznowiono. Brak zadań agentowych; następny krok: człowiek, DEPLOYMENT.md §2 krok 1 (`db-inspect.mjs`). · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 

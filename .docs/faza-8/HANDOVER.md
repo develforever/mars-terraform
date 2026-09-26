@@ -9,7 +9,7 @@ Branch: `claude/compassionate-hawking-nc14kk`
 ## Stan w skrócie
 - DONE (agenci): T0a, T1, T2, T3, T3b, T3c, T4, T4b, T4c, T4d, T4e, T4f, T5, T6, T7, T7b, T8, T9 (dokumentacja)
 - DONE (człowiek): T0b (stare tokeny Turso unieważnione, nowy token działa, nowy `jwt_secret`; sekrety w `.env.local`)
-- W toku: brak. Aktywnych subagentów: brak. KOLEJKA W PAUZIE (polecenie użytkownika).
+- W toku: brak. Aktywnych subagentów: brak. Kolejka aktywna; czeka na wynik `db-inspect.mjs` od użytkownika.
 - Pozostaje: wdrożenie produkcyjne przez człowieka wg `.docs/faza-8/DEPLOYMENT.md` (sekcje 2–6); nadzorca wspiera krok po kroku.
 - Gate na HEAD: lint/tsc OK, front 619, back 166, build OK; CI run #1 zielony (verify + docker-api).
 
