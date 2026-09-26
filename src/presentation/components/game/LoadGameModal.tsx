@@ -5,9 +5,12 @@ import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { apiUrl } from "../../../application/config/apiConfig";
 
-interface ColonyEntry {
+/** Element `GET /api/colony` (`ColonySummary` w `src_backend/model/types.ts`), bez `state`. */
+interface ColonySummary {
+    id: number;
     name: string;
-    updatedAt?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 interface LoadGameModalProps {
@@ -16,7 +19,7 @@ interface LoadGameModalProps {
 
 export function LoadGameModal({ onClose }: LoadGameModalProps) {
     const { t } = useTranslation();
-    const [colonies, setColonies] = useState<ColonyEntry[]>([]);
+    const [colonies, setColonies] = useState<ColonySummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingName, setLoadingName] = useState<string | null>(null);
     const [deletingName, setDeletingName] = useState<string | null>(null);
@@ -34,7 +37,7 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
                     headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
                 });
                 if (!res.ok) throw new Error(t("modal.loadGame.errorList"));
-                const data = await res.json() as ColonyEntry[];
+                const data = await res.json() as ColonySummary[];
                 setColonies(data);
             } catch {
                 setError(t("modal.loadGame.errorFetch"));

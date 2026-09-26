@@ -113,6 +113,27 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     expect(state.hexGrid.getCell(1, 0)?.terrainType).toBe("peak");
   });
 
+  it.each<[string, string]>([
+    ["Nowa Kolonia", "/api/colony/Nowa%20Kolonia"],
+    ["Baza/Alfa", "/api/colony/Baza%2FAlfa"],
+    ["Kolonia?", "/api/colony/Kolonia%3F"],
+    ["Kolonia #1", "/api/colony/Kolonia%20%231"],
+    ["Żółć", "/api/colony/%C5%BB%C3%B3%C5%82%C4%87"],
+    ["100% Mars", "/api/colony/100%25%20Mars"],
+  ])("encodes the colony name %s in the loadGame URL", async (name, expectedUrl) => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ name, state: { placed: [], occupied: {} } }),
+    } as Response);
+
+    const loadResult = await useGameStore.getState().loadGame(name);
+
+    expect(loadResult).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy.mock.calls[0][0]).toBe(expectedUrl);
+    expect(useGameStore.getState().colonyName).toBe(name);
+  });
+
   it("generates and manages resourceNodes during startNewGame and economy tick", () => {
     useGameStore.getState().startNewGame("Resource Colony", "normal", "exploration");
 

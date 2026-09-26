@@ -86,3 +86,16 @@ export interface ColonyResponse {
   updatedAt: Date | null;
   createdAt: Date | null;
 }
+
+/**
+ * Element lekkiej listy kolonii (`GET /api/colony`, D14): bez `state` i bez `userId`.
+ * Daty w tym samym formacie co w `ColonyResponse` na drucie: ISO 8601 UTC (`Date.prototype.toISOString`).
+ */
+export interface ColonySummary {
+  id: number;
+  name: string;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+}

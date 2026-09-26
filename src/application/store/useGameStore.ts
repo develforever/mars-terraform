@@ -1129,7 +1129,7 @@ export const useGameStore = create<GameState>()(
 
       loadGame: async (name: string) => {
         try {
-          const response = await fetch(apiUrl(`/api/colony/${name}`), {
+          const response = await fetch(apiUrl(`/api/colony/${encodeURIComponent(name)}`), {
             headers: {
               "Authorization": `Bearer ${authClient.getToken()}`
             }

@@ -27,6 +27,8 @@ vi.mock("../config", () => ({
 
 import { createApp, JSON_BODY_LIMIT_BYTES } from "../app";
 import { db } from "../data-source";
+import { coloniesTable } from "../db/schema";
+import { ColonyService } from "../service/ColonyService";
 
 /**
  * Zapis/wczytanie kolonii (POST/GET /api/colony) przez prawdziwe trasy TSOA (`routes.ts`).
@@ -298,5 +300,138 @@ describe("POST /api/colony + GET /api/colony/{name} (T4d, T4e)", () => {
     expect(res.status).toBe(413);
     expect(await res.json()).toEqual({ error: "Payload Too Large" });
     expect(db.insert).not.toHaveBeenCalled();
+  });
+});
+
+interface SummaryRow {
+  readonly id: number;
+  readonly name: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+/** `select({...}).from().where().orderBy()` zwraca podane wiersze (lista kolonii). */
+const mockListRows = (rows: readonly SummaryRow[]): { orderBy: ReturnType<typeof vi.fn> } => {
+  const orderBy = vi.fn().mockResolvedValue(rows);
+  vi.mocked(db.select).mockReturnValue({
+    from: () => ({ where: () => ({ orderBy }) }),
+  } as unknown as ReturnType<typeof db.select>);
+  return { orderBy };
+};
+
+const listColonies = (baseUrl: string): Promise<Response> =>
+  fetch(`${baseUrl}/api/colony`, { headers: { Authorization: `Bearer ${bearer()}` } });
+
+describe("GET /api/colony — lightweight list (T4f, D14)", () => {
+  const rows: readonly SummaryRow[] = [
+    { id: 9, name: "Hellas Basin", createdAt: new Date("2026-09-20T10:00:00Z"), updatedAt: new Date("2026-09-26T07:30:00Z") },
+    { id: 4, name: "Tharsis One", createdAt: new Date("2026-09-01T08:15:00Z"), updatedAt: new Date("2026-09-25T21:05:00Z") },
+  ];
+
+  it("returns only id, name, createdAt, updatedAt (no state, no userId) with ISO 8601 dates", async () => {
+    const baseUrl = await start();
+    mockListRows(rows);
+
+    const res = await listColonies(baseUrl);
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>[];
+    expect(body).toHaveLength(2);
+    for (const item of body) {
+      expect(Object.keys(item).sort()).toEqual(["createdAt", "id", "name", "updatedAt"]);
+    }
+    expect(body).toEqual([
+      { id: 9, name: "Hellas Basin", createdAt: "2026-09-20T10:00:00.000Z", updatedAt: "2026-09-26T07:30:00.000Z" },
+      { id: 4, name: "Tharsis One", createdAt: "2026-09-01T08:15:00.000Z", updatedAt: "2026-09-25T21:05:00.000Z" },
+    ]);
+  });
+
+  it("selects only the summary columns (the state column is never read) and orders by updatedAt desc", async () => {
+    const baseUrl = await start();
+    const { orderBy } = mockListRows(rows);
+
+    const res = await listColonies(baseUrl);
+
+    expect(res.status).toBe(200);
+    expect(db.select).toHaveBeenCalledTimes(1);
+    const selection = vi.mocked(db.select).mock.calls[0][0] as Record<string, unknown> | undefined;
+    expect(selection).toBeDefined();
+    expect(Object.keys(selection ?? {}).sort()).toEqual(["createdAt", "id", "name", "updatedAt"]);
+    expect(Object.values(selection ?? {})).not.toContain(coloniesTable.state);
+    expect(selection).toEqual({
+      id: coloniesTable.id,
+      name: coloniesTable.name,
+      createdAt: coloniesTable.createdAt,
+      updatedAt: coloniesTable.updatedAt,
+    });
+    expect(orderBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns an empty array when the user has no colonies", async () => {
+    const baseUrl = await start();
+    mockListRows([]);
+
+    const res = await listColonies(baseUrl);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([]);
+  });
+
+  it("requires authentication", async () => {
+    const baseUrl = await start();
+    mockListRows(rows);
+
+    const res = await fetch(`${baseUrl}/api/colony`);
+
+    expect(res.status).toBe(401);
+    expect(db.select).not.toHaveBeenCalled();
+  });
+});
+
+describe("colony names with special characters survive the URL round-trip (T4f)", () => {
+  it.each<[string, string]>([
+    ["a space", "Nowa Kolonia"],
+    ["a slash", "Baza/Alfa"],
+    ["a question mark", "Kolonia?"],
+    ["a hash", "Kolonia #1"],
+    ["Polish letters", "Żółć Łąki Ęś"],
+    ["a percent sign", "100% Mars"],
+    ["all of the above", "Ząb / ślad? #7 50%"],
+  ])("saves and loads a colony whose name contains %s", async (_label, name) => {
+    const baseUrl = await start();
+    const values = mockNewColony(11);
+    const state = { tick: 5, sol: 1, placed: [{ id: "colony-center-hab", definitionId: "hab" }] };
+
+    const saveRes = await postColony(baseUrl, { name, state });
+    expect(saveRes.status).toBe(200);
+    const inserted = values.mock.calls[0][0] as { name: string; state: string };
+    expect(inserted.name).toBe(name);
+
+    mockExistingRows([
+      { id: 11, userId: 7, name, state: inserted.state, updatedAt: null, createdAt: null },
+    ]);
+    const getSpy = vi.spyOn(ColonyService, "getColony");
+    const loadRes = await getColony(baseUrl, name);
+
+    expect(loadRes.status).toBe(200);
+    expect(getSpy).toHaveBeenCalledWith(7, name);
+    const loaded = (await loadRes.json()) as { name: string; state: unknown };
+    expect(loaded.name).toBe(name);
+    expect(loaded.state).toEqual(state);
+  });
+
+  it.each<string>(["Baza/Alfa", "Kolonia #1", "Żółć Łąki Ęś"])("DELETE decodes the encoded name %s", async (name) => {
+    const baseUrl = await start();
+    const where = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(db.delete).mockReturnValue({ where } as unknown as ReturnType<typeof db.delete>);
+    const deleteSpy = vi.spyOn(ColonyService, "deleteColony");
+
+    const res = await fetch(`${baseUrl}/api/colony/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${bearer()}` },
+    });
+
+    expect(res.status).toBe(200);
+    expect(deleteSpy).toHaveBeenCalledWith(7, name);
   });
 });
