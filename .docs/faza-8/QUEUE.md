@@ -3,7 +3,7 @@
 > Jedyne źródło prawdy o postępie. Nadzorca aktualizuje ten plik i commituje go
 > **po każdej zmianie statusu** (commit + push), żeby przerwana sesja nie gubiła stanu.
 
-**STATUS KOLEJKI: PAUZA** (od 2026-09-25T14:55Z; wznowienie tylko na polecenie użytkownika)
+**STATUS KOLEJKI: AKTYWNA** (wznowiona 2026-09-26T06:20Z)
 
 Branch roboczy: `claude/compassionate-hawking-nc14kk` (bazuje na `main` @ `f119afb`)
 Baseline (zmierzony 2026-09-24T16:46Z, HEAD `0b7499c`, Node v22.22.2): **573 front / 33 back / 606 razem**, lint 0, tsc 0, build OK.
@@ -26,15 +26,16 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
 | T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | DONE(06cc25c) |
 | T3b | Błędy biznesowe → 4xx (`HttpError`), bez 500 dla złego hasła itp. | T3 | — | general-purpose | `src_backend/errors/HttpError.ts` (nowy), `src_backend/service/{MapService,authService,emailService,oauthService}.ts`, `src_backend/controller/{Users,Auth,Groups}Controller.ts` + testy | DONE(75eb09e) |
+| T3c | Anty-enumeracja kont: login (hasło przed „Email not verified”), `resend-verification` zawsze 200, stały czas (dummy bcrypt) | T3b | D12 ✔ | general-purpose | `src_backend/service/authService.ts` (+ test), `src_backend/app.test.ts`, `src/application/service/authService.ts` tylko jeśli frontend zależy od 404/409 | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T06:20Z) |
 | T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | REVIEW(c69dfd8; weryfikacja obrazu w CI (job docker-api z T8), decyzja użytkownika: opcja C) |
 | T4b | Odchudzenie prod deps: paczki tylko frontendowe → `devDependencies` | T4 | zgoda ✔ | general-purpose | `package.json` (sekcje deps), `package-lock.json` | DONE(cf5d07b) |
-| T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | READY |
+| T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b, T3c | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | TODO |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | DONE(40a4822) |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | DONE(b75b526) |
 | T7b | Naprawa rozjazdu migracji: brak `maps` w migracjach, `0001_colonies.sql` poza journalem; test: wszystkie tabele `schema.ts` po migracji | T7 | D10, D11 | general-purpose | `drizzle/**`, `src_backend/db/migrate.test.ts`, (D10) `package.json`/`package-lock.json` (drizzle-kit) | DONE(bf8fc77) |
-| T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | IN_PROGRESS(przerwany? `ci.yml` w worktree agent-a057bcf… bez commita; przy wznowieniu: sprawdzić/dokończyć albo uruchomić od nowa) |
-| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T4c, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
+| T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T06:20Z; restart z szkicem `ci.yml` z worktree agent-a057bcf42a98b50ec) |
+| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
 
 ### Równoległość (macierz konfliktów)
 
@@ -43,6 +44,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 - Fala 3: **T4 ∥ T3b** (po T3, rozłączne pliki)
 - Fala 4 (równolegle): **T4b ∥ T6 ∥ T8** (T4 w REVIEW, bo obraz weryfikuje CI z T8). Potem **T7** (po T4b, wspólny `package.json`). T8 nie dotyka `package.json`.
 - Fala 4b: **T4c** (po T3b i T7: wspólne pliki kontrolerów i `package.json`)
+- Fala 4c: **T3c ∥ T8** (rozłączne pliki), potem **T4c** (po T3c: możliwe wspólne pliki auth)
 - Fala 5: **T9**
 
 Zadania ze wspólnym plikiem NIGDY nie idą równolegle. Równoległe subagenty pracują w `isolation: "worktree"`,
@@ -62,6 +64,7 @@ a nadzorca scala ich commity na branch roboczy po kolei i po każdym scaleniu ur
 | D8 | Fly: region `fra`, `min_machines_running = 0` | 2026-09-24 | użytkownik |
 | D9 | Weryfikacja obrazu API w CI (job `docker-api`, T8) zamiast w sesji | 2026-09-24 | użytkownik |
 | D10 | Tak: aktualizacja `drizzle-kit` 0.18.1 → 0.31.x | 2026-09-24 | użytkownik |
+| D12 | Tak: T3c, poprawki anty-enumeracji (zmiana zachowania API) | 2026-09-26 | użytkownik |
 | D11 | Produkcyjna baza Turso powstała przez `drizzle-kit push` (brak `__drizzle_migrations`), więc baseline wymagany przed 1. deployem (runbook T9). Obecność `maps`/`colonies` do sprawdzenia `.tables` | 2026-09-24 | użytkownik |
 
 ## Dziennik
@@ -97,6 +100,8 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-25T14:55Z · nadzorca · T7b · Scalono. Gate po `npm ci`: 613 / 113 back (+5), lint/tsc/build OK, `drizzle-kit check`: OK. drizzle-kit 0.31.11. Runbook baseline: `.docs/faza-8/MIGRATIONS_BASELINE.md`. · bf8fc77
 - 2026-09-25T14:55Z · nadzorca · T3b · Scalono (raport agenta nie dotarł; diff przejrzany przez nadzorcę). Gate: 613 / 132 back (+19), OK. Znalezione (istniejące wcześniej, nie z T3b): enumeracja kont: (1) login sprawdza „Email not verified” PRZED hasłem, (2) `resend-verification` zwraca 404/409 zależnie od konta, (3) brak stałego czasu (brak bcrypt dla nieistniejącego użytkownika). Propozycja: zadanie T3c, wymaga zgody (zmiana zachowania API). · 75eb09e
 - 2026-09-25T14:55Z · nadzorca · — · PAUZA na polecenie użytkownika. · —
+- 2026-09-26T06:20Z · nadzorca · — · Wznowiono. D12 = T3c tak. Brak aktywnych subagentów (ListAgents pusty); agent T8 nie żyje, szkic `ci.yml` (niezacommitowany) w `.claude/worktrees/agent-a057bcf42a98b50ec/.github/workflows/ci.yml`. Dodano procedurę handover (SUPERVISOR_PROMPT.md) i HANDOVER.md. · —
+- 2026-09-26T06:20Z · nadzorca · T3c, T8 · Start równoległy. · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 

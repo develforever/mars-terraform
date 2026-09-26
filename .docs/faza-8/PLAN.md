@@ -118,6 +118,15 @@ Konwencja: każde zadanie kończy się zielonym **Gate** (sekcja 6), jednym comm
 - Testy: istniejące testy serwisów + asercje statusów; integracyjnie przez `createApp` (np. login ze złym hasłem → 401 w trybie `isProduction=true`).
 - Zależność: T3.
 
+### T3c — Backend: anty-enumeracja kont (po T3b, decyzja D12)
+- Login: najpierw weryfikacja hasła (bcrypt), dopiero potem „Email not verified” (403). Nieistniejący użytkownik albo złe hasło → ten sam 401 „Invalid credentials”.
+- Stały czas: dla nieistniejącego użytkownika / braku metody lokalnej wykonaj `bcrypt.compare` na stałym, poprawnym hashu-atrapie (wyliczonym raz przy starcie modułu, koszt jak w rejestracji).
+- `resend-verification`: zawsze 200 z tym samym ogólnym komunikatem (np. „If the account exists and is unverified, a verification email has been sent.”), niezależnie od istnienia konta i stanu weryfikacji; e-mail wysyłany tylko, gdy konto istnieje i nie jest zweryfikowane.
+- `forgot-password`: sprawdzić, że już nie ujawnia istnienia konta (jeśli ujawnia, to samo podejście).
+- Rejestracja 409 „already exists” zostaje (akceptowane, typowe; zapisać jako znane ryzyko).
+- Frontend: sprawdzić, czy `src/application/service/authService.ts` / UI zależy od 404/409 z resend; dostosować tylko, jeśli coś się psuje.
+- Testy: kolejność sprawdzeń (niezweryfikowany + złe hasło → 401, niezweryfikowany + dobre hasło → 403), resend dla nieistniejącego / zweryfikowanego / niezweryfikowanego konta → 200 i ten sam body; bcrypt wywołany także dla nieistniejącego użytkownika (spy).
+
 ### T4 — Backend: obraz `Dockerfile.api`
 - Multi-stage: `npm ci` → `npm run build:back` (BEZ builda frontendu) → `npm prune --omit=dev` → runtime `node:<LTS>-alpine`, `USER node`, `NODE_ENV=production`, `serve_frontend=false`, `EXPOSE 8080`, `HEALTHCHECK` na `/api/health`, `CMD ["node","dist_backend/index.js"]` (bez `npm` jako PID 1).
 - `bcrypt` = natywny moduł: toolchain tylko w stage build, zgodna libc między stage'ami.
