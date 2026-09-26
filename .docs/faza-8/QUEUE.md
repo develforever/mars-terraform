@@ -30,13 +30,14 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | DONE(c69dfd8; obraz zweryfikowany w CI run #1 36224020817) |
 | T4b | Odchudzenie prod deps: paczki tylko frontendowe → `devDependencies` | T4 | zgoda ✔ | general-purpose | `package.json` (sekcje deps), `package-lock.json` | DONE(cf5d07b) |
 | T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b, T3c | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | DONE(39832c4) |
-| T4d | Regeneracja `routes.ts`/`swagger.json` (brak `minerals` → 400 przy zapisie kolonii przez `throw-on-extras`) + krok CI wykrywający nieaktualne trasy TSOA + test zapisu kolonii | T4c | — | general-purpose | `src_backend/routes/routes.ts`, `src_backend/api/swagger.json`, `.github/workflows/ci.yml`, test backendu | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T06:40Z) |
+| T4d | Regeneracja `routes.ts`/`swagger.json` (brak `minerals` → 400 przy zapisie kolonii przez `throw-on-extras`) + krok CI wykrywający nieaktualne trasy TSOA + test zapisu kolonii | T4c | — | general-purpose | `src_backend/routes/routes.ts`, `src_backend/api/swagger.json`, `.github/workflows/ci.yml`, test backendu | DONE(b858704) |
+| T4e | Zapis kolonii działa end-to-end: kontrakt `state` vs realny payload `useGameStore.saveGame` (19 nadmiarowych pól) + limit rozmiaru body (`express.json` domyślnie 100 kB); odwrócić `it.fails` w `src_backend/test/colony.test.ts` | T4d | D13 | general-purpose | `src_backend/model/types.ts`, `src_backend/controller/ColonyController.ts`, `routes.ts`/`swagger.json` (tsoa:gen), `src_backend/app.ts` (limit), testy | BLOCKED(D13) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | DONE(40a4822) |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | DONE(b75b526) |
 | T7b | Naprawa rozjazdu migracji: brak `maps` w migracjach, `0001_colonies.sql` poza journalem; test: wszystkie tabele `schema.ts` po migracji | T7 | D10, D11 | general-purpose | `drizzle/**`, `src_backend/db/migrate.test.ts`, (D10) `package.json`/`package-lock.json` (drizzle-kit) | DONE(bf8fc77) |
 | T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | DONE(fea5646; CI run #1 zielony: verify + docker-api) |
-| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T4d, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
+| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T4d, T4e, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
 
 ### Równoległość (macierz konfliktów)
 
@@ -66,6 +67,7 @@ a nadzorca scala ich commity na branch roboczy po kolei i po każdym scaleniu ur
 | D9 | Weryfikacja obrazu API w CI (job `docker-api`, T8) zamiast w sesji | 2026-09-24 | użytkownik |
 | D10 | Tak: aktualizacja `drizzle-kit` 0.18.1 → 0.31.x | 2026-09-24 | użytkownik |
 | D12 | Tak: T3c, poprawki anty-enumeracji (zmiana zachowania API) | 2026-09-26 | użytkownik |
+| D13 | Kontrakt `state` kolonii: (a) pełne typy w `SavedGameState`, (b) `silently-remove-extras` (utrata danych, odrzucone), (c) `state` jako otwarty obiekt JSON (`{ [key: string]: unknown }`) z limitem rozmiaru | — | — |
 | D11 | Produkcyjna baza Turso powstała przez `drizzle-kit push` (brak `__drizzle_migrations`), więc baseline wymagany przed 1. deployem (runbook T9). Obecność `maps`/`colonies` do sprawdzenia `.tables` | 2026-09-24 | użytkownik |
 
 ## Dziennik
@@ -109,6 +111,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T06:40Z · nadzorca · T4, T8 · CI run #1 (https://github.com/develforever/mars-terraform/actions/runs/36224020817) zielony: verify + docker-api (build obrazu, migracja, health, 404 JSON, brak .env/src/public, non-root, stop < 5 s). T4 DONE. · 105ec1e
 - 2026-09-26T06:40Z · nadzorca · T4c · Scalono po `npm ci`. Gate: 613 / 142, OK. Prod `node_modules` 93 → 54 MB (bez tsoa/@tsoa/cli/typescript). `tsoa:gen` działa z `@tsoa/runtime`. · 39832c4
 - 2026-09-26T06:40Z · nadzorca · T4d · NOWE: `routes.ts` nieaktualny względem `model/types.ts` (brak `minerals` w `SavedResources`/`SavedCapacity`), a przy `noImplicitAdditionalProperties: throw-on-extras` frontend wysyła `resources`/`capacity` z `minerals`, więc zapis kolonii prawdopodobnie daje 400 (błąd sprzed Fazy 8). Start. · —
+- 2026-09-26T06:48Z · nadzorca · T4d · Scalono. Gate: 613 / 144 + 1 `it.fails` (znany błąd zapisu, udokumentowany), `tsoa:gen` bez rozjazdu. Hipoteza potwierdzona (400 na `minerals`), ale pełny payload gry dalej daje 400: 19 pól spoza `SavedGameState` (`mapSeed`, `units`, `currentMapData`, `unlockedTechs`… oraz `placed[].level`, `weather.trajectories`). Zapis kolonii NIE działa (błąd sprzed Fazy 8). Nowe T4e, czeka na D13. · b858704
 
 ## Follow-upy (poza zakresem Fazy 8)
 
