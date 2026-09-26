@@ -31,6 +31,7 @@ vi.mock("./config", () => ({
 
 import { createApp, type CreateAppOptions } from "./app";
 import { db } from "./data-source";
+import { emailService } from "./service/emailService";
 
 const ALLOWED = "https://mars-terraform.vercel.app";
 const INDEX_HTML = "<!doctype html><title>spa</title>";
@@ -388,5 +389,112 @@ describe("client errors (HttpError) in production", () => {
     const res = await fetch(`${baseUrl}/api/maps`, { headers: { Authorization: "Bearer garbage" } });
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: "Invalid or expired token" });
+  });
+});
+
+describe("account enumeration (T3c) in production", () => {
+  const RESEND_BODY = { message: "If the account exists and is unverified, a verification email has been sent." };
+  const UNVERIFIED = { id: 8, email: "new@mars.test", emailVerifiedAt: null };
+  const VERIFIED = { id: 7, email: "u@mars.test", emailVerifiedAt: new Date() };
+
+  const selectReturning = (...results: unknown[][]): void => {
+    for (const rows of results) {
+      vi.mocked(db.select).mockReturnValueOnce({
+        from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(rows) }),
+      } as unknown as ReturnType<typeof db.select>);
+    }
+  };
+
+  const mockWrites = (): void => {
+    vi.mocked(db.delete).mockReturnValue({
+      where: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ReturnType<typeof db.delete>);
+    vi.mocked(db.insert).mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ReturnType<typeof db.insert>);
+  };
+
+  const post = (url: string, body: unknown): Promise<Response> =>
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+  beforeEach(() => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  it("checks the password before email verification on login", async () => {
+    const passwordHash = await bcrypt.hash("correct", 4);
+    const { baseUrl } = await start({ isProduction: true });
+
+    selectReturning([UNVERIFIED], [{ id: 2, userId: 8, provider: "local", passwordHash }]);
+    const wrong = await post(`${baseUrl}/api/auth/login`, { email: "new@mars.test", password: "wrong" });
+    expect(wrong.status).toBe(401);
+    expect(await wrong.json()).toEqual({ error: "Invalid credentials" });
+
+    selectReturning([UNVERIFIED], [{ id: 2, userId: 8, provider: "local", passwordHash }]);
+    const correct = await post(`${baseUrl}/api/auth/login`, { email: "new@mars.test", password: "correct" });
+    expect(correct.status).toBe(403);
+    expect(await correct.json()).toEqual({
+      error: "Email not verified. Please verify your email before logging in.",
+    });
+  });
+
+  it("answers resend-verification identically for unknown, verified and unverified accounts", async () => {
+    const send = vi.spyOn(emailService, "send");
+    mockWrites();
+    const { baseUrl } = await start({ isProduction: true });
+
+    const responses: { status: number; body: string }[] = [];
+    for (const rows of [[], [VERIFIED], [UNVERIFIED]]) {
+      selectReturning(rows);
+      const res = await post(`${baseUrl}/api/auth/resend-verification`, { email: "x@mars.test" });
+      responses.push({ status: res.status, body: await res.text() });
+    }
+
+    for (const { status, body } of responses) {
+      expect(status).toBe(200);
+      expect(JSON.parse(body)).toEqual(RESEND_BODY);
+    }
+    expect(new Set(responses.map((r) => r.body)).size).toBe(1);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ to: UNVERIFIED.email }));
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it("keeps the same resend-verification success when email delivery fails, and logs it", async () => {
+    const failure = new Error("SMTP connection refused");
+    vi.spyOn(emailService, "send").mockRejectedValueOnce(failure);
+    mockWrites();
+    const { baseUrl } = await start({ isProduction: true });
+
+    selectReturning([UNVERIFIED]);
+    const res = await post(`${baseUrl}/api/auth/resend-verification`, { email: UNVERIFIED.email });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(RESEND_BODY);
+    expect(console.error).toHaveBeenCalledWith("[auth] verification email failed:", failure);
+  });
+
+  it("keeps the same forgot-password success when email delivery fails, and logs it", async () => {
+    const failure = new Error("SMTP connection refused");
+    vi.spyOn(emailService, "send").mockRejectedValueOnce(failure);
+    mockWrites();
+    const { baseUrl } = await start({ isProduction: true });
+
+    selectReturning([]);
+    const unknown = await post(`${baseUrl}/api/auth/forgot-password`, { email: "no@mars.test" });
+    selectReturning([VERIFIED]);
+    const existing = await post(`${baseUrl}/api/auth/forgot-password`, { email: VERIFIED.email });
+
+    for (const res of [unknown, existing]) {
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({
+        message: "If an account with that email exists, a reset link has been sent.",
+      });
+    }
+    expect(console.error).toHaveBeenCalledWith("[auth] password reset email failed:", failure);
   });
 });

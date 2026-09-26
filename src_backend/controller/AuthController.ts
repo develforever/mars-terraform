@@ -85,7 +85,7 @@ export class AuthController extends Controller {
   @Post("resend-verification")
   public async resendVerification(@Body() body: ResendVerificationRequest): Promise<{ message: string }> {
     await authService.resendVerification(body.email);
-    return { message: "Verification email has been sent." };
+    return { message: "If the account exists and is unverified, a verification email has been sent." };
   }
 
   @Get("providers")

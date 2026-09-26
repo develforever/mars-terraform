@@ -20,6 +20,29 @@ export interface JwtPayload {
   email: string;
 }
 
+/** Koszt bcrypt dla haseł użytkowników (rejestracja, zmiana i reset hasła) oraz hasha-atrapy. */
+const BCRYPT_COST = 10;
+
+/** Stały sekret hasha-atrapy; nie jest hasłem żadnego konta (hash nie trafia do bazy). */
+const DUMMY_PASSWORD = "mars-terraform:dummy:6f1c0e9a4b7d2385c1e0f4a9b8d7c6e5";
+
+let dummyHashPromise: Promise<string> | null = null;
+
+/**
+ * Hash-atrapa dla logowania bez konta / bez metody lokalnej: `bcrypt.compare` na nim trwa tyle,
+ * co na prawdziwym haśle (ten sam koszt), więc czas odpowiedzi nie zdradza istnienia konta.
+ * Liczony leniwie przy pierwszym użyciu (nie blokuje startu serwera) i cache'owany.
+ */
+const getDummyHash = (): Promise<string> => {
+  if (!dummyHashPromise) {
+    dummyHashPromise = bcrypt.hash(DUMMY_PASSWORD, BCRYPT_COST).catch((err: unknown) => {
+      dummyHashPromise = null;
+      throw err;
+    });
+  }
+  return dummyHashPromise;
+};
+
 const registerLocal = async (
   email: string,
   password: string,
@@ -34,7 +57,7 @@ const registerLocal = async (
     throw new HttpError(409, "User with this email already exists");
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
 
   const result = await db.transaction(async (tx) => {
     const [user] = await tx
@@ -69,6 +92,10 @@ const registerLocal = async (
   return { id: result.id, email: result.email };
 };
 
+/**
+ * Kolejność sprawdzeń chroni przed enumeracją kont: brak konta, brak metody lokalnej i złe hasło
+ * dają ten sam 401 po tym samym koszcie bcrypt; „Email not verified” (403) dopiero po poprawnym haśle.
+ */
 const loginLocal = async (
   email: string,
   password: string,
@@ -78,33 +105,34 @@ const loginLocal = async (
     .from(usersTable)
     .where(and(eq(usersTable.email, email), isNull(usersTable.deletedAt)));
 
-  if (users.length === 0) {
+  const user = users.length > 0 ? users[0] : null;
+
+  const authMethods = user
+    ? await db
+        .select()
+        .from(userAuthMethodsTable)
+        .where(
+          and(
+            eq(userAuthMethodsTable.userId, user.id),
+            eq(userAuthMethodsTable.provider, "local"),
+          ),
+        )
+    : [];
+
+  const passwordHash = authMethods.length > 0 ? authMethods[0].passwordHash : null;
+
+  if (!user || !passwordHash) {
+    await bcrypt.compare(password, await getDummyHash());
     throw new HttpError(401, "Invalid credentials");
   }
 
-  const user = users[0];
+  const valid = await bcrypt.compare(password, passwordHash);
+  if (!valid) {
+    throw new HttpError(401, "Invalid credentials");
+  }
 
   if (!user.emailVerifiedAt) {
     throw new HttpError(403, "Email not verified. Please verify your email before logging in.");
-  }
-
-  const authMethods = await db
-    .select()
-    .from(userAuthMethodsTable)
-    .where(
-      and(
-        eq(userAuthMethodsTable.userId, user.id),
-        eq(userAuthMethodsTable.provider, "local"),
-      ),
-    );
-
-  if (authMethods.length === 0) {
-    throw new HttpError(401, "Invalid credentials");
-  }
-
-  const valid = await bcrypt.compare(password, authMethods[0].passwordHash!);
-  if (!valid) {
-    throw new HttpError(401, "Invalid credentials");
   }
 
   const payload: JwtPayload = { userId: user.id, email: user.email };
@@ -143,7 +171,7 @@ const changePassword = async (
     throw new HttpError(403, "Invalid current password");
   }
 
-  const newPasswordHash = await bcrypt.hash(newPassword, 10);
+  const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
 
   await db
     .update(userAuthMethodsTable)
@@ -155,6 +183,7 @@ const generateToken = (): string => {
   return crypto.randomBytes(32).toString("hex");
 };
 
+/** Zawsze kończy się sukcesem dla klienta (anty-enumeracja); e-mail tylko dla istniejącego konta. */
 const requestPasswordReset = async (email: string): Promise<void> => {
   const users = await db
     .select()
@@ -166,24 +195,30 @@ const requestPasswordReset = async (email: string): Promise<void> => {
   }
 
   const user = users[0];
-  const token = generateToken();
-  const expiresAt = new Date(Date.now() + 3600000);
 
-  await db.delete(passwordResetsTable).where(eq(passwordResetsTable.userId, user.id));
+  try {
+    const token = generateToken();
+    const expiresAt = new Date(Date.now() + 3600000);
 
-  await db.insert(passwordResetsTable).values({
-    userId: user.id,
-    token,
-    expiresAt,
-  });
+    await db.delete(passwordResetsTable).where(eq(passwordResetsTable.userId, user.id));
 
-  const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
+    await db.insert(passwordResetsTable).values({
+      userId: user.id,
+      token,
+      expiresAt,
+    });
 
-  await emailService.send({
-    to: email,
-    subject: "Password Reset Request",
-    text: `You requested a password reset. Click the link to reset your password: ${resetUrl}\n\nThis link will expire in 1 hour.`,
-  });
+    const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
+
+    await emailService.send({
+      to: email,
+      subject: "Password Reset Request",
+      text: `You requested a password reset. Click the link to reset your password: ${resetUrl}\n\nThis link will expire in 1 hour.`,
+    });
+  } catch (err: unknown) {
+    // Błąd (np. SMTP) występuje tylko dla istniejącego konta: 5xx zdradziłby jego istnienie, więc tylko log.
+    console.error("[auth] password reset email failed:", err);
+  }
 };
 
 const resetPassword = async (token: string, newPassword: string): Promise<void> => {
@@ -197,7 +232,7 @@ const resetPassword = async (token: string, newPassword: string): Promise<void> 
   }
 
   const reset = resets[0];
-  const passwordHash = await bcrypt.hash(newPassword, 10);
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
 
   await db
     .update(userAuthMethodsTable)
@@ -212,23 +247,8 @@ const resetPassword = async (token: string, newPassword: string): Promise<void> 
   await db.delete(passwordResetsTable).where(eq(passwordResetsTable.userId, reset.userId));
 };
 
-const requestEmailVerification = async (userId: number): Promise<void> => {
-  const users = await db
-    .select()
-    .from(usersTable)
-    .where(and(eq(usersTable.id, userId), isNull(usersTable.deletedAt)));
-
-  if (users.length === 0) {
-    // Wywoływane tylko z id istniejącego użytkownika (rejestracja, resend) → naruszenie niezmiennika, 5xx.
-    throw new Error("User not found");
-  }
-
-  const user = users[0];
-
-  if (user.emailVerifiedAt) {
-    throw new HttpError(409, "Email already verified");
-  }
-
+/** Nowy token weryfikacyjny (poprzednie unieważnione) + e-mail z linkiem. */
+const sendVerificationEmail = async (userId: number, email: string): Promise<void> => {
   await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.userId, userId));
 
   const token = generateToken();
@@ -243,10 +263,30 @@ const requestEmailVerification = async (userId: number): Promise<void> => {
   const verifyUrl = `${config.frontendUrl}/verify-email?token=${token}`;
 
   await emailService.send({
-    to: user.email,
+    to: email,
     subject: "Verify Your Email",
     text: `Please verify your email by clicking this link: ${verifyUrl}\n\nThis link will expire in 24 hours.`,
   });
+};
+
+const requestEmailVerification = async (userId: number): Promise<void> => {
+  const users = await db
+    .select()
+    .from(usersTable)
+    .where(and(eq(usersTable.id, userId), isNull(usersTable.deletedAt)));
+
+  if (users.length === 0) {
+    // Wywoływane tylko z id właśnie utworzonego użytkownika (rejestracja) → naruszenie niezmiennika, 5xx.
+    throw new Error("User not found");
+  }
+
+  const user = users[0];
+
+  if (user.emailVerifiedAt) {
+    throw new HttpError(409, "Email already verified");
+  }
+
+  await sendVerificationEmail(user.id, user.email);
 };
 
 const verifyEmail = async (token: string): Promise<void> => {
@@ -279,6 +319,11 @@ const verifyEmail = async (token: string): Promise<void> => {
   await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.id, verification.id));
 };
 
+/**
+ * Zawsze kończy się sukcesem dla klienta (anty-enumeracja): brak konta albo konto już zweryfikowane
+ * → bez wysyłki i bez błędu; niezweryfikowane → nowy link. Błąd wysyłki jest tylko logowany,
+ * bo 5xx pojawiałby się wyłącznie dla istniejących, niezweryfikowanych kont.
+ */
 const resendVerification = async (email: string): Promise<void> => {
   const users = await db
     .select()
@@ -286,16 +331,20 @@ const resendVerification = async (email: string): Promise<void> => {
     .where(and(eq(usersTable.email, email), isNull(usersTable.deletedAt)));
 
   if (users.length === 0) {
-    throw new HttpError(404, "User not found");
+    return;
   }
 
   const user = users[0];
 
   if (user.emailVerifiedAt) {
-    throw new HttpError(409, "Email already verified");
+    return;
   }
 
-  await requestEmailVerification(user.id);
+  try {
+    await sendVerificationEmail(user.id, user.email);
+  } catch (err: unknown) {
+    console.error("[auth] verification email failed:", err);
+  }
 };
 
 export const authService = {
