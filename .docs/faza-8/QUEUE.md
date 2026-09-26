@@ -26,15 +26,15 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
 | T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | DONE(06cc25c) |
 | T3b | Błędy biznesowe → 4xx (`HttpError`), bez 500 dla złego hasła itp. | T3 | — | general-purpose | `src_backend/errors/HttpError.ts` (nowy), `src_backend/service/{MapService,authService,emailService,oauthService}.ts`, `src_backend/controller/{Users,Auth,Groups}Controller.ts` + testy | DONE(75eb09e) |
-| T3c | Anty-enumeracja kont: login (hasło przed „Email not verified”), `resend-verification` zawsze 200, stały czas (dummy bcrypt) | T3b | D12 ✔ | general-purpose | `src_backend/service/authService.ts` (+ test), `src_backend/app.test.ts`, `src/application/service/authService.ts` tylko jeśli frontend zależy od 404/409 | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T06:20Z) |
+| T3c | Anty-enumeracja kont: login (hasło przed „Email not verified”), `resend-verification` zawsze 200, stały czas (dummy bcrypt) | T3b | D12 ✔ | general-purpose | `src_backend/service/authService.ts` (+ test), `src_backend/app.test.ts`, `src/application/service/authService.ts` tylko jeśli frontend zależy od 404/409 | DONE(e2f92ff) |
 | T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | REVIEW(c69dfd8; weryfikacja obrazu w CI (job docker-api z T8), decyzja użytkownika: opcja C) |
 | T4b | Odchudzenie prod deps: paczki tylko frontendowe → `devDependencies` | T4 | zgoda ✔ | general-purpose | `package.json` (sekcje deps), `package-lock.json` | DONE(cf5d07b) |
-| T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b, T3c | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | TODO |
+| T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b, T3c | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T06:31Z) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | DONE(40a4822) |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | DONE(b75b526) |
 | T7b | Naprawa rozjazdu migracji: brak `maps` w migracjach, `0001_colonies.sql` poza journalem; test: wszystkie tabele `schema.ts` po migracji | T7 | D10, D11 | general-purpose | `drizzle/**`, `src_backend/db/migrate.test.ts`, (D10) `package.json`/`package-lock.json` (drizzle-kit) | DONE(bf8fc77) |
-| T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T06:20Z; restart z szkicem `ci.yml` z worktree agent-a057bcf42a98b50ec) |
+| T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | DONE(fea5646; wynik 1. runu GitHub Actions do sprawdzenia) |
 | T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
 
 ### Równoległość (macierz konfliktów)
@@ -102,6 +102,9 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-25T14:55Z · nadzorca · — · PAUZA na polecenie użytkownika. · —
 - 2026-09-26T06:20Z · nadzorca · — · Wznowiono. D12 = T3c tak. Brak aktywnych subagentów (ListAgents pusty); agent T8 nie żyje, szkic `ci.yml` (niezacommitowany) w `.claude/worktrees/agent-a057bcf42a98b50ec/.github/workflows/ci.yml`. Dodano procedurę handover (SUPERVISOR_PROMPT.md) i HANDOVER.md. · —
 - 2026-09-26T06:20Z · nadzorca · T3c, T8 · Start równoległy. · —
+- 2026-09-26T06:31Z · nadzorca · T8 · Scalono (restart ze szkicem). Gate: 613 / 132, OK; lokalnie `verify` bez `.env` + `drizzle-kit check` OK. `docker-api` NIEZWERYFIKOWANY lokalnie; 1. run po pushu zamknie T4 (D9). · fea5646
+- 2026-09-26T06:31Z · nadzorca · T3c · Scalono. Gate: 613 / 142 back (+10). Login: hasło przed weryfikacją, dummy bcrypt; resend zawsze 200; forgot/resend: błąd SMTP → log + ten sam 200. Pozostałe ryzyka (follow-up): timing resend/forgot (await wysyłki tylko dla istniejących kont), rejestracja 409. · e2f92ff
+- 2026-09-26T06:31Z · nadzorca · T4c · Start. · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -121,3 +124,4 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - `/api/health` zależy od DB: awaria Turso → Fly oznacza maszyny jako unhealthy. Rozważyć rozdział liveness (proces) / readiness (DB).
 - Limity concurrency Fly (100/150) oszacowane, nie zmierzone.
 - Migracja z `file:` w produkcji tylko ostrzega (celowo, dla smoke testów kontenera).
+- Timing resend/forgot-password zdradza istnienie konta (wysyłka awaitowana tylko dla istniejących); opcja: wysyłka w tle z logiem. Rejestracja: 409 przy zajętym e-mailu, 500 przy awarii SMTP po utworzeniu konta.

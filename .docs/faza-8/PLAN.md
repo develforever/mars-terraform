@@ -159,7 +159,7 @@ Konwencja: każde zadanie kończy się zielonym **Gate** (sekcja 6), jednym comm
 - Zależność: T4 (obraz), D2.
 
 ### T8 — CI (GitHub Actions) — tylko przy D5 = tak
-- `.github/workflows/ci.yml`: `npm ci`, `npm run lint`, `npx tsc --noEmit -p tsconfig.app.json`, `npm run test`, `npm run build`, (opcjonalnie) `docker build -f Dockerfile.api`. Node z `.nvmrc`. Bez sekretów; backend testy na `file::memory:` + testowy `jwt_secret` w env joba.
+- `.github/workflows/ci.yml`: `npm ci`, `npm run lint`, `npx tsc --noEmit -p tsconfig.app.json`, `npm run test`, `npm run build`, (opcjonalnie) `docker build -f Dockerfile.api`. Node 24 (wersja produkcyjna obrazu; `.nvmrc` v25 nie jest LTS). Bez sekretów; backend testy na `file::memory:` + testowy `jwt_secret` w env joba.
 - Zależność: T4.
 
 ### T9 — Wdrożenie + dokumentacja
