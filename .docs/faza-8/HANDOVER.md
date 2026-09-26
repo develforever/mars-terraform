@@ -18,7 +18,7 @@ Brak. Stare worktree `.claude/worktrees/agent-*` są już scalone (do usunięcia
 
 ## Czeka na użytkownika
 - DEPLOYMENT.md §2: `db-inspect.mjs`, a potem wynik (lista tabel + stan `__drizzle_migrations`) wkleić nadzorcy; wybór wariantu A/B/C baseline.
-- Scalenie brancha do `main` (PR) przed wdrożeniem (DEPLOYMENT.md §0).
+- Scalenie PR https://github.com/develforever/mars-terraform/pull/6 do `main` przed wdrożeniem (DEPLOYMENT.md §0).
 - Otwarte pytanie: osobny `jwt_secret` dla produkcji i dla lokalnego dev (rekomendacja: tak).
 
 ## Pułapki środowiska (lekcje z sesji 1)
@@ -35,6 +35,6 @@ Brak. Stare worktree `.claude/worktrees/agent-*` są już scalone (do usunięcia
 
 ## Najbliższe kroki (kolejność)
 1. Użytkownik: DEPLOYMENT.md §2 krok 1 (`db-inspect.mjs`). Nadzorca: dobór wariantu baseline na podstawie wyniku.
-2. PR `claude/compassionate-hawking-nc14kk` → `main` (na prośbę użytkownika), zielone CI na PR.
+2. PR https://github.com/develforever/mars-terraform/pull/6 → `main`: pilnować CI na PR, scalenie robi użytkownik.
 3. Użytkownik: §3 Fly.io → §4 Vercel (w tym obowiązkowy `curl -I` nagłówków) → §5 CORS/OAuth → §6 smoke test.
 4. Po wdrożeniu: follow-upy z QUEUE.md (CSP `connect-src`, timing resend/forgot, walidacja nazwy kolonii, graceful shutdown, liveness/readiness).

@@ -124,6 +124,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T07:22Z · nadzorca · T9 · Scalono runbook `DEPLOYMENT.md` (Windows/PowerShell, bez Turso CLI; skrypty `db-inspect`/`db-baseline`/`restore` przetestowane na bazach `file:` z migrate i z push; `.env.local` uwzględniony). ROADMAP/CLAUDE.md: Faza 8 zrealizowana w kodzie. Nadzorca poprawił liczby testów (619/166) i dodał T4f. Gate: 619 / 166, OK. · a7769c9
 - 2026-09-26T07:22Z · nadzorca · T0b · Użytkownik: nowy token działa (odczyt tabel przez skrypt Node OK). · —
 - 2026-09-26T07:22Z · nadzorca · — · Brak aktywnych subagentów. Wszystkie zadania agentowe DONE. Pozostaje wdrożenie (człowiek). · —
+- 2026-09-26T07:23Z · nadzorca · — · PR do `main`: https://github.com/develforever/mars-terraform/pull/6 (na prośbę użytkownika). · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
