@@ -32,7 +32,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b, T3c | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | DONE(39832c4) |
 | T4d | Regeneracja `routes.ts`/`swagger.json` (brak `minerals` → 400 przy zapisie kolonii przez `throw-on-extras`) + krok CI wykrywający nieaktualne trasy TSOA + test zapisu kolonii | T4c | — | general-purpose | `src_backend/routes/routes.ts`, `src_backend/api/swagger.json`, `.github/workflows/ci.yml`, test backendu | DONE(b858704) |
 | T4e | Zapis kolonii działa end-to-end: kontrakt `state` vs realny payload `useGameStore.saveGame` (19 nadmiarowych pól) + limit rozmiaru body (`express.json` domyślnie 100 kB); odwrócić `it.fails` w `src_backend/test/colony.test.ts` | T4d | D13 | general-purpose | `src_backend/model/types.ts`, `src_backend/controller/ColonyController.ts`, `routes.ts`/`swagger.json` (tsoa:gen), `src_backend/app.ts` (limit), testy | DONE(48ade4e) |
-| T4f | Lekka lista kolonii: `GET /api/colony` → `{id,name,createdAt,updatedAt}[]` (SELECT tylko tych kolumn); `GET /api/colony/{name}` bez zmian; `encodeURIComponent` w `useGameStore.loadGame` | T4e | D14 ✔ | general-purpose | `src_backend/model/types.ts`, `src_backend/controller/ColonyController.ts`, `src_backend/service/ColonyService.ts`, `routes.ts`/`swagger.json` (tsoa:gen), `src_backend/test/colony.test.ts`, `src/presentation/components/game/LoadGameModal.tsx` (typ), `src/application/store/useGameStore.ts` (URL) | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T07:07Z) |
+| T4f | Lekka lista kolonii: `GET /api/colony` → `{id,name,createdAt,updatedAt}[]` (SELECT tylko tych kolumn); `GET /api/colony/{name}` bez zmian; `encodeURIComponent` w `useGameStore.loadGame` | T4e | D14 ✔ | general-purpose | `src_backend/model/types.ts`, `src_backend/controller/ColonyController.ts`, `src_backend/service/ColonyService.ts`, `routes.ts`/`swagger.json` (tsoa:gen), `src_backend/test/colony.test.ts`, `src/presentation/components/game/LoadGameModal.tsx` (typ), `src/application/store/useGameStore.ts` (URL) | DONE(b1a5462) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | DONE(40a4822) |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | DONE(b75b526) |
@@ -120,6 +120,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T07:04Z · nadzorca · T9 · Start (dokumentacja + runbook). · —
 - 2026-09-26T07:06Z · nadzorca · T0b · Użytkownik potwierdził: stare tokeny Turso unieważnione, nowy token + nowy `jwt_secret` w `.env`. T0b DONE. · —
 - 2026-09-26T07:07Z · nadzorca · T4f · D14 = tak. Start równolegle z T9 (rozłączne pliki). · —
+- 2026-09-26T07:15Z · nadzorca · T4f · Scalono. Gate: 619 front (+6) / 166 back (+14), tsoa bez rozjazdu. Lista: `{id,name,createdAt,updatedAt}` (SELECT bez `state`), sortowanie `updatedAt` DESC, `id` DESC (nowe, zaakceptowane). Nazwy ze spacją, `/`, `?`, `#`, `%`, polskimi znakami: round-trip 200 (Express 5 dekoduje `%2F`). · b1a5462
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -141,3 +142,4 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Timing resend/forgot-password zdradza istnienie konta (wysyłka awaitowana tylko dla istniejących); opcja: wysyłka w tle z logiem. Rejestracja: 409 przy zajętym e-mailu, 500 przy awarii SMTP po utworzeniu konta.
 - Limit body 2 MB jest globalny (także `/api/maps`).
 - `resumeLocalGame` bez try/catch.
+- Brak walidacji nazwy kolonii przy zapisie (długość, znaki kontrolne).
