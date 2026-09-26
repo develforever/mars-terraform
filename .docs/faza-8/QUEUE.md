@@ -32,6 +32,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b, T3c | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | DONE(39832c4) |
 | T4d | Regeneracja `routes.ts`/`swagger.json` (brak `minerals` → 400 przy zapisie kolonii przez `throw-on-extras`) + krok CI wykrywający nieaktualne trasy TSOA + test zapisu kolonii | T4c | — | general-purpose | `src_backend/routes/routes.ts`, `src_backend/api/swagger.json`, `.github/workflows/ci.yml`, test backendu | DONE(b858704) |
 | T4e | Zapis kolonii działa end-to-end: kontrakt `state` vs realny payload `useGameStore.saveGame` (19 nadmiarowych pól) + limit rozmiaru body (`express.json` domyślnie 100 kB); odwrócić `it.fails` w `src_backend/test/colony.test.ts` | T4d | D13 | general-purpose | `src_backend/model/types.ts`, `src_backend/controller/ColonyController.ts`, `routes.ts`/`swagger.json` (tsoa:gen), `src_backend/app.ts` (limit), testy | DONE(48ade4e) |
+| T4f | Lekka lista kolonii: `GET /api/colony` → `{id,name,createdAt,updatedAt}[]` (SELECT tylko tych kolumn); `GET /api/colony/{name}` bez zmian; `encodeURIComponent` w `useGameStore.loadGame` | T4e | D14 ✔ | general-purpose | `src_backend/model/types.ts`, `src_backend/controller/ColonyController.ts`, `src_backend/service/ColonyService.ts`, `routes.ts`/`swagger.json` (tsoa:gen), `src_backend/test/colony.test.ts`, `src/presentation/components/game/LoadGameModal.tsx` (typ), `src/application/store/useGameStore.ts` (URL) | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T07:07Z) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | DONE(40a4822) |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | DONE(b75b526) |
@@ -68,6 +69,7 @@ a nadzorca scala ich commity na branch roboczy po kolei i po każdym scaleniu ur
 | D10 | Tak: aktualizacja `drizzle-kit` 0.18.1 → 0.31.x | 2026-09-24 | użytkownik |
 | D12 | Tak: T3c, poprawki anty-enumeracji (zmiana zachowania API) | 2026-09-26 | użytkownik |
 | D13 | (c) `state` kolonii jako otwarty obiekt JSON z limitem rozmiaru; walidacja stanu po stronie frontendu przy wczytaniu | 2026-09-26 | użytkownik („cc” odczytane jako c) |
+| D14 | Tak: lekka lista kolonii bez `state` (zmiana kontraktu API; jedyny konsument w repo, `LoadGameModal`, nie używa `state`) | 2026-09-26 | użytkownik |
 | D11 | Produkcyjna baza Turso powstała przez `drizzle-kit push` (brak `__drizzle_migrations`), więc baseline wymagany przed 1. deployem (runbook T9). Obecność `maps`/`colonies` do sprawdzenia `.tables` | 2026-09-24 | użytkownik |
 
 ## Dziennik
@@ -117,6 +119,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T07:04Z · nadzorca · T0b · Użytkownik: nowy token utworzony przez panel Turso i dodany do `.env`. · —
 - 2026-09-26T07:04Z · nadzorca · T9 · Start (dokumentacja + runbook). · —
 - 2026-09-26T07:06Z · nadzorca · T0b · Użytkownik potwierdził: stare tokeny Turso unieważnione, nowy token + nowy `jwt_secret` w `.env`. T0b DONE. · —
+- 2026-09-26T07:07Z · nadzorca · T4f · D14 = tak. Start równolegle z T9 (rozłączne pliki). · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -124,7 +127,6 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Wersjonowanie nazw assetów w `public/` (umożliwi `immutable` cache).
 - Hardcodowane hosty ngrok w `vite.config.ts` `server.allowedHosts`.
 - Rozjazd wersji Node: `.nvmrc` v25, `Dockerfile` node 24, backend target node22.
-- `useGameStore.ts`: `/api/colony/${name}` bez `encodeURIComponent` (w `LoadGameModal.tsx` jest kodowane).
 - Walidacja `VITE_API_URL` przy starcie aplikacji (dziś błędna wartość wychodzi dopiero przy pierwszym żądaniu).
 - `.dockerignore` monolitu nie wyklucza `.env` / `local.db*` (T4 obejmie obraz API).
 - `res.sendFile` w SPA fallbacku ignoruje dotfiles w ścieżce absolutnej (np. deploy w katalogu z `.` w nazwie → 404). Rozważyć `{ dotfiles: "allow" }` albo `root` w opcjach.
@@ -137,6 +139,5 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Limity concurrency Fly (100/150) oszacowane, nie zmierzone.
 - Migracja z `file:` w produkcji tylko ostrzega (celowo, dla smoke testów kontenera).
 - Timing resend/forgot-password zdradza istnienie konta (wysyłka awaitowana tylko dla istniejących); opcja: wysyłka w tle z logiem. Rejestracja: 409 przy zajętym e-mailu, 500 przy awarii SMTP po utworzeniu konta.
-- `GET /api/colony` (lista) zwraca pełny `state` każdej kolonii (150 kB–1 MB/szt.), a `LoadGameModal` potrzebuje tylko `name`/`updatedAt`. Lekka lista = zmiana kontraktu API (decyzja).
 - Limit body 2 MB jest globalny (także `/api/maps`).
 - `resumeLocalGame` bez try/catch.
