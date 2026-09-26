@@ -21,7 +21,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | ID | Zadanie | Zależy od | Decyzja | Agent | Pliki (zakres wyłączny) | Status |
 |----|---------|-----------|---------|-------|--------------------------|--------|
 | T0a | Untrack `.env` + `.env.example` | — | — | general-purpose | `.env`, `.env.example`, `.gitignore` | DONE(17c32ee) |
-| T0b | Rotacja `turso_token`, `jwt_secret` (bez przepisywania historii, D4) | T0a | D4 ✔ | **człowiek** | — | HUMAN (odblokowane, T0a DONE) |
+| T0b | Rotacja `turso_token`, `jwt_secret` (bez przepisywania historii, D4) | T0a | D4 ✔ | **człowiek** | — | HUMAN w toku: nowy token Turso utworzony w panelu i wpisany do `.env` (zgłoszenie użytkownika); do potwierdzenia: unieważnienie starych tokenów + nowy `jwt_secret` |
 | T1 | Resolver `VITE_API_URL` + podmiana fetchy | — | — | general-purpose | `src/application/config/apiConfig.ts`, `src/vite-env.d.ts`, `mapApiService.ts`, `authService.ts`, `useGameStore.ts`, `LoadGameModal.tsx`, `ColonyNameModal.tsx` | DONE(fee17c2) |
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
 | T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | DONE(06cc25c) |
@@ -31,13 +31,13 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T4b | Odchudzenie prod deps: paczki tylko frontendowe → `devDependencies` | T4 | zgoda ✔ | general-purpose | `package.json` (sekcje deps), `package-lock.json` | DONE(cf5d07b) |
 | T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b, T3c | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | DONE(39832c4) |
 | T4d | Regeneracja `routes.ts`/`swagger.json` (brak `minerals` → 400 przy zapisie kolonii przez `throw-on-extras`) + krok CI wykrywający nieaktualne trasy TSOA + test zapisu kolonii | T4c | — | general-purpose | `src_backend/routes/routes.ts`, `src_backend/api/swagger.json`, `.github/workflows/ci.yml`, test backendu | DONE(b858704) |
-| T4e | Zapis kolonii działa end-to-end: kontrakt `state` vs realny payload `useGameStore.saveGame` (19 nadmiarowych pól) + limit rozmiaru body (`express.json` domyślnie 100 kB); odwrócić `it.fails` w `src_backend/test/colony.test.ts` | T4d | D13 | general-purpose | `src_backend/model/types.ts`, `src_backend/controller/ColonyController.ts`, `routes.ts`/`swagger.json` (tsoa:gen), `src_backend/app.ts` (limit), testy | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T06:54Z) |
+| T4e | Zapis kolonii działa end-to-end: kontrakt `state` vs realny payload `useGameStore.saveGame` (19 nadmiarowych pól) + limit rozmiaru body (`express.json` domyślnie 100 kB); odwrócić `it.fails` w `src_backend/test/colony.test.ts` | T4d | D13 | general-purpose | `src_backend/model/types.ts`, `src_backend/controller/ColonyController.ts`, `routes.ts`/`swagger.json` (tsoa:gen), `src_backend/app.ts` (limit), testy | DONE(48ade4e) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | DONE(40a4822) |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | DONE(b75b526) |
 | T7b | Naprawa rozjazdu migracji: brak `maps` w migracjach, `0001_colonies.sql` poza journalem; test: wszystkie tabele `schema.ts` po migracji | T7 | D10, D11 | general-purpose | `drizzle/**`, `src_backend/db/migrate.test.ts`, (D10) `package.json`/`package-lock.json` (drizzle-kit) | DONE(bf8fc77) |
 | T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | DONE(fea5646; CI run #1 zielony: verify + docker-api) |
-| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T4d, T4e, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
+| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T4d, T4e, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T07:04Z; część dokumentacyjna; wdrożenie = człowiek) |
 
 ### Równoległość (macierz konfliktów)
 
@@ -113,6 +113,9 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T06:40Z · nadzorca · T4d · NOWE: `routes.ts` nieaktualny względem `model/types.ts` (brak `minerals` w `SavedResources`/`SavedCapacity`), a przy `noImplicitAdditionalProperties: throw-on-extras` frontend wysyła `resources`/`capacity` z `minerals`, więc zapis kolonii prawdopodobnie daje 400 (błąd sprzed Fazy 8). Start. · —
 - 2026-09-26T06:48Z · nadzorca · T4d · Scalono. Gate: 613 / 144 + 1 `it.fails` (znany błąd zapisu, udokumentowany), `tsoa:gen` bez rozjazdu. Hipoteza potwierdzona (400 na `minerals`), ale pełny payload gry dalej daje 400: 19 pól spoza `SavedGameState` (`mapSeed`, `units`, `currentMapData`, `unlockedTechs`… oraz `placed[].level`, `weather.trajectories`). Zapis kolonii NIE działa (błąd sprzed Fazy 8). Nowe T4e, czeka na D13. · b858704
 - 2026-09-26T06:54Z · nadzorca · T4e · D13 = c. Start. · —
+- 2026-09-26T07:04Z · nadzorca · T4e · Scalono. Gate: 613 / 152 back, 0 `it.fails`, tsoa bez rozjazdu. `state` = `Record<string, unknown>` (tsoa odrzuca tablicę/null/prymityw → 400), round-trip deep-equal OK. Payload typowej gry ~146 kB (> domyślnych 100 kB express), najgorszy przypadek ~0.9 MB, więc limit 2 MB, 413 JSON. Zapis kolonii działa end-to-end. · 48ade4e
+- 2026-09-26T07:04Z · nadzorca · T0b · Użytkownik: nowy token utworzony przez panel Turso i dodany do `.env`. · —
+- 2026-09-26T07:04Z · nadzorca · T9 · Start (dokumentacja + runbook). · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -133,3 +136,6 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Limity concurrency Fly (100/150) oszacowane, nie zmierzone.
 - Migracja z `file:` w produkcji tylko ostrzega (celowo, dla smoke testów kontenera).
 - Timing resend/forgot-password zdradza istnienie konta (wysyłka awaitowana tylko dla istniejących); opcja: wysyłka w tle z logiem. Rejestracja: 409 przy zajętym e-mailu, 500 przy awarii SMTP po utworzeniu konta.
+- `GET /api/colony` (lista) zwraca pełny `state` każdej kolonii (150 kB–1 MB/szt.), a `LoadGameModal` potrzebuje tylko `name`/`updatedAt`. Lekka lista = zmiana kontraktu API (decyzja).
+- Limit body 2 MB jest globalny (także `/api/maps`).
+- `resumeLocalGame` bez try/catch.
