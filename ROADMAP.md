@@ -72,6 +72,7 @@ Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.
 - [x] **CI GitHub Actions**: lint, typy, testy, build, spójność tras TSOA i migracji + job `docker-api` (build obrazu i smoke test kontenera).
 - [x] **Odchudzone zależności produkcyjne**: paczki frontendowe w `devDependencies`, `@tsoa/runtime` zamiast `tsoa`, bez `@tursodatabase/database` (prod `node_modules` 437 → 54 MB).
 - [x] **Naprawa zapisu kolonii**: aktualne trasy TSOA (`minerals`), `state` jako otwarty obiekt JSON, limit body 2 MB (413 JSON).
+- [x] **Lekka lista kolonii**: `GET /api/colony` zwraca `{id, name, createdAt, updatedAt}` (bez `state`), sortowanie od najnowszego; nazwa kolonii kodowana w URL wczytania.
 - [x] **Sekrety poza repo**: `.env` nieśledzony, `.env.example`; rotacja sekretów w runbooku (sekcja 1).
 
 ---
@@ -86,7 +87,7 @@ Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.
 
 ## 3. Standardy Jakościowe Projektu
 
-- **Test Suite**: **765 testów PASS** w Vitest (613 frontend + 152 backend).
+- **Test Suite**: **785 testów PASS** w Vitest (619 frontend + 166 backend).
 - **Linter**: **0 błędów i 0 ostrzeżeń** w ESLint pod regułami strict TypeScript.
 - **Kompilacja**: Czysty build produkcyjny (`tsc -b && vite build` + backend SSR).
 - **UX**: Wszystkie okna modalne, popovery i panele spełniają *Modal & Popover Dismiss Rule* (`✕`, Escape, kliknięcie w tło).

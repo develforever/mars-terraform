@@ -3,25 +3,23 @@
 > Nadpisywany przy każdym przekazaniu (procedura: `SUPERVISOR_PROMPT.md` → „Przekazanie nadzoru”).
 > Opisuje TYLKO bieżący stan. Szczegóły historii są w `QUEUE.md` → Dziennik.
 
-Data (UTC): 2026-09-26 (wersja robocza z chwili wznowienia; zostanie nadpisana przy faktycznym przekazaniu)
+Data (UTC): 2026-09-26 (stan po zakończeniu wszystkich zadań agentowych)
 Branch: `claude/compassionate-hawking-nc14kk`
 
 ## Stan w skrócie
-- DONE: T0a, T1, T2, T3, T3b, T4b, T5, T6, T7, T7b
-- REVIEW: T4 (`Dockerfile.api`), weryfikacja obrazu w CI (job `docker-api` z T8), D9
-- W toku: T3c (anty-enumeracja), T8 (CI, restart ze szkicem)
-- Następne: T4c (po T3c), potem T9
-- HUMAN: T0b (rotacja `turso_token`, `jwt_secret`); przed 1. deployem baseline migracji wg `MIGRATIONS_BASELINE.md`
-- Gate na HEAD przed startem T3c/T8: lint/tsc OK, front 613, back 132, build OK
+- DONE (agenci): T0a, T1, T2, T3, T3b, T3c, T4, T4b, T4c, T4d, T4e, T4f, T5, T6, T7, T7b, T8, T9 (dokumentacja)
+- DONE (człowiek): T0b (stare tokeny Turso unieważnione, nowy token działa, nowy `jwt_secret`; sekrety w `.env.local`)
+- W toku: brak. Aktywnych subagentów: brak.
+- Pozostaje: wdrożenie produkcyjne przez człowieka wg `.docs/faza-8/DEPLOYMENT.md` (sekcje 2–6); nadzorca wspiera krok po kroku.
+- Gate na HEAD: lint/tsc OK, front 619, back 166, build OK; CI run #1 zielony (verify + docker-api).
 
 ## Niescalone / w locie
-| ID | branch worktree | sha / pliki niezacommitowane | co z tym zrobić |
-|----|-----------------|------------------------------|-----------------|
-| T8 (stary agent, martwy) | `worktree-agent-a057bcf42a98b50ec` | niezacommitowany `.github/workflows/ci.yml` (szkic) | przekazany nowemu agentowi T8 jako punkt startu; po scaleniu T8 do zignorowania |
+Brak. Stare worktree `.claude/worktrees/agent-*` są już scalone (do usunięcia przy sprzątaniu).
 
 ## Czeka na użytkownika
-- T0b: rotacja sekretów (obecne wartości są w historii gita, D4 = bez przepisywania historii).
-- Przed 1. deployem: `turso db shell <db> ".tables"`, potem wariant A/B/C z `MIGRATIONS_BASELINE.md` (D11: baza z `push`).
+- DEPLOYMENT.md §2: `db-inspect.mjs`, a potem wynik (lista tabel + stan `__drizzle_migrations`) wkleić nadzorcy; wybór wariantu A/B/C baseline.
+- Scalenie brancha do `main` (PR) przed wdrożeniem (DEPLOYMENT.md §0).
+- Otwarte pytanie: osobny `jwt_secret` dla produkcji i dla lokalnego dev (rekomendacja: tak).
 
 ## Pułapki środowiska (lekcje z sesji 1)
 - **Worktree subagentów startują z `main` (f119afb), nie z HEAD brancha.** W prompcie subagenta zawsze KROK 0: `git fetch origin <branch> && git reset --hard FETCH_HEAD`. Wymaga wcześniejszego push stanu.
@@ -36,6 +34,7 @@ Branch: `claude/compassionate-hawking-nc14kk`
 - Zasada projektu: brak nowych paczek npm bez zgody użytkownika (RULES.md).
 
 ## Najbliższe kroki (kolejność)
-1. Scalić T3c i T8 po zakończeniu (review, cherry-pick, Gate, push). Po pushu T8 sprawdzić wynik GitHub Actions (job `verify` + `docker-api`). Zielony `docker-api` oznacza T4 DONE.
-2. Uruchomić T4c (`@tsoa/runtime`, usunięcie `@tursodatabase/database`).
-3. Uruchomić T9 (runbook `DEPLOYMENT.md` z linkiem do `MIGRATIONS_BASELINE.md`, weryfikacja nagłówków Vercel `curl -I`, ROADMAP/CLAUDE.md).
+1. Użytkownik: DEPLOYMENT.md §2 krok 1 (`db-inspect.mjs`). Nadzorca: dobór wariantu baseline na podstawie wyniku.
+2. PR `claude/compassionate-hawking-nc14kk` → `main` (na prośbę użytkownika), zielone CI na PR.
+3. Użytkownik: §3 Fly.io → §4 Vercel (w tym obowiązkowy `curl -I` nagłówków) → §5 CORS/OAuth → §6 smoke test.
+4. Po wdrożeniu: follow-upy z QUEUE.md (CSP `connect-src`, timing resend/forgot, walidacja nazwy kolonii, graceful shutdown, liveness/readiness).

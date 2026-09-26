@@ -38,7 +38,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | DONE(b75b526) |
 | T7b | Naprawa rozjazdu migracji: brak `maps` w migracjach, `0001_colonies.sql` poza journalem; test: wszystkie tabele `schema.ts` po migracji | T7 | D10, D11 | general-purpose | `drizzle/**`, `src_backend/db/migrate.test.ts`, (D10) `package.json`/`package-lock.json` (drizzle-kit) | DONE(bf8fc77) |
 | T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | DONE(fea5646; CI run #1 zielony: verify + docker-api) |
-| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T4d, T4e, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T07:04Z; część dokumentacyjna; wdrożenie = człowiek) |
+| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T4d, T4e, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | DOKUMENTACJA DONE(a7769c9); WDROŻENIE = HUMAN wg `DEPLOYMENT.md` |
 
 ### Równoległość (macierz konfliktów)
 
@@ -121,6 +121,9 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T07:06Z · nadzorca · T0b · Użytkownik potwierdził: stare tokeny Turso unieważnione, nowy token + nowy `jwt_secret` w `.env`. T0b DONE. · —
 - 2026-09-26T07:07Z · nadzorca · T4f · D14 = tak. Start równolegle z T9 (rozłączne pliki). · —
 - 2026-09-26T07:15Z · nadzorca · T4f · Scalono. Gate: 619 front (+6) / 166 back (+14), tsoa bez rozjazdu. Lista: `{id,name,createdAt,updatedAt}` (SELECT bez `state`), sortowanie `updatedAt` DESC, `id` DESC (nowe, zaakceptowane). Nazwy ze spacją, `/`, `?`, `#`, `%`, polskimi znakami: round-trip 200 (Express 5 dekoduje `%2F`). · b1a5462
+- 2026-09-26T07:22Z · nadzorca · T9 · Scalono runbook `DEPLOYMENT.md` (Windows/PowerShell, bez Turso CLI; skrypty `db-inspect`/`db-baseline`/`restore` przetestowane na bazach `file:` z migrate i z push; `.env.local` uwzględniony). ROADMAP/CLAUDE.md: Faza 8 zrealizowana w kodzie. Nadzorca poprawił liczby testów (619/166) i dodał T4f. Gate: 619 / 166, OK. · a7769c9
+- 2026-09-26T07:22Z · nadzorca · T0b · Użytkownik: nowy token działa (odczyt tabel przez skrypt Node OK). · —
+- 2026-09-26T07:22Z · nadzorca · — · Brak aktywnych subagentów. Wszystkie zadania agentowe DONE. Pozostaje wdrożenie (człowiek). · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
