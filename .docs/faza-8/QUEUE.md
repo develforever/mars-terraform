@@ -27,15 +27,16 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | DONE(06cc25c) |
 | T3b | Błędy biznesowe → 4xx (`HttpError`), bez 500 dla złego hasła itp. | T3 | — | general-purpose | `src_backend/errors/HttpError.ts` (nowy), `src_backend/service/{MapService,authService,emailService,oauthService}.ts`, `src_backend/controller/{Users,Auth,Groups}Controller.ts` + testy | DONE(75eb09e) |
 | T3c | Anty-enumeracja kont: login (hasło przed „Email not verified”), `resend-verification` zawsze 200, stały czas (dummy bcrypt) | T3b | D12 ✔ | general-purpose | `src_backend/service/authService.ts` (+ test), `src_backend/app.test.ts`, `src/application/service/authService.ts` tylko jeśli frontend zależy od 404/409 | DONE(e2f92ff) |
-| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | REVIEW(c69dfd8; weryfikacja obrazu w CI (job docker-api z T8), decyzja użytkownika: opcja C) |
+| T4 | `Dockerfile.api` | T3 | — | general-purpose | `Dockerfile.api`, `*.dockerignore`, `Dockerfile` (komentarz) | DONE(c69dfd8; obraz zweryfikowany w CI run #1 36224020817) |
 | T4b | Odchudzenie prod deps: paczki tylko frontendowe → `devDependencies` | T4 | zgoda ✔ | general-purpose | `package.json` (sekcje deps), `package-lock.json` | DONE(cf5d07b) |
-| T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b, T3c | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T06:31Z) |
+| T4c | `tsoa` → `@tsoa/runtime` w prod (importy kontrolerów), usunięcie `@tursodatabase/database` | T3b, T7b, T3c | D6 ✔, D7 ✔ | general-purpose | `package.json`, `package-lock.json`, `src_backend/controller/*.ts`, `src_backend/middleware/*.ts` | DONE(39832c4) |
+| T4d | Regeneracja `routes.ts`/`swagger.json` (brak `minerals` → 400 przy zapisie kolonii przez `throw-on-extras`) + krok CI wykrywający nieaktualne trasy TSOA + test zapisu kolonii | T4c | — | general-purpose | `src_backend/routes/routes.ts`, `src_backend/api/swagger.json`, `.github/workflows/ci.yml`, test backendu | IN_PROGRESS(session_01GsESbnJeEL2Fsy6vdhAQNk, 2026-09-26T06:40Z) |
 | T5 | `vercel.json` + test konfiguracji (bez proxy `/api`, D3 = CORS) | T1 | D3 ✔ | general-purpose | `vercel.json`, `src/test/vercelConfig.test.ts` | DONE(33999eb) |
 | T6 | Manifest Fly.io (`fly.toml`, bez wolumenu, D2 = Turso) | T4 | D1 ✔, D2 ✔ | general-purpose | `fly.toml` | DONE(40a4822) |
 | T7 | Skrypt migracji produkcyjnych (Turso) | T4, T4b | D2 ✔ | general-purpose | `src_backend/db/migrate.ts`, `vite.config.backend.ts`, `package.json` (scripts) | DONE(b75b526) |
 | T7b | Naprawa rozjazdu migracji: brak `maps` w migracjach, `0001_colonies.sql` poza journalem; test: wszystkie tabele `schema.ts` po migracji | T7 | D10, D11 | general-purpose | `drizzle/**`, `src_backend/db/migrate.test.ts`, (D10) `package.json`/`package-lock.json` (drizzle-kit) | DONE(bf8fc77) |
-| T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | DONE(fea5646; wynik 1. runu GitHub Actions do sprawdzenia) |
-| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
+| T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | DONE(fea5646; CI run #1 zielony: verify + docker-api) |
+| T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T4d, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | TODO |
 
 ### Równoległość (macierz konfliktów)
 
@@ -105,6 +106,9 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T06:31Z · nadzorca · T8 · Scalono (restart ze szkicem). Gate: 613 / 132, OK; lokalnie `verify` bez `.env` + `drizzle-kit check` OK. `docker-api` NIEZWERYFIKOWANY lokalnie; 1. run po pushu zamknie T4 (D9). · fea5646
 - 2026-09-26T06:31Z · nadzorca · T3c · Scalono. Gate: 613 / 142 back (+10). Login: hasło przed weryfikacją, dummy bcrypt; resend zawsze 200; forgot/resend: błąd SMTP → log + ten sam 200. Pozostałe ryzyka (follow-up): timing resend/forgot (await wysyłki tylko dla istniejących kont), rejestracja 409. · e2f92ff
 - 2026-09-26T06:31Z · nadzorca · T4c · Start. · —
+- 2026-09-26T06:40Z · nadzorca · T4, T8 · CI run #1 (https://github.com/develforever/mars-terraform/actions/runs/36224020817) zielony: verify + docker-api (build obrazu, migracja, health, 404 JSON, brak .env/src/public, non-root, stop < 5 s). T4 DONE. · 105ec1e
+- 2026-09-26T06:40Z · nadzorca · T4c · Scalono po `npm ci`. Gate: 613 / 142, OK. Prod `node_modules` 93 → 54 MB (bez tsoa/@tsoa/cli/typescript). `tsoa:gen` działa z `@tsoa/runtime`. · 39832c4
+- 2026-09-26T06:40Z · nadzorca · T4d · NOWE: `routes.ts` nieaktualny względem `model/types.ts` (brak `minerals` w `SavedResources`/`SavedCapacity`), a przy `noImplicitAdditionalProperties: throw-on-extras` frontend wysyła `resources`/`capacity` z `minerals`, więc zapis kolonii prawdopodobnie daje 400 (błąd sprzed Fazy 8). Start. · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
