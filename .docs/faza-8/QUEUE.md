@@ -21,7 +21,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | ID | Zadanie | Zależy od | Decyzja | Agent | Pliki (zakres wyłączny) | Status |
 |----|---------|-----------|---------|-------|--------------------------|--------|
 | T0a | Untrack `.env` + `.env.example` | — | — | general-purpose | `.env`, `.env.example`, `.gitignore` | DONE(17c32ee) |
-| T0b | Rotacja `turso_token`, `jwt_secret` (bez przepisywania historii, D4) | T0a | D4 ✔ | **człowiek** | — | HUMAN w toku: nowy token Turso utworzony w panelu i wpisany do `.env` (zgłoszenie użytkownika); do potwierdzenia: unieważnienie starych tokenów + nowy `jwt_secret` |
+| T0b | Rotacja `turso_token`, `jwt_secret` (bez przepisywania historii, D4) | T0a | D4 ✔ | **człowiek** | — | DONE(człowiek, 2026-09-26: stare tokeny Turso unieważnione, nowy token i nowy `jwt_secret` w lokalnym `.env`) |
 | T1 | Resolver `VITE_API_URL` + podmiana fetchy | — | — | general-purpose | `src/application/config/apiConfig.ts`, `src/vite-env.d.ts`, `mapApiService.ts`, `authService.ts`, `useGameStore.ts`, `LoadGameModal.tsx`, `ColonyNameModal.tsx` | DONE(fee17c2) |
 | T2 | `createApp()` + CORS middleware | — | — | general-purpose | `src_backend/app.ts`, `src_backend/index.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` | DONE(a90013f) |
 | T3 | Tryb API-only + health z DB + `Vary: Origin` zawsze | T2 | — | general-purpose | `src_backend/app.ts`, `src_backend/config.ts`, `src_backend/middleware/corsMiddleware.ts` (+ testy) | DONE(06cc25c) |
@@ -116,6 +116,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T07:04Z · nadzorca · T4e · Scalono. Gate: 613 / 152 back, 0 `it.fails`, tsoa bez rozjazdu. `state` = `Record<string, unknown>` (tsoa odrzuca tablicę/null/prymityw → 400), round-trip deep-equal OK. Payload typowej gry ~146 kB (> domyślnych 100 kB express), najgorszy przypadek ~0.9 MB, więc limit 2 MB, 413 JSON. Zapis kolonii działa end-to-end. · 48ade4e
 - 2026-09-26T07:04Z · nadzorca · T0b · Użytkownik: nowy token utworzony przez panel Turso i dodany do `.env`. · —
 - 2026-09-26T07:04Z · nadzorca · T9 · Start (dokumentacja + runbook). · —
+- 2026-09-26T07:06Z · nadzorca · T0b · Użytkownik potwierdził: stare tokeny Turso unieważnione, nowy token + nowy `jwt_secret` w `.env`. T0b DONE. · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
