@@ -1,0 +1,172 @@
+# CI — Faza 8, T8 (decyzja D5 = tak).
+# verify:     lint + typy (front i backend) + testy (front i backend) + build + spójność migracji.
+# docker-api: build obrazu `Dockerfile.api` (bez push) + smoke test kontenera.
+#             D9: to JEDYNA weryfikacja obrazu API (sesje agentów nie mogą go zbudować).
+# Bez sekretów repo: wszystkie wartości env są jawnymi, testowymi atrapami.
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    # Jawne `bash` = `bash --noprofile --norc -eo pipefail`, czyli błąd w potoku przerywa krok.
+    shell: bash
+
+jobs:
+  verify:
+    name: Lint, typecheck, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # `src_backend/config.ts` wymaga `jwt_secret` przy imporcie. Testy backendu mockują
+      # `config` / `data-source` albo stubują env, ale ta wartość chroni przed testem bez stubów.
+      # Bez `turso_url`: testy go nie potrzebują, a `drizzle.config.ts` wtedy używa
+      # dialektu `sqlite` z `file:./local.db` (nic zdalnego; `drizzle-kit check` i tak nie łączy się z bazą).
+      jwt_secret: ci-test-secret-not-used-in-prod
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 24 (Active LTS), a NIE `.nvmrc` (v25, wydanie nie-LTS używane lokalnie):
+      # produkcja (`Dockerfile.api`, monolityczny `Dockerfile`) działa na node:24,
+      # więc CI testuje tę wersję.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck (frontend)
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Typecheck (backend)
+        run: npx tsc --noEmit -p src_backend/tsconfig.json
+
+      - name: Test (frontend)
+        run: npm run test:front
+
+      - name: Test (backend)
+        run: npm run test:back
+
+      - name: Build
+        run: npm run build
+
+      # Spójność `drizzle/` (snapshoty + journal) bez połączenia z bazą.
+      - name: Migrations consistency (drizzle-kit check)
+        run: npx drizzle-kit check
+
+  docker-api:
+    name: API image build and smoke test
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build Dockerfile.api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          push: false
+          load: true
+          tags: mars-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Migracje (T7) w osobnym, jednorazowym kontenerze: exit 0 + log „Applied”.
+      - name: Smoke - migrations (dist_backend/migrate.js)
+        run: |
+          out=$(docker run --rm -e jwt_secret=ci -e turso_url=file:/tmp/ci.db mars-api:ci \
+            node dist_backend/migrate.js 2>&1)
+          echo "${out}"
+          if ! grep -q "Applied" <<<"${out}"; then
+            echo "::error::migrate.js did not log 'Applied'"
+            exit 1
+          fi
+
+      # Ten kontener ma własny /tmp (pusta baza); /api/health robi `select 1`, co wystarcza.
+      - name: Smoke - start container
+        run: |
+          docker run -d -p 8080:8080 \
+            -e jwt_secret=ci \
+            -e turso_url=file:/tmp/ci.db \
+            --name api mars-api:ci
+
+      - name: Smoke - wait for /api/health (max 30 s)
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 2 http://localhost:8080/api/health 2>/dev/null; then
+              echo
+              echo "healthy after ~${i} s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::/api/health did not respond within 30 s"
+          exit 1
+
+      - name: Smoke - /generate is a 404 JSON (API-only image)
+        run: |
+          code=$(curl -sS -o /tmp/generate.body -w '%{http_code} %{content_type}' http://localhost:8080/generate)
+          echo "GET /generate -> ${code}"
+          cat /tmp/generate.body; echo
+          if [[ "${code}" != "404 application/json"* ]]; then
+            echo "::error::expected 404 application/json for /generate, got '${code}'"
+            exit 1
+          fi
+
+      - name: Smoke - no .env, src/ or public/ in image
+        run: docker exec api sh -c 'test ! -e /app/.env && test ! -d /app/src && test ! -d /app/public'
+
+      - name: Smoke - runs as non-root (USER node)
+        run: |
+          uid=$(docker exec api id -u)
+          echo "uid=${uid}"
+          if [ "${uid}" = "0" ]; then
+            echo "::error::container runs as root"
+            exit 1
+          fi
+
+      - name: Smoke - graceful stop (tini forwards SIGTERM)
+        run: |
+          start=$(date +%s%N)
+          docker stop -t 10 api
+          end=$(date +%s%N)
+          ms=$(( (end - start) / 1000000 ))
+          echo "docker stop took ${ms} ms"
+          if [ "${ms}" -gt 5000 ]; then
+            echo "::error::docker stop took ${ms} ms (> 5 s): SIGTERM likely not forwarded to node"
+            exit 1
+          fi
+
+      - name: Image size summary
+        run: |
+          size=$(docker image inspect mars-api:ci --format '{{.Size}}')
+          {
+            echo "### mars-api:ci"
+            echo ""
+            echo "Image size: $(( size / 1024 / 1024 )) MiB (${size} bytes)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Container logs
+        if: failure()
+        run: docker logs api || true
