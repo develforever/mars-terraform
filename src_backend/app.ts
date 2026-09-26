@@ -27,6 +27,15 @@ interface ErrorBody {
 }
 
 const NOT_FOUND_BODY: ErrorBody = { error: "Not Found" };
+const PAYLOAD_TOO_LARGE_BODY: ErrorBody = { error: "Payload Too Large" };
+
+/**
+ * Limit ciała JSON (`express.json`). Domyślne 100 kB body-parsera nie mieści zapisu kolonii:
+ * typowa gra (mapa hexRadius 20 = 1261 heksów, 30 budynków, 200 snapshotów analityki) to ~146 kB,
+ * a najgorszy przypadek (mapa hexRadius 60 = 10981 heksów, 500 snapshotów) to ~0,9 MB.
+ * 2 MB daje ponad 2x zapasu dla najgorszego przypadku. Przekroczenie → 413 `{ error: "Payload Too Large" }`.
+ */
+export const JSON_BODY_LIMIT_BYTES = 2 * 1024 * 1024;
 const INTERNAL_ERROR_MESSAGE = "Internal Server Error";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -35,7 +44,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isHttpStatus = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= 400 && value <= 599;
 
-/** Status z `status`/`statusCode` błędu (TSOA auth → 401, `ValidateError` → 400, body-parser → 400). */
+/** Status z `status`/`statusCode` błędu (TSOA auth → 401, `ValidateError` → 400, body-parser → 400/413). */
 const resolveStatus = (err: unknown): number => {
   if (!isRecord(err)) {
     return 500;
@@ -67,6 +76,9 @@ const buildErrorBody = (err: unknown, status: number, isProduction: boolean): Er
   if (status >= 500 && isProduction) {
     return { error: INTERNAL_ERROR_MESSAGE };
   }
+  if (status === 413) {
+    return PAYLOAD_TOO_LARGE_BODY;
+  }
   const message = resolveMessage(err);
   if (status < 500 && isRecord(err) && isRecord(err.fields)) {
     return { error: message, fields: err.fields };
@@ -87,7 +99,7 @@ export const createApp = (options: CreateAppOptions): Express => {
 
   const app = express();
   app.use(createCorsMiddleware(corsOrigins));
-  app.use(express.json());
+  app.use(express.json({ limit: JSON_BODY_LIMIT_BYTES }));
 
   app.get("/api/health", createHealthHandler({ checkDatabase, version, timeoutMs: databaseCheckTimeoutMs }));
 

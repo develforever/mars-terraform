@@ -257,223 +257,15 @@
 				"type": "object",
 				"additionalProperties": false
 			},
-			"SavedResources": {
-				"properties": {
-					"o2": {
-						"type": "number",
-						"format": "double"
-					},
-					"power": {
-						"type": "number",
-						"format": "double"
-					},
-					"water": {
-						"type": "number",
-						"format": "double"
-					},
-					"biomass": {
-						"type": "number",
-						"format": "double"
-					},
-					"minerals": {
-						"type": "number",
-						"format": "double"
-					}
-				},
-				"required": [
-					"o2",
-					"power",
-					"water",
-					"biomass",
-					"minerals"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"SavedCapacity": {
-				"properties": {
-					"power": {
-						"type": "number",
-						"format": "double"
-					},
-					"water": {
-						"type": "number",
-						"format": "double"
-					},
-					"biomass": {
-						"type": "number",
-						"format": "double"
-					},
-					"minerals": {
-						"type": "number",
-						"format": "double"
-					}
-				},
-				"required": [
-					"power",
-					"water",
-					"biomass",
-					"minerals"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"SavedBuilding": {
-				"properties": {
-					"id": {
-						"type": "string"
-					},
-					"definitionId": {
-						"type": "string"
-					},
-					"position": {
-						"properties": {
-							"z": {
-								"type": "number",
-								"format": "double"
-							},
-							"y": {
-								"type": "number",
-								"format": "double"
-							},
-							"x": {
-								"type": "number",
-								"format": "double"
-							}
-						},
-						"required": [
-							"z",
-							"y",
-							"x"
-						],
-						"type": "object"
-					},
-					"condition": {
-						"type": "number",
-						"format": "double"
-					}
-				},
-				"required": [
-					"id",
-					"definitionId",
-					"position",
-					"condition"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"Record_string.string_": {
+			"Record_string.unknown_": {
 				"properties": {},
-				"additionalProperties": {
-					"type": "string"
-				},
+				"additionalProperties": {},
 				"type": "object",
 				"description": "Construct a type with a set of properties K of type T"
 			},
-			"SavedWeather": {
-				"properties": {
-					"type": {
-						"type": "string"
-					},
-					"intensity": {
-						"type": "number",
-						"format": "double"
-					},
-					"remainingTicks": {
-						"type": "number",
-						"format": "double"
-					},
-					"cooldownTicks": {
-						"type": "number",
-						"format": "double"
-					},
-					"impactZones": {
-						"items": {
-							"properties": {
-								"z": {
-									"type": "number",
-									"format": "double"
-								},
-								"x": {
-									"type": "number",
-									"format": "double"
-								}
-							},
-							"required": [
-								"z",
-								"x"
-							],
-							"type": "object"
-						},
-						"type": "array"
-					}
-				},
-				"required": [
-					"type",
-					"intensity",
-					"remainingTicks",
-					"cooldownTicks"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"SavedGameState": {
-				"properties": {
-					"resources": {
-						"$ref": "#/components/schemas/SavedResources"
-					},
-					"capacity": {
-						"$ref": "#/components/schemas/SavedCapacity"
-					},
-					"placed": {
-						"items": {
-							"$ref": "#/components/schemas/SavedBuilding"
-						},
-						"type": "array"
-					},
-					"occupied": {
-						"$ref": "#/components/schemas/Record_string.string_"
-					},
-					"weather": {
-						"$ref": "#/components/schemas/SavedWeather"
-					},
-					"terraforming": {
-						"type": "number",
-						"format": "double"
-					},
-					"o2Accumulated": {
-						"type": "number",
-						"format": "double"
-					},
-					"difficulty": {
-						"type": "string",
-						"enum": [
-							"easy",
-							"normal",
-							"hard"
-						]
-					},
-					"gameMode": {
-						"type": "string",
-						"enum": [
-							"exploration",
-							"survival"
-						]
-					}
-				},
-				"required": [
-					"resources",
-					"capacity",
-					"placed",
-					"occupied",
-					"weather",
-					"terraforming",
-					"o2Accumulated",
-					"difficulty",
-					"gameMode"
-				],
-				"type": "object",
-				"additionalProperties": false
+			"ColonyState": {
+				"$ref": "#/components/schemas/Record_string.unknown_",
+				"description": "Stan gry kolonii (D13 = c): otwarty obiekt JSON, dla backendu nieprzezroczysty blob.\nJedynym źródłem prawdy o kształcie jest frontend (`useGameStore.saveGame` / `hydrateSavedState`),\nktóry odpowiada za treść przy wczytaniu. Backend (walidacja TSOA) sprawdza tylko, że to obiekt\n(tablica, null i prymityw → 400), a rozmiar ogranicza limit body w `app.ts` (→ 413)."
 			},
 			"ColonyData": {
 				"properties": {
@@ -481,7 +273,7 @@
 						"type": "string"
 					},
 					"state": {
-						"$ref": "#/components/schemas/SavedGameState"
+						"$ref": "#/components/schemas/ColonyState"
 					}
 				},
 				"required": [
@@ -505,7 +297,7 @@
 						"type": "string"
 					},
 					"state": {
-						"$ref": "#/components/schemas/SavedGameState"
+						"$ref": "#/components/schemas/ColonyState"
 					},
 					"updatedAt": {
 						"type": "string",

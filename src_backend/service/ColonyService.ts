@@ -1,7 +1,7 @@
 import { db } from "../data-source";
 import { coloniesTable } from "../db/schema";
 import { eq, and } from "drizzle-orm";
-import type { ColonyData, ColonyResponse, SavedGameState } from "../model/types";
+import type { ColonyData, ColonyResponse, ColonyState } from "../model/types";
 
 export class ColonyService {
   static async saveColony(userId: number, data: ColonyData): Promise<number> {
@@ -41,7 +41,7 @@ export class ColonyService {
 
     return {
       ...colonies[0],
-      state: JSON.parse(colonies[0].state) as SavedGameState,
+      state: JSON.parse(colonies[0].state) as ColonyState,
     };
   }
 
@@ -53,7 +53,7 @@ export class ColonyService {
     
     return colonies.map(c => ({
       ...c,
-      state: JSON.parse(c.state) as SavedGameState,
+      state: JSON.parse(c.state) as ColonyState,
     }));
   }
 
