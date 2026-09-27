@@ -165,6 +165,24 @@ const getGithubAuthUrl = async (): Promise<string> => {
   return result.url;
 };
 
+/** T12 (RODO art. 15 i 20): wszystkie dane konta jako plik JSON. */
+const exportMyData = async (): Promise<Blob> => {
+  const response = await fetch(apiUrl("/api/users/me/export"), { headers: authHeaders() });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(error.error || `HTTP ${response.status}`);
+  }
+  return response.blob();
+};
+
+/** T12 (RODO art. 17): trwałe usunięcie konta i danych; po sukcesie token jest usuwany lokalnie. */
+const deleteAccount = async (): Promise<{ message: string }> => {
+  const response = await fetch(apiUrl("/api/users/me"), { method: "DELETE", headers: authHeaders() });
+  const result = await handleResponse<{ message: string }>(response);
+  clearToken();
+  return result;
+};
+
 const isAuthenticated = (): boolean => !!getToken();
 
 export const authClient = {
@@ -183,5 +201,7 @@ export const authClient = {
   getAuthProviders,
   getGoogleAuthUrl,
   getGithubAuthUrl,
+  exportMyData,
+  deleteAccount,
   isAuthenticated,
 };

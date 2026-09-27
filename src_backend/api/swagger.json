@@ -45,14 +45,207 @@
 				"additionalProperties": false
 			},
 			"UserUpdateRequest": {
+				"description": "T12: tylko nazwa. Zmiana e-maila nie jest obsługiwana (wymagałaby ponownej weryfikacji).",
 				"properties": {
 					"name": {
-						"type": "string"
-					},
-					"email": {
-						"type": "string"
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 100
 					}
 				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UserDataExport": {
+				"description": "T12: eksport danych użytkownika (`GET /api/users/me/export`), RODO art. 15 i 20.",
+				"properties": {
+					"formatVersion": {
+						"type": "number",
+						"format": "double"
+					},
+					"exportedAt": {
+						"type": "string"
+					},
+					"profile": {
+						"properties": {
+							"updatedAt": {
+								"type": "string",
+								"format": "date-time"
+							},
+							"createdAt": {
+								"type": "string",
+								"format": "date-time"
+							},
+							"emailVerifiedAt": {
+								"type": "string",
+								"format": "date-time",
+								"nullable": true
+							},
+							"authProvider": {
+								"type": "string"
+							},
+							"email": {
+								"type": "string"
+							},
+							"name": {
+								"type": "string"
+							},
+							"id": {
+								"type": "number",
+								"format": "double"
+							}
+						},
+						"required": [
+							"updatedAt",
+							"createdAt",
+							"emailVerifiedAt",
+							"authProvider",
+							"email",
+							"name",
+							"id"
+						],
+						"type": "object"
+					},
+					"authMethods": {
+						"items": {
+							"properties": {
+								"createdAt": {
+									"type": "string",
+									"format": "date-time"
+								},
+								"verified": {
+									"type": "boolean"
+								},
+								"providerId": {
+									"type": "string",
+									"nullable": true
+								},
+								"provider": {
+									"type": "string"
+								}
+							},
+							"required": [
+								"createdAt",
+								"verified",
+								"providerId",
+								"provider"
+							],
+							"type": "object"
+						},
+						"type": "array"
+					},
+					"groups": {
+						"items": {
+							"properties": {
+								"description": {
+									"type": "string",
+									"nullable": true
+								},
+								"name": {
+									"type": "string"
+								}
+							},
+							"required": [
+								"description",
+								"name"
+							],
+							"type": "object"
+						},
+						"type": "array"
+					},
+					"maps": {
+						"items": {
+							"properties": {
+								"updatedAt": {
+									"type": "string",
+									"format": "date-time"
+								},
+								"createdAt": {
+									"type": "string",
+									"format": "date-time"
+								},
+								"data": {
+									"description": "Treść mapy (JSON v2.0) jako obiekt; surowy tekst, jeśli nie jest poprawnym JSON."
+								},
+								"version": {
+									"type": "string"
+								},
+								"players": {
+									"type": "number",
+									"format": "double"
+								},
+								"description": {
+									"type": "string",
+									"nullable": true
+								},
+								"name": {
+									"type": "string"
+								},
+								"id": {
+									"type": "number",
+									"format": "double"
+								}
+							},
+							"required": [
+								"updatedAt",
+								"createdAt",
+								"data",
+								"version",
+								"players",
+								"description",
+								"name",
+								"id"
+							],
+							"type": "object"
+						},
+						"type": "array"
+					},
+					"colonies": {
+						"items": {
+							"properties": {
+								"updatedAt": {
+									"type": "string",
+									"format": "date-time"
+								},
+								"createdAt": {
+									"type": "string",
+									"format": "date-time"
+								},
+								"state": {
+									"description": "Stan gry jako obiekt; surowy tekst, jeśli nie jest poprawnym JSON."
+								},
+								"name": {
+									"type": "string"
+								},
+								"id": {
+									"type": "number",
+									"format": "double"
+								}
+							},
+							"required": [
+								"updatedAt",
+								"createdAt",
+								"state",
+								"name",
+								"id"
+							],
+							"type": "object"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"formatVersion",
+					"exportedAt",
+					"profile",
+					"authMethods",
+					"groups",
+					"maps",
+					"colonies"
+				],
 				"type": "object",
 				"additionalProperties": false
 			},
@@ -531,6 +724,34 @@
 						}
 					}
 				},
+				"description": "RODO art. 17: trwałe usunięcie konta z koloniami, mapami, metodami logowania, członkostwem w grupach\ni tokenami. Nieodwracalne. Wydany JWT wygasa sam (domyślnie po 1 h) i nie ma już czego odczytać.",
+				"tags": [
+					"Users"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/users/me/export": {
+			"get": {
+				"operationId": "ExportMe",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UserDataExport"
+								}
+							}
+						}
+					}
+				},
+				"description": "RODO art. 15 i 20: wszystkie dane konta w JSON (bez hasła i tokenów), jako plik do pobrania.",
 				"tags": [
 					"Users"
 				],

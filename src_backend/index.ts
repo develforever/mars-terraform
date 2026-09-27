@@ -5,6 +5,7 @@ import { db } from "./data-source";
 import { config } from "./config";
 import { createApp } from "./app";
 import { readPackageVersion } from "./health";
+import { scheduleRetention } from "./service/retentionService";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,4 +23,6 @@ const app = createApp({
 
 app.listen(config.port, "0.0.0.0", () => {
   console.log(`🚀 Backend running on http://0.0.0.0:${config.port}`);
+  // T12: retencja danych (wygasłe tokeny, niepotwierdzone i usunięte konta) przy starcie i co 24 h.
+  scheduleRetention();
 });

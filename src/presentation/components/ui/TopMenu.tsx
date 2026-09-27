@@ -40,7 +40,13 @@ export default function TopMenu() {
                     <LanguageToggle />
                     {isAuthenticated && user ? (
 
-                        <><span className="text-white text-sm">{user.name || user.email}</span><button
+                        <><button
+                            onClick={() => open("account")}
+                            className="text-white text-sm hover:text-gray-300"
+                            title={t("topMenu.account")}
+                        >
+                            {user.name || user.email}
+                        </button><button
                             onClick={logout}
                             className="text-sm text-red-400 hover:text-red-300"
                         >

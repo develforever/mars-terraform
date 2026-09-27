@@ -10,6 +10,8 @@ export interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
+  /** T12: trwałe usunięcie konta; po sukcesie użytkownik jest wylogowany. */
+  deleteAccount: () => Promise<void>;
   fetchUser: () => Promise<void>;
 }
 
@@ -46,6 +48,16 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         authClient.logout();
         set({ user: null, isAuthenticated: false });
+      },
+
+      deleteAccount: async () => {
+        set({ isLoading: true });
+        try {
+          await authClient.deleteAccount();
+          set({ user: null, isAuthenticated: false });
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       fetchUser: async () => {

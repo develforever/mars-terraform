@@ -12,6 +12,7 @@ import { useEconomy } from "../application/hooks/useEconomy";
 const StartView = lazy(() => import("../presentation/pages/StartView"));
 const MarsView = lazy(() => import("../presentation/pages/MarsView"));
 const GeneratorPage = lazy(() => import("../presentation/generator/GeneratorPage"));
+const PrivacyPolicyPage = lazy(() => import("../presentation/pages/PrivacyPolicyPage"));
 
 function MarsLoadingFallback() {
     return (
@@ -241,6 +242,7 @@ export default function App() {
                         <Route path="/reset-password" element={<AuthRouteHandler />} />
                         <Route path="/verify-email" element={<AuthRouteHandler />} />
                         <Route path="/generate" element={<GeneratorPage />} />
+                        <Route path="/privacy" element={<PrivacyPolicyPage />} />
                     </Routes>
                 </Suspense>
             </div>
