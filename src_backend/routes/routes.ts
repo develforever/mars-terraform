@@ -256,89 +256,27 @@ export function RegisterRoutes(app: Router) {
 
 
     
-        const argsUsersController_list: Record<string, TsoaRoute.ParameterSchema> = {
-        };
-        app.get('/api/users',
-            authenticateMiddleware([{"jwt":[]}]),
-            ...(fetchMiddlewares<RequestHandler>(UsersController)),
-            ...(fetchMiddlewares<RequestHandler>(UsersController.prototype.list)),
-
-            async function UsersController_list(request: ExRequest, response: ExResponse, next: any) {
-
-            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-            let validatedArgs: any[] = [];
-            try {
-                validatedArgs = templateService.getValidatedArgs({ args: argsUsersController_list, request, response });
-
-                const controller = new UsersController();
-
-              await templateService.apiHandler({
-                methodName: 'list',
-                controller,
-                response,
-                next,
-                validatedArgs,
-                successStatus: undefined,
-              });
-            } catch (err) {
-                return next(err);
-            }
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        const argsUsersController_getById: Record<string, TsoaRoute.ParameterSchema> = {
-                id: {"in":"path","name":"id","required":true,"dataType":"double"},
-        };
-        app.get('/api/users/:id',
-            authenticateMiddleware([{"jwt":[]}]),
-            ...(fetchMiddlewares<RequestHandler>(UsersController)),
-            ...(fetchMiddlewares<RequestHandler>(UsersController.prototype.getById)),
-
-            async function UsersController_getById(request: ExRequest, response: ExResponse, next: any) {
-
-            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-            let validatedArgs: any[] = [];
-            try {
-                validatedArgs = templateService.getValidatedArgs({ args: argsUsersController_getById, request, response });
-
-                const controller = new UsersController();
-
-              await templateService.apiHandler({
-                methodName: 'getById',
-                controller,
-                response,
-                next,
-                validatedArgs,
-                successStatus: undefined,
-              });
-            } catch (err) {
-                return next(err);
-            }
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        const argsUsersController_update: Record<string, TsoaRoute.ParameterSchema> = {
-                id: {"in":"path","name":"id","required":true,"dataType":"double"},
+        const argsUsersController_updateMe: Record<string, TsoaRoute.ParameterSchema> = {
                 body: {"in":"body","name":"body","required":true,"ref":"UserUpdateRequest"},
                 req: {"in":"request","name":"req","required":true,"dataType":"object"},
         };
-        app.put('/api/users/:id',
+        app.put('/api/users/me',
             authenticateMiddleware([{"jwt":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UsersController)),
-            ...(fetchMiddlewares<RequestHandler>(UsersController.prototype.update)),
+            ...(fetchMiddlewares<RequestHandler>(UsersController.prototype.updateMe)),
 
-            async function UsersController_update(request: ExRequest, response: ExResponse, next: any) {
+            async function UsersController_updateMe(request: ExRequest, response: ExResponse, next: any) {
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
             let validatedArgs: any[] = [];
             try {
-                validatedArgs = templateService.getValidatedArgs({ args: argsUsersController_update, request, response });
+                validatedArgs = templateService.getValidatedArgs({ args: argsUsersController_updateMe, request, response });
 
                 const controller = new UsersController();
 
               await templateService.apiHandler({
-                methodName: 'update',
+                methodName: 'updateMe',
                 controller,
                 response,
                 next,
@@ -350,26 +288,26 @@ export function RegisterRoutes(app: Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        const argsUsersController_softDelete: Record<string, TsoaRoute.ParameterSchema> = {
-                id: {"in":"path","name":"id","required":true,"dataType":"double"},
+        const argsUsersController_deleteMe: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
         };
-        app.delete('/api/users/:id',
+        app.delete('/api/users/me',
             authenticateMiddleware([{"jwt":[]}]),
             ...(fetchMiddlewares<RequestHandler>(UsersController)),
-            ...(fetchMiddlewares<RequestHandler>(UsersController.prototype.softDelete)),
+            ...(fetchMiddlewares<RequestHandler>(UsersController.prototype.deleteMe)),
 
-            async function UsersController_softDelete(request: ExRequest, response: ExResponse, next: any) {
+            async function UsersController_deleteMe(request: ExRequest, response: ExResponse, next: any) {
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
             let validatedArgs: any[] = [];
             try {
-                validatedArgs = templateService.getValidatedArgs({ args: argsUsersController_softDelete, request, response });
+                validatedArgs = templateService.getValidatedArgs({ args: argsUsersController_deleteMe, request, response });
 
                 const controller = new UsersController();
 
               await templateService.apiHandler({
-                methodName: 'softDelete',
+                methodName: 'deleteMe',
                 controller,
                 response,
                 next,
@@ -540,6 +478,7 @@ export function RegisterRoutes(app: Router) {
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsGroupsController_create: Record<string, TsoaRoute.ParameterSchema> = {
                 body: {"in":"body","name":"body","required":true,"ref":"CreateGroupRequest"},
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
         };
         app.post('/api/groups',
             authenticateMiddleware([{"jwt":[]}]),
@@ -603,6 +542,7 @@ export function RegisterRoutes(app: Router) {
         const argsGroupsController_addMember: Record<string, TsoaRoute.ParameterSchema> = {
                 id: {"in":"path","name":"id","required":true,"dataType":"double"},
                 body: {"in":"body","name":"body","required":true,"ref":"AddMemberRequest"},
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
         };
         app.post('/api/groups/:id/members',
             authenticateMiddleware([{"jwt":[]}]),
@@ -635,6 +575,7 @@ export function RegisterRoutes(app: Router) {
         const argsGroupsController_removeMember: Record<string, TsoaRoute.ParameterSchema> = {
                 id: {"in":"path","name":"id","required":true,"dataType":"double"},
                 userId: {"in":"path","name":"userId","required":true,"dataType":"double"},
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
         };
         app.delete('/api/groups/:id/members/:userId',
             authenticateMiddleware([{"jwt":[]}]),

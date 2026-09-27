@@ -19,20 +19,6 @@ const getById = async (id: number) => {
   return user ?? null;
 };
 
-const list = async () => {
-  return db
-    .select({
-      id: usersTable.id,
-      name: usersTable.name,
-      email: usersTable.email,
-      authProvider: usersTable.authProvider,
-      emailVerifiedAt: usersTable.emailVerifiedAt,
-      createdAt: usersTable.createdAt,
-    })
-    .from(usersTable)
-    .where(isNull(usersTable.deletedAt));
-};
-
 const update = async (id: number, data: { name?: string; email?: string }) => {
   const [updated] = await db
     .update(usersTable)
@@ -69,7 +55,6 @@ import { and } from "drizzle-orm";
 
 export const userService = {
   getById,
-  list,
   update,
   softDelete,
   getGroups,

@@ -2,6 +2,9 @@ import { db } from "../data-source";
 import { groupsTable, userGroupsTable, usersTable } from "../db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 
+/** Członkowie tej grupy mogą tworzyć grupy i zarządzać członkami (T11). */
+export const ADMIN_GROUP_NAME = "admin";
+
 const create = async (name: string, description?: string) => {
   const [group] = await db
     .insert(groupsTable)
@@ -40,6 +43,24 @@ const addUser = async (userId: number, groupId: number) => {
   await db.insert(userGroupsTable).values({ userId, groupId });
 };
 
+/** Czy aktywny (nieusunięty) użytkownik należy do grupy o podanej nazwie. */
+const isMemberOf = async (userId: number, groupName: string): Promise<boolean> => {
+  const rows = await db
+    .select({ userId: userGroupsTable.userId })
+    .from(userGroupsTable)
+    .innerJoin(groupsTable, eq(userGroupsTable.groupId, groupsTable.id))
+    .innerJoin(usersTable, eq(userGroupsTable.userId, usersTable.id))
+    .where(
+      and(
+        eq(userGroupsTable.userId, userId),
+        eq(groupsTable.name, groupName),
+        isNull(usersTable.deletedAt),
+      ),
+    )
+    .limit(1);
+  return rows.length > 0;
+};
+
 const removeUser = async (userId: number, groupId: number) => {
   await db
     .delete(userGroupsTable)
@@ -53,4 +74,5 @@ export const groupService = {
   getMembers,
   addUser,
   removeUser,
+  isMemberOf,
 };
