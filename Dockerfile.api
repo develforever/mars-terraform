@@ -3,6 +3,8 @@
 # Obraz TYLKO z backendem (API) — Faza 8, T4. Frontend hostowany osobno (Vercel).
 # Build:  docker build -f Dockerfile.api -t mars-api .
 # Run:    docker run -p 8080:8080 -e jwt_secret=... -e turso_url=libsql://... -e turso_token=... mars-api
+#         Start = najpierw migracje (`dist_backend/migrate.js`), potem API. Błąd migracji = exit != 0, API nie startuje
+#         (Render: darmowy plan nie ma pre-deploy command, D15). Same migracje: `... mars-api node dist_backend/migrate.js`.
 # Kontekst builda filtruje `Dockerfile.api.dockerignore` (BuildKit), nie `.dockerignore`.
 #
 # Wersja Node: 24 (Active LTS). `vite.config.backend.ts` celuje w `node22` (dolna granica składni),
@@ -49,8 +51,12 @@ COPY drizzle ./drizzle
 USER node
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# start-period uwzględnia migracje przy starcie (zapytanie do Turso) przed nasłuchem API.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "dist_backend/index.js"]
+# D15: migracje przy starcie kontenera. `exec` zastępuje powłokę procesem node, więc tini przekazuje
+# SIGTERM bezpośrednio do API. `&&`: API startuje tylko po udanej migracji (migrate.js ustawia exit 1 przy błędzie).
+# Migrator czyta tylko ostatni wiersz `__drizzle_migrations`, a zaległe migracje stosuje atomowo w jednym batchu.
+CMD ["sh", "-c", "node dist_backend/migrate.js && exec node dist_backend/index.js"]

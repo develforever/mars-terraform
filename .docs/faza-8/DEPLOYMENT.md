@@ -1,15 +1,15 @@
-# Runbook wdrożenia produkcyjnego — Faza 8 (Fly.io + Vercel + Turso)
+# Runbook wdrożenia produkcyjnego — Faza 8 (Render + Vercel + Turso)
 
 > Dla człowieka, **Windows + PowerShell**, bez WSL i bez Turso CLI. Agent niczego nie wdraża.
 > Kontekst i decyzje: `PLAN.md` (§4 architektura, §5 T9), `QUEUE.md` (D1–D13), `MIGRATIONS_BASELINE.md`.
 >
 > Placeholdery (nie wpisuj prawdziwych wartości do repo):
-> `<app>` = nazwa aplikacji Fly (domyślnie w `fly.toml`: `mars-terraform-api`),
+> `<app>` = nazwa usługi Render (domyślnie w `render.yaml`: `mars-terraform-api`, adres `https://<app>.onrender.com`),
 > `<projekt>` = nazwa projektu Vercel (`https://<projekt>.vercel.app`),
 > `<baza>` = nazwa bazy Turso, `<domena>` = ewentualna domena własna.
 >
 > Oznaczenie **„do potwierdzenia”** = komenda albo etykieta w panelu, której nie dało się sprawdzić
-> z sesji agenta (brak dostępu do fly.io/vercel.com/Turso i brak PowerShella). Sprawdź w oficjalnej
+> z sesji agenta (brak dostępu do panelu Render/vercel.com/Turso i brak PowerShella). Sprawdź w oficjalnej
 > dokumentacji, zanim wykonasz krok, i popraw runbook, jeśli się różni.
 
 Architektura docelowa (PLAN §4):
@@ -17,11 +17,11 @@ Architektura docelowa (PLAN §4):
 ```
 Przeglądarka ──► Vercel CDN (dist/, vercel.json): /, /generate, /mars, /assets/*, /models/*, /textures/*, /icons/*
      │
-     └─ fetch(VITE_API_URL + "/api/...")  Authorization: Bearer  ──► Fly.io <app> (Dockerfile.api, serve_frontend=false)
+     └─ fetch(VITE_API_URL + "/api/...")  Authorization: Bearer  ──► Render <app> (Dockerfile.api, serve_frontend=false)
                                                                       │  CORS allowlist = cors_origins
                                                                       ▼
                                                                     Turso (libsql://)
-OAuth: <app>.fly.dev/api/auth/{google|github}/callback ──302──► ${frontend_url}/?token=...
+OAuth: <app>.onrender.com/api/auth/{google|github}/callback ──302──► ${frontend_url}/?token=...
 ```
 
 ## Spis treści
@@ -29,7 +29,7 @@ OAuth: <app>.fly.dev/api/auth/{google|github}/callback ──302──► ${fron
 0. [Wymagania wstępne i kolejność](#0-wymagania-wstępne-i-kolejność)
 1. [Sekrety (T0b)](#1-sekrety-t0b)
 2. [Baza: backup i baseline migracji (D11)](#2-baza-backup-i-baseline-migracji-d11)
-3. [Backend na Fly.io (D1, D8)](#3-backend-na-flyio-d1-d8)
+3. [Backend na Render (D15)](#3-backend-na-render-d15)
 4. [Frontend na Vercel (D3)](#4-frontend-na-vercel-d3)
 5. [Spięcie: CORS, frontend_url, OAuth](#5-spięcie-cors-frontend_url-oauth)
 6. [Smoke test produkcji](#6-smoke-test-produkcji)
@@ -64,11 +64,11 @@ OAuth: <app>.fly.dev/api/auth/{google|github}/callback ──302──► ${fron
 ### Checklista wymagań
 
 - [ ] Kod Fazy 8 scalony do `main` (PR z brancha roboczego, review), CI na `main` zielony (`verify` + `docker-api`).
-      Vercel buduje Production z gałęzi produkcyjnej (domyślnie `main`), a `fly deploy` wysyła lokalny checkout.
+      Vercel buduje Production z gałęzi produkcyjnej (domyślnie `main`), a Render wdraża API z `main` po zielonym CI.
 - [ ] Lokalny checkout na `main`, `git status` czysty, `git pull` wykonany.
 - [ ] Node 24 (`node -v` ≥ v22.9 wystarczy dla skryptów), `npm ci` wykonane w repo.
 - [ ] Dostęp do panelu Turso: https://app.turso.tech (bez Turso CLI).
-- [ ] Konto Fly.io (może wymagać karty płatniczej, **do potwierdzenia** w cenniku Fly).
+- [ ] Konto Render (plan Free, bez karty), połączone z GitHubem.
 - [ ] Konto Vercel połączone z GitHubem (dostęp do repo `develforever/mars-terraform`).
 - [ ] (Opcjonalnie) dostęp do Google Cloud Console i GitHub Developer Settings, jeśli OAuth ma działać od razu.
 - [ ] Katalog na skrypty i backupy **poza repo**, np. `New-Item -ItemType Directory -Force $HOME\mars-ops`.
@@ -77,14 +77,14 @@ OAuth: <app>.fly.dev/api/auth/{google|github}/callback ──302──► ${fron
 
 - [ ] 1. Sekrety: unieważnienie starych tokenów Turso, nowy token, nowy `jwt_secret` (sekcja 1).
 - [ ] 2. Backup bazy, inwentaryzacja, baseline `__drizzle_migrations` (sekcja 2). **Bez tego pierwszy deploy padnie.**
-- [ ] 3. Fly: `fly launch --no-deploy`, sekrety, `fly deploy`, `/api/health` = 200 (sekcja 3).
+- [ ] 3. Render: Blueprint z `render.yaml`, zmienne tajne, deploy, `/api/health` = 200 (sekcja 3).
 - [ ] 4. Vercel: import repo, `VITE_API_URL`, preview, weryfikacja nagłówków `curl.exe -I` (sekcja 4).
-- [ ] 5. Fly: `cors_origins` + `frontend_url`, test CORS, OAuth redirect URI (sekcja 5).
+- [ ] 5. Render: `cors_origins` + `frontend_url`, test CORS, OAuth redirect URI (sekcja 5).
 - [ ] 6. Smoke test produkcji (sekcja 6).
 - [ ] 7. Porządki po wdrożeniu (sekcja 8).
 
 **Oczekiwany wynik:** wszystkie pola wymagań zaznaczone.
-**Co jeśli nie wyszło:** nie zaczynaj sekcji 1–3 bez scalonego kodu. Deploy starego `main` nie ma `Dockerfile.api`, `fly.toml` ani migratora.
+**Co jeśli nie wyszło:** nie zaczynaj sekcji 1–3 bez scalonego kodu. Deploy starego `main` nie ma `Dockerfile.api`, `render.yaml` ani migratora.
 
 ---
 
@@ -151,7 +151,7 @@ bez przepisywania historii). Każdy, kto ma klon repo, ma stare sekrety. Jedyna 
 ## 2. Baza: backup i baseline migracji (D11)
 
 **Cel:** produkcyjna baza Turso powstała przez `drizzle-kit push` (**D11**), więc nie ma tabeli `__drizzle_migrations`.
-Migrator (`node dist_backend/migrate.js`, Fly `release_command`) uzna ją za pustą, spróbuje wykonać `0000`
+Migrator (`node dist_backend/migrate.js`, start kontenera API, D15) uzna ją za pustą, spróbuje wykonać `0000`
 i deploy padnie na `table ... already exists`. Baseline wpisuje do `__drizzle_migrations` migracje, które baza już ma.
 
 Pełny opis mechanizmu, checklista kolumn i SQL: **[`MIGRATIONS_BASELINE.md`](./MIGRATIONS_BASELINE.md)**. Skrót:
@@ -667,135 +667,75 @@ Przetestowano na `file:`; `executeMultiple` z `BEGIN`/`COMMIT` na zdalnym `libsq
 
 ---
 
-## 3. Backend na Fly.io (D1, D8)
+## 3. Backend na Render (D15)
 
-**Cel:** API (`Dockerfile.api`, `serve_frontend=false`) na `https://<app>.fly.dev`, region `fra`, `min_machines_running = 0`,
-migracje wykonywane przez `release_command` przed przełączeniem ruchu.
+**Cel:** API (`Dockerfile.api`, `serve_frontend=false`) na `https://<app>.onrender.com`, region Frankfurt, plan **Free**
+(usypia po 15 min bez ruchu, start ok. 1 min), migracje **przy starcie kontenera** (CMD obrazu), bo darmowy plan
+Render nie obsługuje pre-deploy command.
+
+> Historia: pierwotnie Fly.io (D1, D8). 2026-09-26 zmiana na Render (D15), bo Fly po zakończeniu triala wymaga karty.
+> Aplikacja `mars-terraform-api` utworzona na Fly nie ma maszyn i nic nie kosztuje. Usunięcie (nieodwracalne, wykonuje
+> człowiek): `fly apps destroy mars-terraform-api`.
 
 ### Kroki
 
-1. **Instalacja flyctl (Windows).** Oficjalny instalator PowerShell (**do potwierdzenia** na https://fly.io/docs/flyctl/install/):
-   ```powershell
-   pwsh -Command "iwr https://fly.io/install.ps1 -useb | iex"
-   ```
-   W Windows PowerShell 5.1 bez `pwsh`: `iwr https://fly.io/install.ps1 -useb | iex`. Otwórz nowe okno terminala i sprawdź:
-   ```powershell
-   fly version
-   ```
-   Jeśli `fly` nie jest rozpoznawane, użyj `flyctl` (ta sama binarka) albo dodaj katalog instalacji do `PATH`.
-2. **Logowanie:** `fly auth login` (otworzy przeglądarkę). Sprawdź: `fly auth whoami`.
-3. **Utworzenie aplikacji bez wdrożenia** (w katalogu repo, na `main`):
-   ```powershell
-   fly launch --no-deploy --copy-config --name <app> --region fra
-   ```
-   - `--copy-config` bierze istniejący `fly.toml` (Dockerfile, health check, `release_command`, VM).
-   - Odpowiadaj **nie** na propozycje Postgresa / Redis / Tigris (baza to Turso, D2).
-   - Jeśli nazwa `mars-terraform-api` jest zajęta i wybierzesz inną, flyctl zapisze ją w `fly.toml` (`app = ...`).
-     Wtedy popraw też `backend_url` w sekcji `[env]` na `https://<app>.fly.dev` (od niego zależą callbacki OAuth)
-     i zacommituj zmianę `fly.toml` na branchu z PR.
-   - `git diff fly.toml`: poza `app` i ewentualnie `backend_url` flyctl nie powinien nic zmieniać. Jeśli zmienił więcej, cofnij resztę.
-   - Sprawdź składnię: `fly config validate` (**do potwierdzenia**, niesprawdzone w sesji, bo nie było flyctl).
-4. **Sekrety** (`fly secrets set`). Nazwy pochodzą z `src_backend/config.ts` i komentarza w `fly.toml`:
-
-   | Grupa | Nazwy |
-   |---|---|
-   | wymagane | `jwt_secret`, `turso_url`, `turso_token` |
-   | OAuth (opcjonalne) | `google_client_id`, `google_client_secret`, `github_client_id`, `github_client_secret` |
-   | e-mail (opcjonalne) | `email_strategy`, `smtp_host`, `smtp_port`, `smtp_user`, `smtp_pass`, `smtp_from`, `sendgrid_api_key`, `mailgun_api_key`, `mailgun_domain`, `resend_api_key`, `mailjet_api_key`, `mailjet_api_secret`, `mailtrap_api_token`, `mailtrap_inbox_id` |
-   | AI (opcjonalne) | `openrouter_api_key` |
-   | po Vercel (sekcja 5) | `cors_origins`, `frontend_url` |
-
-   `NODE_ENV`, `serve_frontend`, `PORT`, `backend_url` są już w `[env]` w `fly.toml`. Nie ustawiaj ich jako sekretów.
-   Domyślnie `email_strategy=console` (e-maile tylko w logach, patrz sekcja 6).
-
-   Wartości czytamy z `.env` i `.env.local` (`.env.local` wygrywa), **bez wypisywania ich na ekran**.
-   Wklej do PowerShella w katalogu repo (składnia PowerShell **do potwierdzenia**: nie było PowerShella w sesji agenta):
-   ```powershell
-   function Read-DotEnv([string[]]$Files) {
-     $vars = @{}
-     foreach ($f in $Files) {
-       if (-not (Test-Path -LiteralPath $f)) { continue }
-       foreach ($line in Get-Content -LiteralPath $f -Encoding UTF8) {
-         if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
-           $v = $Matches[2].Trim()
-           if ($v.Length -ge 2 -and (($v.StartsWith('"') -and $v.EndsWith('"')) -or ($v.StartsWith("'") -and $v.EndsWith("'")))) {
-             $v = $v.Substring(1, $v.Length - 2)
-           }
-           $vars[$Matches[1]] = $v
-         }
-       }
-     }
-     return $vars
-   }
-   $envs = Read-DotEnv @('.env', '.env.local')   # później wymieniony plik wygrywa
-   $names = @('jwt_secret', 'turso_url', 'turso_token')   # dopisz opcjonalne nazwy z tabeli, jeśli ich używasz
-   $missing = @($names | Where-Object { -not $envs[$_] })
-   if ($missing.Count -gt 0) {
-     Write-Error "Brak wartości w .env/.env.local: $($missing -join ', ')"
-   } elseif (-not $envs['turso_url'].StartsWith('libsql://')) {
-     Write-Error "turso_url nie wskazuje na Turso (libsql://). Nie wdrażaj z lokalną bazą file:."
-   } else {
-     $pairs = @($names | ForEach-Object { "$_=$($envs[$_])" })
-     fly secrets set --stage @pairs
-   }
-   ```
-   Parser jest uproszczony: jedna para `klucz=wartość` na linię, bez komentarzy po wartości i bez wartości wieloliniowych.
-   `--stage` zapisuje sekrety bez restartu maszyn (przy pierwszym wdrożeniu i tak ich nie ma).
-   Sprawdzenie (pokazuje tylko nazwy i skróty, nie wartości): `fly secrets list`.
-5. **Wdrożenie:**
-   ```powershell
-   fly deploy
-   ```
+1. **Konto:** https://dashboard.render.com, logowanie przez GitHub i dostęp Render do repo `develforever/mars-terraform`
+   (etykiety w panelu **do potwierdzenia**). Plan Free nie wymaga karty.
+2. **Blueprint:** New → **Blueprint** → repo `develforever/mars-terraform`, gałąź `main`. Render wczyta `render.yaml`:
+   usługa `mars-terraform-api`, runtime Docker (`Dockerfile.api`), plan Free, region Frankfurt, health check `/api/health`,
+   automatyczny deploy po zielonym CI (`autoDeployTrigger: checksPass`).
+   - Jeśli adres usługi będzie inny niż `https://mars-terraform-api.onrender.com` (nazwa zajęta), zmień `backend_url`
+     w panelu (usługa → Environment) i w `render.yaml` (commit przez PR). Od niego zależą callbacki OAuth.
+3. **Zmienne tajne** (`sync: false` w `render.yaml`): Render pyta o nie przy tworzeniu Blueprintu. Wartości wpisujesz
+   tylko w panelu, nigdy w repo ani w terminalu:
+   - `jwt_secret`: **nowy, osobny od lokalnego**. Wygeneruj prosto do schowka (bez wypisywania na ekran):
+     ```powershell
+     node -e "process.stdout.write(require('node:crypto').randomBytes(48).toString('hex'))" | Set-Clipboard
+     ```
+     Wklej w pole `jwt_secret`, a potem wyczyść schowek: `Set-Clipboard -Value ' '`.
+   - `turso_url`, `turso_token`: te same co w `.env.local` (skopiuj z pliku w edytorze). `turso_url` musi zaczynać się od `libsql://`.
+   - Opcjonalne (OAuth, e-mail, AI) dodajesz później: usługa → Environment (lista nazw w komentarzu `render.yaml`).
+     `NODE_ENV`, `serve_frontend`, `PORT`, `backend_url` ustawia `render.yaml`; nie dubluj ich w panelu.
+   - `frontend_url` i `cors_origins` ustawiasz dopiero w sekcji 5 (po poznaniu domeny Vercel).
+4. **Deploy:** utworzenie Blueprintu uruchamia pierwszy build i start. Kolejne deploye idą same po pushu na `main`
+   z zielonym CI; ręcznie: usługa → Manual Deploy → Deploy latest commit (**do potwierdzenia**: etykieta).
    Co się dzieje:
-   - build obrazu z `Dockerfile.api` (kontekst filtruje `Dockerfile.api.dockerignore`; log builda powinien pokazać mały kontekst,
-     bez `public/` i `dist/`),
-   - **`release_command = "node dist_backend/migrate.js"`**: tymczasowa maszyna z nowym obrazem i sekretami wykonuje migracje
-     **przed** przełączeniem ruchu. Exit ≠ 0 przerywa deploy, stara wersja dalej działa,
-   - rolling deploy i health check `GET /api/health` (co 15 s, timeout 5 s).
+   - build obrazu z `Dockerfile.api` (BuildKit; kontekst filtruje `Dockerfile.api.dockerignore`),
+   - start kontenera = `node dist_backend/migrate.js && exec node dist_backend/index.js`. Błąd migracji kończy kontener
+     kodem 1, API nie startuje, deploy jest oznaczony jako nieudany, a poprzednia wersja działa dalej,
+   - Render przełącza ruch, gdy `/api/health` odpowiada 200.
+   Migrator działa przy **każdym** starcie (także po uśpieniu). Bez nowych migracji to jedno zapytanie (kilkadziesiąt ms).
 
 ### Oczekiwany wynik
 
-- W logu deployu linia migratora:
-  - wariant A: `[migrate] No new migrations (applied total: 2) in … ms`
-  - wariant B: `[migrate] Applied 1 migration(s) (applied total: 2) in … ms`
+- Logi usługi (panel → Logs):
+  - `[migrate] No new migrations (applied total: 2) in … ms` (baseline z sekcji 2 zrobiony),
+  - potem `🚀 Backend running on http://0.0.0.0:8080`.
 - Health:
   ```powershell
-  curl.exe -s https://<app>.fly.dev/api/health
+  curl.exe -s https://<app>.onrender.com/api/health
   ```
-  → `{"status":"ok","version":"<wersja z package.json>"}` (HTTP 200).
-- `curl.exe -s -i https://<app>.fly.dev/generate` → `404` z `{"error":"Not Found"}` (obraz API-only).
-- `fly status` pokazuje maszynę w regionie `fra`; `fly logs` bez błędów.
+  → `{"status":"ok","version":"<wersja z package.json>"}` (HTTP 200). Po uśpieniu pierwsze wywołanie trwa ok. 1 min.
+- `curl.exe -s -i https://<app>.onrender.com/generate` → `404` z `{"error":"Not Found"}` (obraz API-only).
+- Panel → Events: ostatni deploy „live”.
 
 ### Co jeśli nie wyszło
 
 | Objaw | Działanie |
 |---|---|
-| Deploy przerwany, log: `[migrate] Failed ... table ... already exists` | Brak baseline. Sekcja 2, potem ponowny `fly deploy`. |
-| `[migrate] Failed ... Missing required env variable: jwt_secret` | Sekret nie ustawiony: `fly secrets list`, krok 4. |
+| Deploy nieudany, log: `[migrate] Failed ... table ... already exists` | Brak baseline. Sekcja 2, potem Manual Deploy. |
+| `[migrate] Failed ... Missing required env variable: jwt_secret` | Zmienna nie ustawiona: usługa → Environment, krok 3. |
 | `[migrate] Failed ... 401` / `fetch failed` | Zły `turso_url` / `turso_token` (np. stary, unieważniony token). |
-| `[migrate] Warning: NODE_ENV=production with a local file database` | `turso_url` nie trafił do sekretów; migracja poszła na plik w kontenerze. Ustaw sekret i wdroż ponownie. |
-| Health 503 `{"status":"degraded","database":"unavailable"}` | API działa, baza nie odpowiada w 2 s. `fly logs` (`[health] database check failed`), sprawdź token i status Turso. |
-| Health nie odpowiada / maszyna restartuje się w pętli | `fly logs`. Najczęściej błąd konfiguracji przy starcie (`Invalid env variable cors_origins ...`, brak `jwt_secret`). |
+| `[migrate] Warning: NODE_ENV=production with a local file database` | `turso_url` nie ustawiony; migracja poszła na plik w kontenerze. Ustaw zmienną i wdroż ponownie. |
+| Health 503 `{"status":"degraded","database":"unavailable"}` | API działa, baza nie odpowiada w 2 s. Logi (`[health] database check failed`), token i status Turso. Render nie przełączy ruchu na taki deploy. |
+| Kontener restartuje się w pętli | Logi. Najczęściej błąd konfiguracji przy starcie (`Invalid env variable cors_origins ...`, brak `jwt_secret`). |
+| Log builda pokazuje duży kontekst (`public/`, `dist/`) | Render nie użył `Dockerfile.api.dockerignore`. Obraz i tak kopiuje tylko wskazane ścieżki; zapisz jako follow-up (np. `dockerContext` z osobnym `.dockerignore`). |
+| Usługa „suspended” | Wyczerpane 750 h/miesiąc albo limit transferu planu Free bez karty. Wraca od nowego miesiąca. |
 | Build: błąd `bcrypt` / `@libsql` | Nie powinno wystąpić (CI buduje ten sam obraz). Sprawdź, czy wdrażasz `main` z zielonym CI. |
 
-Logi i diagnostyka:
-
-```powershell
-fly logs            # strumień logów (Ctrl+C kończy)
-fly status
-fly releases        # historia wersji
-```
-
-Rollback do poprzedniej wersji obrazu:
-
-```powershell
-fly releases --image          # lista wersji z referencją obrazu (flaga --image: do potwierdzenia)
-fly deploy --image registry.fly.io/<app>:deployment-<id-poprzedniej-wersji>
-```
-
-Uwaga: rollback obrazu **nie cofa** migracji bazy. `release_command` starej wersji nie zobaczy nowych migracji
-(nie ma ich w starym obrazie) i wypisze `No new migrations`. Stary kod musi działać z nowszym schematem
-(dotychczasowe migracje tylko dodają tabele). Cofnięcie schematu: sekcja 7.
+Rollback do poprzedniej wersji: usługa → Events → poprzedni udany deploy → **Rollback** (**do potwierdzenia**: etykieta).
+Rollback obrazu **nie cofa** migracji bazy. Migrator starszej wersji nie zna nowszych migracji i wypisze `No new migrations`,
+więc stary kod musi działać z nowszym schematem (dotychczasowe migracje tylko dodają tabele). Cofnięcie schematu: sekcja 7.
 
 ---
 
@@ -813,7 +753,7 @@ bezpośrednio przez `VITE_API_URL` + CORS (D3, bez proxy `/api` na Vercel).
    - **Build / Install / Output:** zostaw domyślne; `vercel.json` ustawia `installCommand: npm ci`,
      `buildCommand: tsc -b && vite build` (tylko frontend, bez backendu), `outputDirectory: dist`.
    - **Node.js Version** (Settings → General / Build, **do potwierdzenia**): 24.x, tak jak CI i obraz API.
-3. **Environment Variables:** `VITE_API_URL` = `https://<app>.fly.dev` (bez końcowego `/`), zaznacz **Production** i **Preview**.
+3. **Environment Variables:** `VITE_API_URL` = `https://<app>.onrender.com` (bez końcowego `/`), zaznacz **Production** i **Preview**.
    To zmienna czasu **builda**: po zmianie wartości trzeba zrobić nowy deploy (Redeploy), bo stary bundle ma starą wartość.
 4. **Deploy.** Pierwszy deploy z gałęzi produkcyjnej (`main`) to Production. Preview powstaje dla każdego innego brancha / PR.
    Do testu przed produkcją: wypchnij dowolny branch (np. pusty commit) i poczekaj na Preview.
@@ -864,17 +804,20 @@ i przekierowania OAuth prowadzą na frontend na Vercel.
 ### Kroki
 
 1. Ustaw originy i adres frontendu (bez końcowego `/`, bez ścieżki; kilka originów rozdziel przecinkiem, bez spacji):
-   ```powershell
-   fly secrets set "cors_origins=https://<projekt>.vercel.app" "frontend_url=https://<projekt>.vercel.app"
-   # z domeną własną:
-   fly secrets set "cors_origins=https://<projekt>.vercel.app,https://<domena>" "frontend_url=https://<domena>"
+   panel Render → usługa → **Environment** → dodaj:
    ```
-   Bez `--stage` Fly sam restartuje maszyny z nowymi sekretami (nowy release). Jeśli użyłeś `--stage`, wykonaj `fly deploy`.
+   cors_origins=https://<projekt>.vercel.app
+   frontend_url=https://<projekt>.vercel.app
+   # z domeną własną:
+   cors_origins=https://<projekt>.vercel.app,https://<domena>
+   frontend_url=https://<domena>
+   ```
+   Zapisz i wdroż (opcja zapisu z deployem, **do potwierdzenia**: etykieta), żeby kontener wystartował z nowymi wartościami.
    Niepoprawny origin (np. `https://x.vercel.app/`) zatrzyma start API z błędem `Invalid env variable cors_origins`.
-   Nie dubluj tych kluczy w `[env]` w `fly.toml` (tam są tylko zakomentowane przykłady).
+   Nie dopisuj tych kluczy do `render.yaml` (pusty `frontend_url` nie włącza wartości domyślnej).
 2. **Test preflight z konsoli:**
    ```powershell
-   curl.exe -s -i -X OPTIONS https://<app>.fly.dev/api/maps `
+   curl.exe -s -i -X OPTIONS https://<app>.onrender.com/api/maps `
      -H "Origin: https://<projekt>.vercel.app" `
      -H "Access-Control-Request-Method: POST" `
      -H "Access-Control-Request-Headers: authorization, content-type"
@@ -885,22 +828,21 @@ i przekierowania OAuth prowadzą na frontend na Vercel.
 
    Kontrola negatywna (obcy origin):
    ```powershell
-   curl.exe -s -i -X OPTIONS https://<app>.fly.dev/api/maps -H "Origin: https://evil.example" -H "Access-Control-Request-Method: POST"
+   curl.exe -s -i -X OPTIONS https://<app>.onrender.com/api/maps -H "Origin: https://evil.example" -H "Access-Control-Request-Method: POST"
    ```
    Oczekiwane: `403`, `vary: Origin`, brak `access-control-allow-origin`.
 3. **Test z przeglądarki:** otwórz `https://<projekt>.vercel.app`, DevTools (F12) → **Network**, zaloguj się albo otwórz
-   listę map w `/generate`. Żądania do `https://<app>.fly.dev/api/...` mają status 2xx/4xx aplikacji,
+   listę map w `/generate`. Żądania do `https://<app>.onrender.com/api/...` mają status 2xx/4xx aplikacji,
    w odpowiedzi `access-control-allow-origin` = origin strony, a w **Console** brak `blocked by CORS policy`.
-4. **OAuth (jeśli używasz):** callback jest na API (`backend_url` z `fly.toml`), a po sukcesie API przekierowuje na
+4. **OAuth (jeśli używasz):** callback jest na API (`backend_url` z `render.yaml`), a po sukcesie API przekierowuje na
    `${frontend_url}/?token=...`.
    - Google Cloud Console → APIs & Services → Credentials → OAuth client → **Authorized redirect URIs**:
-     `https://<app>.fly.dev/api/auth/google/callback`
+     `https://<app>.onrender.com/api/auth/google/callback`
    - GitHub → Settings → Developer settings → OAuth Apps → **Authorization callback URL**:
-     `https://<app>.fly.dev/api/auth/github/callback`
+     `https://<app>.onrender.com/api/auth/github/callback`
      (aplikacja OAuth GitHub ma jeden callback URL, więc na lokalny dev załóż osobną aplikację).
-   - Sekrety: `fly secrets set google_client_id=... google_client_secret=...` (albo przez `Read-DotEnv` z sekcji 3,
-     dopisując nazwy do `$names`).
-   - Sprawdzenie: `curl.exe -s https://<app>.fly.dev/api/auth/providers` pokazuje skonfigurowanych dostawców.
+   - Zmienne: `google_client_id`, `google_client_secret` (i/lub `github_*`) w panelu → Environment.
+   - Sprawdzenie: `curl.exe -s https://<app>.onrender.com/api/auth/providers` pokazuje skonfigurowanych dostawców.
 
 ### Oczekiwany wynik
 
@@ -911,11 +853,11 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
 
 | Objaw | Działanie |
 |---|---|
-| `blocked by CORS policy: No 'Access-Control-Allow-Origin'` | Origin strony nie jest na liście. Porównaj znak po znaku (schemat, brak `/` na końcu, `www`). `fly secrets list`, popraw `cors_origins`. |
+| `blocked by CORS policy: No 'Access-Control-Allow-Origin'` | Origin strony nie jest na liście. Porównaj znak po znaku (schemat, brak `/` na końcu, `www`). Popraw `cors_origins` w panelu → Environment. |
 | CORS działa na Production, nie działa na Preview | Oczekiwane: URL-e preview (`<projekt>-<hash>-<team>.vercel.app`) nie są na allowliście (dokładne dopasowanie, bez wildcardów). Na czas testu dopisz konkretny URL preview do `cors_origins` i usuń go potem. |
-| Preflight 403 z poprawnym originem | Stara wersja sekretów: `fly releases` / `fly status`, czy maszyny się zrestartowały. |
+| Preflight 403 z poprawnym originem | Zmiana zmiennych nie została wdrożona: panel → Events, czy nowy deploy jest „live”. |
 | OAuth: `redirect_uri_mismatch` (Google) / `redirect_uri is not associated` (GitHub) | Redirect URI w konsoli dostawcy musi być identyczny z `${backend_url}/api/auth/<provider>/callback`. |
-| Po OAuth ląduje na `http://localhost:5173/?token=...` | `frontend_url` nie ustawiony na Fly. Krok 1. |
+| Po OAuth ląduje na `http://localhost:5173/?token=...` | `frontend_url` nie ustawiony w Render. Krok 1. |
 
 ---
 
@@ -923,19 +865,16 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
 
 **Cel:** potwierdzić pełną ścieżkę użytkownika na produkcji. Wykonuj na `https://<projekt>.vercel.app` z otwartym DevTools → Network.
 
-- [ ] **Health:** `curl.exe -s https://<app>.fly.dev/api/health` → `{"status":"ok",...}`. Pierwsze wywołanie po przerwie może trwać
-      kilka sekund (cold start, `min_machines_running = 0`).
+- [ ] **Health:** `curl.exe -s https://<app>.onrender.com/api/health` → `{"status":"ok",...}`. Pierwsze wywołanie po przerwie może trwać
+      ok. 1 min (cold start planu Free Render).
 - [ ] **Front:** `/`, `/generate`, `/mars` ładują się, także po F5 (SPA rewrite). Tekstury i modele z `/textures`, `/models`.
 - [ ] **Rejestracja:** formularz rejestracji → komunikat „Registration successful. Please check your email…”.
 - [ ] **Weryfikacja e-mail:**
-  - przy `email_strategy=console` (domyślnie) e-mail trafia tylko do logów:
-    ```powershell
-    fly logs
-    ```
+  - przy `email_strategy=console` (domyślnie) e-mail trafia tylko do logów (panel Render → usługa → Logs).
     Szukaj bloku `========== EMAIL ==========` z `Subject: Verify Your Email` i linkiem
     `https://<projekt>.vercel.app/verify-email?token=...`. Otwórz link w przeglądarce.
     (Jeśli link zaczyna się od `http://localhost:5173`, `frontend_url` nie jest ustawiony: sekcja 5; możesz ręcznie podmienić host.)
-  - przy prawdziwym dostawcy (SMTP/Resend/...) sprawdź skrzynkę; błąd wysyłki jest w `fly logs`.
+  - przy prawdziwym dostawcy (SMTP/Resend/...) sprawdź skrzynkę; błąd wysyłki jest w logach usługi Render.
 - [ ] **Logowanie** (e-mail + hasło) → UI zalogowany. Złe hasło → komunikat „Invalid credentials” (401), nie 500.
 - [ ] **Zapis mapy w `/generate`:** wygeneruj teren → zapis do chmury (`CloudMapsModal`) → `POST /api/maps` = 2xx →
       mapa widoczna na liście po odświeżeniu (`GET /api/maps`).
@@ -946,7 +885,7 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
   ```powershell
   $big = '{"name":"smoke-413","state":{"x":"' + ('a' * 3MB) + '"}}'
   Set-Content -Path $HOME\mars-ops\big.json -Value $big -NoNewline -Encoding ascii
-  curl.exe -s -w " HTTP %{http_code}`n" -X POST https://<app>.fly.dev/api/colony -H "Content-Type: application/json" --data-binary "@$HOME\mars-ops\big.json"
+  curl.exe -s -w " HTTP %{http_code}`n" -X POST https://<app>.onrender.com/api/colony -H "Content-Type: application/json" --data-binary "@$HOME\mars-ops\big.json"
   Remove-Item $HOME\mars-ops\big.json
   ```
   Oczekiwane: `{"error":"Payload Too Large"} HTTP 413`.
@@ -959,26 +898,26 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
 
 | Objaw | Prawdopodobna przyczyna | Działanie |
 |---|---|---|
-| Console: `blocked by CORS policy` | `cors_origins` nie zawiera originu strony (literówka, `/` na końcu, preview URL) | Sekcja 5, krok 1; `fly secrets list`. |
+| Console: `blocked by CORS policy` | `cors_origins` nie zawiera originu strony (literówka, `/` na końcu, preview URL) | Sekcja 5, krok 1; panel → Environment. |
 | Front woła `/api/...` na domenie Vercel (404) | `VITE_API_URL` pusty w chwili builda | Ustaw w Vercel (Production + Preview) i Redeploy. |
-| `/api/health` = **503** `database: unavailable` | Turso niedostępne, zły / unieważniony `turso_token`, zły `turso_url` | `fly logs` (`[health] database check failed`), status Turso, sekcja 1. Fly oznaczy maszyny jako unhealthy (follow-up: rozdział liveness/readiness). |
-| Deploy przerwany na `release_command`, `table ... already exists` | Brak baseline (baza z `push`) | Sekcja 2 (baseline), potem `fly deploy`. Stara wersja działa dalej. |
-| Deploy przerwany na `release_command`, inny błąd SQL | Migracja niezgodna ze stanem bazy (wariant C) | Nie ponawiaj w pętli. `db-inspect.mjs`, porównanie z `MIGRATIONS_BASELINE.md`, ręczna naprawa. |
+| `/api/health` = **503** `database: unavailable` | Turso niedostępne, zły / unieważniony `turso_token`, zły `turso_url` | Logi usługi (`[health] database check failed`), status Turso, sekcja 1. Render uzna instancję za niezdrową (follow-up: rozdział liveness/readiness). |
+| Deploy nieudany, kontener kończy się na migracji: `table ... already exists` | Brak baseline (baza z `push`) | Sekcja 2 (baseline), potem Manual Deploy. Stara wersja działa dalej. |
+| Deploy nieudany na migracji przy starcie, inny błąd SQL | Migracja niezgodna ze stanem bazy (wariant C) | Nie ponawiaj w pętli. `db-inspect.mjs`, porównanie z `MIGRATIONS_BASELINE.md`, ręczna naprawa. |
 | Zapis kolonii / mapy → **413** | Ciało > 2 MB (`JSON_BODY_LIMIT_BYTES`) | Oczekiwane dla ogromnych stanów. Typowa gra ~146 kB. Jeśli dotyczy zwykłych zapisów, zmierz payload (DevTools → Request size) i zgłoś. |
 | Zapis kolonii → 400 z `fields` | Rozjazd tras TSOA z modelem | CI (`tsoa:gen` + `git diff`) powinien to wykryć; sprawdź, czy wdrożony commit ma zielone CI. |
-| Pierwsze żądanie po przerwie trwa kilka sekund / timeout | Cold start (`min_machines_running = 0`, `auto_stop_machines = "stop"`) | Oczekiwane (D8). Jeśli przeszkadza: `min_machines_running = 1` w `fly.toml` (koszt stałej maszyny), `fly deploy`. |
-| API nie startuje: `Invalid env variable cors_origins` / `serve_frontend` | Niepoprawna wartość sekretu | Popraw sekret (`fly secrets set ...`); maszyny wystartują z nową wartością. |
+| Pierwsze żądanie po przerwie trwa ok. 1 min / timeout | Cold start planu Free (uśpienie po 15 min bez ruchu) | Oczekiwane (D15). Jeśli przeszkadza: płatny plan bez usypiania (`plan` w `render.yaml`, PR). |
+| API nie startuje: `Invalid env variable cors_origins` / `serve_frontend` | Niepoprawna wartość sekretu | Popraw zmienną w panelu → Environment i wdroż ponownie. |
 | 401 dla wszystkich zalogowanych po deployu | Zmieniony `jwt_secret` | Oczekiwane po rotacji: zaloguj się ponownie. |
 
 ### Procedury rollbacku
 
-- **API (kod):** `fly releases --image`, potem `fly deploy --image registry.fly.io/<app>:deployment-<id>` (sekcja 3).
+- **API (kod):** panel Render → usługa → Events → poprzedni udany deploy → Rollback (sekcja 3).
 - **Frontend:** Vercel → Deployments → poprzedni deploy Production → **Promote to Production** / **Instant Rollback**
   (**do potwierdzenia**: nazwa akcji). Nie wymaga nowego builda.
 - **Baza:** baseline cofa `DROP TABLE IF EXISTS "__drizzle_migrations";`. Wariant B po deployu i poważne awarie:
-  `MIGRATIONS_BASELINE.md` → „5. Rollback” oraz przywrócenie backupu do nowej bazy (sekcja 2) i przełączenie `turso_url`:
-  `fly secrets set "turso_url=libsql://<baza>-restore-<org>.turso.io" "turso_token=<token>"`.
-- **Sekrety:** `fly secrets unset <NAZWA>` usuwa sekret (restart maszyn).
+  `MIGRATIONS_BASELINE.md` → „5. Rollback” oraz przywrócenie backupu do nowej bazy (sekcja 2) i przełączenie
+  `turso_url` / `turso_token` w panelu Render → Environment (`libsql://<baza>-restore-<org>.turso.io`).
+- **Zmienne:** usunięcie w panelu → Environment (wymaga ponownego deployu).
 
 ---
 
@@ -987,7 +926,7 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
 **Cel:** zaostrzyć konfigurację, gdy domeny są znane, i zamknąć pozostałe ryzyka.
 
 1. **CSP `connect-src`:** w `vercel.json` (`Content-Security-Policy-Report-Only`) zawęź `connect-src 'self' https: blob: data:`
-   do `connect-src 'self' https://<app>.fly.dev blob: data:` (albo domeny API). `blob:` i `data:` są potrzebne dla GLTFLoader.
+   do `connect-src 'self' https://<app>.onrender.com blob: data:` (albo domeny API). `blob:` i `data:` są potrzebne dla GLTFLoader.
    Na preview Vercel może wstrzykiwać skrypty `vercel.live` (toolbar), uwzględnij to przed trybem enforce.
    Zmiana wymaga aktualizacji `src/test/vercelConfig.test.ts`, jeśli test sprawdza CSP.
 2. **`report-to` / `report-uri`** dla CSP, zebranie raportów na produkcji, dopiero potem przejście z `Report-Only` na enforce.
@@ -995,7 +934,7 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
    że **wszystkie** subdomeny tej domeny obsługują HTTPS (inaczej przeglądarki odetną je na 2 lata). W razie wątpliwości usuń
    `includeSubDomains` przed podpięciem domeny.
 4. **Domena własna:** po podpięciu dopisz ją do `cors_origins`, ustaw `frontend_url`, zaktualizuj redirecty OAuth, jeśli API
-   dostanie domenę (`backend_url` w `fly.toml`).
+   dostanie domenę (`backend_url` w `render.yaml` i w panelu Render).
 5. **Lokalny dev a produkcja:** jeśli `.env.local` wskazuje na produkcyjną bazę Turso, to lokalne `npm run dev` i `npm run db:push`
    działają na produkcji. Po wdrożeniu przełącz lokalny dev na `turso_url=file:./local.db` albo osobną bazę deweloperską.
    **Nigdy `drizzle-kit push` na produkcji** (tylko `generate` → commit → deploy).
@@ -1015,7 +954,9 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
 - HSTS `includeSubDomains` przed domeną własną (punkt 3 wyżej).
 - Graceful shutdown: handler SIGTERM/SIGINT w `src_backend/index.ts`.
 - `/api/health` zależy od DB: rozdział liveness / readiness.
-- Limity concurrency Fly (100/150) oszacowane, nie zmierzone.
+- Plan Free Render: cold start ok. 1 min, limit 750 h/miesiąc i transferu; płatny plan przy realnym ruchu.
+- Migrator przy każdym starcie kontenera (D15): przy wielu instancjach równoległe starty mogą ścigać się o tę samą migrację; przy 1 instancji bez znaczenia.
+- `src_backend/db/migrate.test.ts` pada lokalnie na Windows (`EPERM` przy usuwaniu katalogu tymczasowego z otwartą bazą SQLite); CI (Linux) zielone.
 - Migracja z `file:` w produkcji tylko ostrzega (celowo, dla smoke testów kontenera).
 - Timing `resend-verification` / `forgot-password` zdradza istnienie konta; rejestracja: 409 przy zajętym e-mailu, 500 przy awarii SMTP po utworzeniu konta.
 - `GET /api/colony` zwraca pełny `state` każdej kolonii (lekka lista = zmiana kontraktu API).

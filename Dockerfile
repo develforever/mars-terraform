@@ -26,7 +26,7 @@ FROM base
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app /app
 
-# Port 8080 (monolit: front+back). Wdrożenie API na Fly.io używa Dockerfile.api, nie tego pliku.
+# Port 8080 (monolit: front+back). Wdrożenie API na Render używa Dockerfile.api, nie tego pliku.
 ENV PORT=8080
 EXPOSE 8080
 

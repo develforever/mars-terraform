@@ -192,13 +192,13 @@ Zrobione:
 - Mieszkańcy Kolonii, Zawody i Morale (`ColonistService.ts`, `ColonistManagerModal.tsx`, dynamiczne zużycie O₂/wody/żywności, przylot promów, wpływ morale na produkcję).
 - Zaawansowane Struktury Przemysłowe i Megastruktury (`buildings.ts`, `technologies.ts`, `TerraformingService.ts`, megastruktury `biosphere_dome`, `atmosphere_factory`, `fusion_reactor`).
 - System Grywalności, Niezawodności i RTS Overhaul (`ResearchService.ts` z pasywnym RP, stabilny raycasting `BuildingInspectionPopover.tsx`, pauza taktyczna i kontrola prędkości `TimeControls.tsx`, bufor awaryjny $O_2$ `EmergencyLifeSupportAlert.tsx`, aktywne rozkazy RTS i ramka selekcji `RTSCommandService.ts`, `TacticalMinimap.tsx` z radarem zagrożeń `OffscreenThreatRadar.tsx`).
-- Faza 8, Infrastruktura produkcyjna (konfiguracja w kodzie; wdrożenie = człowiek wg runbooka): `vercel.json` (SPA rewrite, cache, nagłówki, CSP Report-Only), resolver `VITE_API_URL`, CORS z allowlistą `cors_origins`, tryb API-only (`serve_frontend=false`), `/api/health` z kontrolą DB, `HttpError`/4xx, anty-enumeracja kont, `Dockerfile.api` + `fly.toml` (Fly.io `fra`, Turso), migracje produkcyjne (`dist_backend/migrate.js`, `release_command`) + baseline bazy z `push`, CI GitHub Actions z testem obrazu API, odchudzone zależności prod, naprawa zapisu kolonii (limit 2 MB), lekka lista kolonii bez `state`. Testy: 619 front + 166 back.
+- Faza 8, Infrastruktura produkcyjna (konfiguracja w kodzie; wdrożenie = człowiek wg runbooka): `vercel.json` (SPA rewrite, cache, nagłówki, CSP Report-Only), resolver `VITE_API_URL`, CORS z allowlistą `cors_origins`, tryb API-only (`serve_frontend=false`), `/api/health` z kontrolą DB, `HttpError`/4xx, anty-enumeracja kont, `Dockerfile.api` + `render.yaml` (Render Free, Frankfurt, Turso; D15 zamiast Fly.io), migracje produkcyjne (`dist_backend/migrate.js` przy starcie kontenera) + baseline bazy z `push`, CI GitHub Actions z testem obrazu API, odchudzone zależności prod, naprawa zapisu kolonii (limit 2 MB), lekka lista kolonii bez `state`. Testy: 617 front + 166 back.
 
 ---
 
 ## Deployment (Faza 8)
 
-- Frontend: Vercel (`vercel.json`, zmienna builda `VITE_API_URL`). API: Fly.io (`fly.toml`, `Dockerfile.api`), baza Turso.
+- Frontend: Vercel (`vercel.json`, zmienna builda `VITE_API_URL`). API: Render (`render.yaml`, `Dockerfile.api`, migracje przy starcie kontenera), baza Turso.
 - Runbook dla człowieka (Windows/PowerShell, bez Turso CLI): [`.docs/faza-8/DEPLOYMENT.md`](.docs/faza-8/DEPLOYMENT.md).
   Baseline migracji: `.docs/faza-8/MIGRATIONS_BASELINE.md`. Plan, decyzje, follow-upy: `.docs/faza-8/PLAN.md`, `.docs/faza-8/QUEUE.md`.
 - Agent nie wdraża i nie łączy się z produkcyjną bazą. Bez `drizzle-kit push` na produkcji (tylko `generate` → commit → `migrate.js`).
@@ -209,5 +209,5 @@ Zrobione:
 
 ### Faza 8: Infrastruktura Produkcyjna i Hosting — ZREALIZOWANA W KODZIE
 Konfiguracja gotowa (lista w „Status / roadmapa” wyżej i w `ROADMAP.md`). Do zrobienia przez człowieka:
-pierwsze wdrożenie wg `.docs/faza-8/DEPLOYMENT.md` (rotacja sekretów, baseline, Fly.io, Vercel, CORS, smoke test)
+pierwsze wdrożenie wg `.docs/faza-8/DEPLOYMENT.md` (rotacja sekretów i baseline: zrobione; dalej Render, Vercel, CORS, smoke test)
 oraz follow-upy z `.docs/faza-8/QUEUE.md`.

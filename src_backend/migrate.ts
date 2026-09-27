@@ -4,11 +4,11 @@ import { describeDatabaseUrl, redactSecrets, runMigrations } from "./db/migrate"
 
 /**
  * Entrypoint migracji produkcyjnych (Faza 8, T7): `node dist_backend/migrate.js`
- * (`npm run db:migrate:prod`, Fly `release_command`). Dev: `tsx src_backend/migrate.ts`.
+ * (`npm run db:migrate:prod`, start kontenera `Dockerfile.api` przed API, D15). Dev: `tsx src_backend/migrate.ts`.
  *
  * Folder migracji względem pliku: `dist_backend/../drizzle` w obrazie, `src_backend/../drizzle` w dev.
- * Konfiguracja przez `config.ts` (wymaga `jwt_secret`, tak jak API; sekrety na Fly są wspólne
- * dla maszyny release i aplikacji). Import dynamiczny: brak zmiennej = czytelny błąd i exit 1.
+ * Konfiguracja przez `config.ts` (wymaga `jwt_secret`, tak jak API; te same zmienne środowiskowe
+ * co API). Import dynamiczny: brak zmiennej = czytelny błąd i exit 1.
  */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_FOLDER = path.resolve(__dirname, "../drizzle");

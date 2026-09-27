@@ -1,0 +1,56 @@
+# render.yaml: API Mars Terraform na Render (Blueprint). Faza 8, D15 (zastępuje Fly.io z D1/D8).
+#
+# Obraz: `Dockerfile.api` (sam backend, serve_frontend=false). Frontend jest na Vercel.
+# Baza: Turso (zdalny libsql), bez dysku: kontener jest bezstanowy.
+# Migracje: przy STARCIE kontenera (CMD w `Dockerfile.api`: migrate.js && index.js), bo darmowy plan
+# nie ma pre-deploy command. Błąd migracji = kontener nie startuje, a Render zostawia poprzednią wersję.
+#
+# Wdrożenie (wykonuje człowiek, agent niczego nie wdraża): dashboard.render.com → New → Blueprint →
+# repo `develforever/mars-terraform`, gałąź `main`. Render czyta ten plik i pyta o wartości `sync: false`.
+# Runbook: `.docs/faza-8/DEPLOYMENT.md`, sekcja 3.
+#
+# Zmienne `sync: false` (wartości wpisuje człowiek w panelu, NIGDY w repo), nazwy z `src_backend/config.ts`:
+#   wymagane:  jwt_secret, turso_url, turso_token
+# Dodawane w panelu → Environment:
+#   po Vercel: frontend_url, cors_origins (sekcja 5 runbooka)
+#   OAuth:     google_client_id, google_client_secret, github_client_id, github_client_secret
+#   e-mail:    email_strategy, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from,
+#              sendgrid_api_key, mailgun_api_key, mailgun_domain, resend_api_key,
+#              mailjet_api_key, mailjet_api_secret, mailtrap_api_token, mailtrap_inbox_id
+#   AI:        openrouter_api_key
+#   (Domyślnie email_strategy = "console": e-maile tylko w logach.)
+
+services:
+  - type: web
+    name: mars-terraform-api
+    runtime: docker
+    # Darmowy plan: usypia po 15 min bez ruchu, start ok. 1 min; 750 h/miesiąc na workspace.
+    plan: free
+    region: frankfurt
+    branch: main
+    # Deploy dopiero po zielonym CI na `main` (verify + docker-api).
+    autoDeployTrigger: checksPass
+    dockerfilePath: ./Dockerfile.api
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: serve_frontend
+        value: "false"
+      # Render kieruje ruch na PORT; ustawiamy jawnie zgodnie z EXPOSE w `Dockerfile.api`.
+      - key: PORT
+        value: "8080"
+      # Publiczny adres API (callbacki OAuth: ${backend_url}/api/auth/*/callback).
+      # Zmień, jeśli Render nada inną domenę (nazwa zajęta) albo gdy podepniesz własną.
+      - key: backend_url
+        value: https://mars-terraform-api.onrender.com
+      - key: jwt_secret
+        sync: false
+      - key: turso_url
+        sync: false
+      - key: turso_token
+        sync: false
+      # `frontend_url` i `cors_origins` celowo NIE są tu zadeklarowane: dodaje się je w panelu PO poznaniu
+      # domeny Vercel (sekcja 5). Pusty `frontend_url` nie włącza wartości domyślnej (config używa `??`),
+      # a brak `cors_origins` = CORS wyłączony, co jest zamierzone do czasu ustawienia.
