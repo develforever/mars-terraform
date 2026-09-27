@@ -142,6 +142,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-27T06:13Z · nadzorca · T10 · D15 = Render + migracje przy starcie. Zrobione w worktree sesji (hook blokuje edycję głównego checkoutu), push na branch roboczy. Lokalnie (Windows): lint 0, tsc app+backend OK, front 617 (−12 Fly, +10 Render), build OK; back 159/166: 7× `EPERM` w `migrate.test.ts` przy sprzątaniu katalogu tymczasowego, identycznie na kodzie bez zmian (problem Windows, follow-up). Symulacja CMD bez Dockera: nieudana migracja → exit 1 bez startu API; udana → `Applied 2`, health 200, `/generate` 404. Obraz zweryfikuje CI (`docker-api`). · 6f8300f
 - 2026-09-27T06:22Z · nadzorca · — · PR https://github.com/develforever/mars-terraform/pull/7 scalony (squash) do `main` jako `b1086ac` przez użytkownika (reguły gałęzi blokują scalenie z konta agenta; `--admin` nieużyte). CI 4/4 zielone. · b1086ac
 - 2026-09-27T06:22Z · nadzorca · D11 · **KOREKTA:** użytkownik ma w Turso dwie bazy (dev i prod). `.env.local` wskazuje na **DEV**, więc wszystkie wpisy „PRODUKCJA” z 2026-09-26 (db-inspect, `db-repair-c`, baseline A) dotyczyły bazy **dev**. Baza **prod** NIE była sprawdzona ani baselinowana. Użytkownik wpisał dane prod w Render Blueprint, więc przy starcie kontenera migrator mógł już działać na prod. Następnie: logi deployu Render + `db-inspect` na prod (zmienne sesji PowerShella, bez zmiany `.env.local`). · —
+- 2026-09-27T06:25Z · człowiek · T10 · **DEPLOY API NA RENDER OK** (Blueprint z `main` @ `b1086ac`, dane bazy **prod** w panelu). Log: migrator na prod `Applied 2 migration(s) (applied total: 2)` (baza prod była pusta, baseline niepotrzebny), `Backend running`, „Your service is live”. Drugi deploy: `No new migrations (applied total: 2)`. Nadzorca: `GET /api/health` = 200 `{"status":"ok"}` (0,3 s), `/generate` = 404 JSON. CORS jeszcze nieustawiony (preflight obcego originu = 404; 403 dopiero po `cors_origins`, §5). Następnie: §4 Vercel z `VITE_API_URL=https://mars-terraform-api.onrender.com`. · b1086ac
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -165,4 +166,5 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - `resumeLocalGame` bez try/catch.
 - Brak walidacji nazwy kolonii przy zapisie (długość, znaki kontrolne).
 - `src_backend/db/migrate.test.ts`: 7 testów pada lokalnie na Windows (`EPERM` przy `rmSync` katalogu z otwartą bazą SQLite); CI (Linux) zielone. Zamknąć klienta przed sprzątaniem albo `maxRetries`.
+- Szum w logach: `dotenv-flow` przy braku plików `.env*` w obrazie wypisuje ostrzeżenie przy każdym starcie (wyciszyć w produkcji).
 - Migrator przy każdym starcie kontenera (D15): przy >1 instancji równoległe starty mogą ścigać się o tę samą migrację.

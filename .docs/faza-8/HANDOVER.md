@@ -15,7 +15,7 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - D15: API na **Render** (plan Free, Frankfurt), migracje przy starcie kontenera. Fly.io porzucone (trial zakończony, wymaga karty);
   aplikacja `mars-terraform-api` na Fly istnieje bez maszyn (0 $), usunięcie = człowiek (`fly apps destroy`).
 - PR #7 (T10) scalony: `b1086ac`. Render Blueprint utworzony z danymi bazy **prod**.
-- W toku: ustalenie stanu bazy **prod** (logi deployu Render + `db-inspect` na prod). Aktywnych subagentów: brak.
+- **API działa na Render** (`https://mars-terraform-api.onrender.com`): baza prod była pusta, migrator zastosował 2 migracje, health 200. Aktywnych subagentów: brak.
 - Gate na HEAD (lokalnie, Windows): lint/tsc OK, front 617, back 159/166 (7× `EPERM` w `migrate.test.ts`, problem Windows,
   identyczny bez zmian; CI Linux ma być zielone), build OK. Obraz API weryfikuje CI `docker-api`.
 
@@ -23,7 +23,7 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - Branch roboczy przed `main` o commity dokumentacji + T10. Po scaleniu PR → deploy przez Render Blueprint.
 
 ## Czeka na użytkownika
-- Logi deployu Render i wynik `db-inspect` na bazie prod.
+- DEPLOYMENT.md §4 Vercel (`VITE_API_URL=https://mars-terraform-api.onrender.com`), potem §5 CORS w panelu Render.
 - DEPLOYMENT.md §3 (Render): Blueprint z `render.yaml`, zmienne `jwt_secret` (nowy, 48 bajtów), `turso_url`, `turso_token`, deploy.
 - Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups\test-repair` do usunięcia po wdrożeniu.
 - Opcjonalnie: `fly apps destroy mars-terraform-api` (i ewentualnie usunięcie karty z Fly).
@@ -46,6 +46,6 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - Zasada projektu: brak nowych paczek npm bez zgody użytkownika (RULES.md).
 
 ## Najbliższe kroki (kolejność)
-1. Baza prod: logi deployu Render (`[migrate] …`) + `db-inspect` na prod → naprawa/baseline wg wyniku (`db-repair-c` pasuje tylko do stanu „7 tabel + pusta `__drizzle_migrations`”).
+1. (zrobione) Baza prod: pusta, migracje zastosowane przy 1. starcie; API live.
 2. Użytkownik: DEPLOYMENT.md §3 Render → §4 Vercel (`VITE_API_URL = https://mars-terraform-api.onrender.com`, obowiązkowy `curl -I` nagłówków) → §5 CORS/OAuth (zmienne w panelu Render) → §6 smoke test.
 3. Po wdrożeniu: follow-upy z QUEUE.md (CSP `connect-src`, timing resend/forgot, walidacja nazwy kolonii, graceful shutdown, liveness/readiness, `EPERM` na Windows).
