@@ -23,7 +23,8 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - Branch roboczy przed `main` o commity dokumentacji + T10. Po scaleniu PR → deploy przez Render Blueprint.
 
 ## Czeka na użytkownika
-- §4 Vercel ZROBIONE: `https://mars-terraform.vercel.app`, nagłówki zweryfikowane. §5 CORS ZROBIONE i zweryfikowane (204/403). Dalej §6 smoke test w przeglądarce, potem §8 porządki.
+- §4 Vercel ZROBIONE: `https://mars-terraform.vercel.app`, nagłówki zweryfikowane. §5 CORS ZROBIONE (204/403). §6 smoke test ZALICZONY. **Wdrożenie Fazy 8 zakończone.**
+- **PRIORYTET: T11 (IDOR w `/api/users`, `/api/groups`) czeka na zgodę użytkownika.** Nie włączać prawdziwego e-maila przed T11. T12 (RODO) po T11.
 - DEPLOYMENT.md §3 (Render): Blueprint z `render.yaml`, zmienne `jwt_secret` (nowy, 48 bajtów), `turso_url`, `turso_token`, deploy.
 - Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups\test-repair` do usunięcia po wdrożeniu.
 - Opcjonalnie: `fly apps destroy mars-terraform-api` (i ewentualnie usunięcie karty z Fly).
