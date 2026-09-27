@@ -3,38 +3,48 @@
 > Nadpisywany przy każdym przekazaniu (procedura: `SUPERVISOR_PROMPT.md` → „Przekazanie nadzoru”).
 > Opisuje TYLKO bieżący stan. Szczegóły historii są w `QUEUE.md` → Dziennik.
 
-Data (UTC): 2026-09-26 (stan po zakończeniu wszystkich zadań agentowych)
-Branch: `claude/compassionate-hawking-nc14kk`
+Data (UTC): 2026-09-27 (po zmianie hostingu API na Render, D15)
+Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje w worktree
+`.claude/worktrees/faza-8-db-inspect-baseline-1b07a4` i pushuje `HEAD:claude/compassionate-hawking-nc14kk`)
 
 ## Stan w skrócie
-- DONE (agenci): T0a, T1, T2, T3, T3b, T3c, T4, T4b, T4c, T4d, T4e, T4f, T5, T6, T7, T7b, T8, T9 (dokumentacja)
-- DONE (człowiek): T0b (stare tokeny Turso unieważnione, nowy token działa, nowy `jwt_secret`; sekrety w `.env.local`)
-- W toku: brak. Aktywnych subagentów: brak.
-- Pozostaje: wdrożenie produkcyjne przez człowieka wg `.docs/faza-8/DEPLOYMENT.md` (sekcje 2–6); nadzorca wspiera krok po kroku.
-- Gate na HEAD: lint/tsc OK, front 619, back 166, build OK; CI run #1 zielony (verify + docker-api).
+- DONE (agenci/nadzorca): T0a, T1, T2, T3, T3b, T3c, T4, T4b, T4c, T4d, T4e, T4f, T5, T6, T7, T7b, T8, T9 (dokumentacja), T10 (Render, `6f8300f`).
+- DONE (człowiek): T0b (sekrety zrotowane, w `.env.local`); DEPLOYMENT.md §2: baza była w stanie C (brak `maps`, pusta
+  `__drizzle_migrations` po nieudanym migratorze), naprawa `db-repair-c.mjs` (poza repo, `$HOME\mars-ops`) + baseline A;
+  `__drizzle_migrations` = 2 wiersze. Backup przed zmianami w `$HOME\mars-terraform-backups`.
+- D15: API na **Render** (plan Free, Frankfurt), migracje przy starcie kontenera. Fly.io porzucone (trial zakończony, wymaga karty);
+  aplikacja `mars-terraform-api` na Fly istnieje bez maszyn (0 $), usunięcie = człowiek (`fly apps destroy`).
+- W toku: PR z T10 do `main` (Render czyta `render.yaml` z `main`). Aktywnych subagentów: brak.
+- Gate na HEAD (lokalnie, Windows): lint/tsc OK, front 617, back 159/166 (7× `EPERM` w `migrate.test.ts`, problem Windows,
+  identyczny bez zmian; CI Linux ma być zielone), build OK. Obraz API weryfikuje CI `docker-api`.
 
 ## Niescalone / w locie
-Brak. Stare worktree `.claude/worktrees/agent-*` są już scalone (do usunięcia przy sprzątaniu).
+- Branch roboczy przed `main` o commity dokumentacji + T10. Po scaleniu PR → deploy przez Render Blueprint.
 
 ## Czeka na użytkownika
-- DEPLOYMENT.md §2: `db-inspect.mjs`, a potem wynik (lista tabel + stan `__drizzle_migrations`) wkleić nadzorcy; wybór wariantu A/B/C baseline.
-- Scalenie PR https://github.com/develforever/mars-terraform/pull/6 do `main` przed wdrożeniem (DEPLOYMENT.md §0).
-- Otwarte pytanie: osobny `jwt_secret` dla produkcji i dla lokalnego dev (rekomendacja: tak).
+- Scalenie PR z T10 do `main` (po zielonym CI).
+- DEPLOYMENT.md §3 (Render): Blueprint z `render.yaml`, zmienne `jwt_secret` (nowy, 48 bajtów), `turso_url`, `turso_token`, deploy.
+- Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups\test-repair` do usunięcia po wdrożeniu.
+- Opcjonalnie: `fly apps destroy mars-terraform-api` (i ewentualnie usunięcie karty z Fly).
 
-## Pułapki środowiska (lekcje z sesji 1)
-- **Worktree subagentów startują z `main` (f119afb), nie z HEAD brancha.** W prompcie subagenta zawsze KROK 0: `git fetch origin <branch> && git reset --hard FETCH_HEAD`. Wymaga wcześniejszego push stanu.
-- **Cherry-pick commita, który robi `git rm --cached .env`, kasuje `.env` z dysku.** Przed takim scaleniem zrób kopię i ją przywróć (tak zrobiono dla T0a).
-- **Po zmianie `package-lock.json` zrób `npm ci` w głównym checkoucie przed Gate.**
-- **Odrzucenie wywołania narzędzia przez użytkownika nie zawsze cofa efekt.** Dwa razy cherry-pick wykonał się mimo „rejected”. Po każdym przerwaniu sprawdź `git log origin/<branch>..HEAD` i `git status` i nie zakładaj, że nic się nie stało.
-- **Raport subagenta może nie dotrzeć** (T3b). Źródło prawdy to commit w worktree: `git log worktree-agent-*`, diff przeglądany samodzielnie.
-- **Sieć sesji:** `vercel.com` zablokowane (brak dostępu do dokumentacji Vercel). `dl-cdn.alpinelinux.org` odblokowane przez użytkownika. Docker Hub zwraca 429 (limit anonimowy). `docker build` w kontenerze wymaga dodatkowo CA proxy (`/root/.ccr/ca-bundle.crt`) w obrazie bazowym, więc obraz API weryfikuje CI, nie sesja (D9).
-- **`dockerd` nie startuje sam.** Można go uruchomić w tle (`dockerd &`), ale pull i tak ogranicza 429.
+## Pułapki środowiska (lekcje)
+- **Worktree subagentów startują z `main`, nie z HEAD brancha.** W prompcie subagenta zawsze KROK 0: `git fetch origin <branch> && git reset --hard FETCH_HEAD`. Wymaga wcześniejszego push stanu.
+- **Hook sesji blokuje edycję głównego checkoutu** (`C:\Users\robert\code\mars-terraform`), gdzie jest wyciągnięty branch roboczy. Pracuj w worktree sesji (branch zresetowany do `origin/claude/compassionate-hawking-nc14kk`), push `git push origin HEAD:claude/compassionate-hawking-nc14kk`. Główny checkout potem `git pull`.
+- **Cherry-pick commita, który robi `git rm --cached .env`, kasuje `.env` z dysku.** Przed takim scaleniem zrób kopię.
+- **Po zmianie `package-lock.json` zrób `npm ci` przed Gate.** Worktree sesji ma własne `node_modules`.
+- **Odrzucenie wywołania narzędzia nie zawsze cofa efekt.** Po przerwaniu sprawdź `git log origin/<branch>..HEAD` i `git status`.
+- **Raport subagenta może nie dotrzeć.** Źródło prawdy to commit w worktree.
+- **Brak Dockera lokalnie.** Obraz API weryfikuje CI (D9). CMD obrazu można zasymulować: `sh -c "node dist_backend/migrate.js && exec node dist_backend/index.js"` z `turso_url=file:...` w worktree bez plików `.env*`.
+- **`.env.local` w głównym checkoucie wskazuje na PRODUKCYJNĄ bazę Turso.** Nie uruchamiaj tam `npm run dev`, `db:migrate`, `db:push`, testów z env. Worktree sesji nie ma `.env*`.
+- **Tryb auto blokuje agentowi odczyt i zapis produkcji** (np. dry-run na Turso). Komendy na produkcji uruchamia użytkownik i wkleja wynik.
+- **Lokalny checkout Windows ma ok. 209 plików z CRLF** mimo `eol=lf`. `drizzle/` odtworzone z LF; hashe plików liczone z dysku mogą się różnić od gita.
+- **`migrate.test.ts` pada na Windows** (`EPERM`), niezależnie od zmian. Gate lokalny: 159/166 back to stan oczekiwany.
+- **Python w heredoc:** `\t`, `\m` w ścieżkach Windows w zwykłych stringach psuje tekst. Używaj raw stringów albo `/`.
 - **`tsx` backendu wymaga `--tsconfig src_backend/tsconfig.json`** (dekoratory TSOA).
-- Node w sesji: v22.22.2; obraz API: node 24 (`ARG NODE_VERSION`); `.nvmrc` = v25 (nie zmieniać bez zgody).
+- Node lokalnie: v24.15.0; obraz API: node 24; `.nvmrc` = v25 (nie zmieniać bez zgody).
 - Zasada projektu: brak nowych paczek npm bez zgody użytkownika (RULES.md).
 
 ## Najbliższe kroki (kolejność)
-1. Użytkownik: DEPLOYMENT.md §2 krok 1 (`db-inspect.mjs`). Nadzorca: dobór wariantu baseline na podstawie wyniku.
-2. PR https://github.com/develforever/mars-terraform/pull/6 → `main`: pilnować CI na PR, scalenie robi użytkownik.
-3. Użytkownik: §3 Fly.io → §4 Vercel (w tym obowiązkowy `curl -I` nagłówków) → §5 CORS/OAuth → §6 smoke test.
-4. Po wdrożeniu: follow-upy z QUEUE.md (CSP `connect-src`, timing resend/forgot, walidacja nazwy kolonii, graceful shutdown, liveness/readiness).
+1. PR T10 → `main`, CI zielone (w tym nowe smoke testy migracji przy starcie), scalenie przez użytkownika.
+2. Użytkownik: DEPLOYMENT.md §3 Render → §4 Vercel (`VITE_API_URL = https://mars-terraform-api.onrender.com`, obowiązkowy `curl -I` nagłówków) → §5 CORS/OAuth (zmienne w panelu Render) → §6 smoke test.
+3. Po wdrożeniu: follow-upy z QUEUE.md (CSP `connect-src`, timing resend/forgot, walidacja nazwy kolonii, graceful shutdown, liveness/readiness, `EPERM` na Windows).

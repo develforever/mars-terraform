@@ -1,4 +1,4 @@
-fly.toml
+render.yaml
 
 # Sekrety i lokalna baza nigdy nie trafiają do obrazu (sekrety = zmienne platformy).
 .env

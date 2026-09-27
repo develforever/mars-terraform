@@ -3,7 +3,7 @@
 > Jedyne źródło prawdy o postępie. Nadzorca aktualizuje ten plik i commituje go
 > **po każdej zmianie statusu** (commit + push), żeby przerwana sesja nie gubiła stanu.
 
-**STATUS KOLEJKI: AKTYWNA** (wznowiona 2026-09-26T06:20Z)
+**STATUS KOLEJKI: AKTYWNA** (wznowiona 2026-09-26T12:53Z; zadania agentowe zakończone, trwa wdrożenie przez człowieka wg DEPLOYMENT.md)
 
 Branch roboczy: `claude/compassionate-hawking-nc14kk` (bazuje na `main` @ `f119afb`)
 Baseline (zmierzony 2026-09-24T16:46Z, HEAD `0b7499c`, Node v22.22.2): **573 front / 33 back / 606 razem**, lint 0, tsc 0, build OK.
@@ -39,6 +39,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T7b | Naprawa rozjazdu migracji: brak `maps` w migracjach, `0001_colonies.sql` poza journalem; test: wszystkie tabele `schema.ts` po migracji | T7 | D10, D11 | general-purpose | `drizzle/**`, `src_backend/db/migrate.test.ts`, (D10) `package.json`/`package-lock.json` (drizzle-kit) | DONE(bf8fc77) |
 | T8 | CI GitHub Actions | T4 | D5 ✔ | general-purpose | `.github/workflows/ci.yml` | DONE(fea5646; CI run #1 zielony: verify + docker-api) |
 | T9 | Runbook + ROADMAP/CLAUDE.md + wdrożenie | T0b–T8, T3b, T3c, T4c, T4d, T4e, T7b | — | general-purpose + **człowiek** | `.docs/faza-8/DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | DOKUMENTACJA DONE(a7769c9); WDROŻENIE = HUMAN wg `DEPLOYMENT.md` |
+| T10 | API na Render zamiast Fly.io: `render.yaml`, migracje przy starcie kontenera, CI, runbook | T9 | D15 ✔ | nadzorca | `render.yaml`, `Dockerfile.api`, `.github/workflows/ci.yml`, `src/test/renderConfig.test.ts`, `fly.toml` (usunięty), `DEPLOYMENT.md`, `ROADMAP.md`, `CLAUDE.md` | DONE(6f8300f) |
 
 ### Równoległość (macierz konfliktów)
 
@@ -57,20 +58,21 @@ a nadzorca scala ich commity na branch roboczy po kolei i po każdym scaleniu ur
 
 | ID | Odpowiedź | Data | Kto |
 |----|-----------|------|-----|
-| D1 | Fly.io | 2026-09-24 | użytkownik |
+| D1 | Fly.io (ZASTĄPIONE przez D15) | 2026-09-24 | użytkownik |
 | D2 | Turso (bez wolumenu) | 2026-09-24 | użytkownik |
 | D3 | Bezpośrednio `VITE_API_URL` + CORS (bez proxy na Vercel) | 2026-09-24 | użytkownik |
 | D4 | Tylko rotacja sekretów, bez przepisywania historii gita | 2026-09-24 | użytkownik |
 | D5 | Tak, CI w GitHub Actions (T8) | 2026-09-24 | użytkownik |
 | D6 | Tak: `@tsoa/runtime` jako zależność prod zamiast `tsoa` (tsoa → dev) | 2026-09-24 | użytkownik |
 | D7 | Usunąć nieużywany `@tursodatabase/database` | 2026-09-24 | użytkownik |
-| D8 | Fly: region `fra`, `min_machines_running = 0` | 2026-09-24 | użytkownik |
+| D8 | Fly: region `fra`, `min_machines_running = 0` (NIEAKTUALNE, D15) | 2026-09-24 | użytkownik |
 | D9 | Weryfikacja obrazu API w CI (job `docker-api`, T8) zamiast w sesji | 2026-09-24 | użytkownik |
 | D10 | Tak: aktualizacja `drizzle-kit` 0.18.1 → 0.31.x | 2026-09-24 | użytkownik |
 | D12 | Tak: T3c, poprawki anty-enumeracji (zmiana zachowania API) | 2026-09-26 | użytkownik |
 | D13 | (c) `state` kolonii jako otwarty obiekt JSON z limitem rozmiaru; walidacja stanu po stronie frontendu przy wczytaniu | 2026-09-26 | użytkownik („cc” odczytane jako c) |
 | D14 | Tak: lekka lista kolonii bez `state` (zmiana kontraktu API; jedyny konsument w repo, `LoadGameModal`, nie używa `state`) | 2026-09-26 | użytkownik |
 | D11 | Produkcyjna baza Turso powstała przez `drizzle-kit push` (brak `__drizzle_migrations`), więc baseline wymagany przed 1. deployem (runbook T9). Obecność `maps`/`colonies` do sprawdzenia `.tables` | 2026-09-24 | użytkownik |
+| D15 | API na **Render** (plan Free, Frankfurt, bez karty) zamiast Fly.io (trial zakończony, wymaga karty). Migracje **przy starcie kontenera** (`migrate.js && exec index.js`), bo darmowy plan Render nie obsługuje pre-deploy command | 2026-09-26 | użytkownik |
 
 ## Dziennik
 
@@ -125,6 +127,19 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-26T07:22Z · nadzorca · T0b · Użytkownik: nowy token działa (odczyt tabel przez skrypt Node OK). · —
 - 2026-09-26T07:22Z · nadzorca · — · Brak aktywnych subagentów. Wszystkie zadania agentowe DONE. Pozostaje wdrożenie (człowiek). · —
 - 2026-09-26T07:23Z · nadzorca · — · PR do `main`: https://github.com/develforever/mars-terraform/pull/6 (na prośbę użytkownika). · —
+- 2026-09-26T07:31Z · nadzorca · — · PR https://github.com/develforever/mars-terraform/pull/6 scalony (squash) do `main` jako `518964a`, CI zielone. Branch roboczy odtworzony od `main`. · 518964a
+- 2026-09-26T07:31Z · nadzorca · — · PAUZA na polecenie użytkownika. Następny krok: człowiek, DEPLOYMENT.md §2 (`db-inspect.mjs`). · —
+- 2026-09-26T12:53Z · nadzorca · — · Wznowiono. Brak zadań agentowych; następny krok: człowiek, DEPLOYMENT.md §2 krok 1 (`db-inspect.mjs`). · —
+- 2026-09-26T13:07Z · nadzorca · — · Wznowiono (lokalnie, Windows, Node v24.15.0). Branch == origin, `node_modules` aktualne (bez `npm ci`). `.env.local`: `turso_url` (libsql:), `turso_token`, `jwt_secret` obecne; `jwt_secret` ma 31 znaków (runbook: 48 bajtów losowych, 96 hex), do rozważenia wymiana przed §3. Skrypty `db-inspect.mjs`/`db-baseline.mjs` zapisane w `$HOME\mars-ops` (poza repo), składnia OK, nieuruchomione. · —
+- 2026-09-26T13:07Z · nadzorca · — · UWAGA baseline: w checkoucie Windows `drizzle/0000_tidy_living_mummy.sql` ma CRLF (209 plików w/crlf mimo `eol=lf`, checkout sprzed `.gitattributes`), więc sha256 pliku = `89be12d2…`, a nie `4cd12e0f…` (blob w gicie OK). Migrator nie sprawdza hasha, ale przed dry-run należy odtworzyć plik z LF. `0001` bez zmian (`e4de0522…`). · —
+- 2026-09-26T13:12Z · nadzorca · — · `drizzle/0000*` odtworzone z LF (sha256 = `4cd12e0f…`, zgodne z dokumentacją). · —
+- 2026-09-26T13:12Z · nadzorca · D11 · `db-inspect.mjs` (odczyt, na polecenie użytkownika): exit 0, backup w katalogu backupów użytkownika (8 tabel, 5 wierszy). Stan = **WARIANT C**: 6 tabel z `0000` (zgodne, `users.email_verified_at` dodane przez ALTER) + `colonies` (DDL 1:1 z `0001`), **brak `maps`**, **`__drizzle_migrations` ISTNIEJE i jest pusta** (DDL migratora, ślad nieudanego uruchomienia migratora na produkcji). Baseline wstrzymany; `db-baseline.mjs` i tak przerwałby (exit 2). Propozycja naprawy: jedna transakcja `DROP` pustej `__drizzle_migrations` + `CREATE TABLE maps` (DDL z `0001`), potem wariant A. Czeka na decyzję użytkownika. · —
+- 2026-09-26T13:17Z · nadzorca · D11 · Użytkownik wybrał naprawę (a). Skrypt `db-repair-c.mjs` (poza repo, `$HOME\mars-ops`): weryfikuje dokładnie stan C, potem w jednej transakcji `DROP` pustej `__drizzle_migrations` + `CREATE TABLE maps` (DDL z `0001`); dry-run domyślnie. Test na LOKALNEJ kopii z backupu: repair dry-run/apply OK, ponowne uruchomienie → STOP exit 3; `db-baseline --variant=A` dry-run/apply OK (8 tabel zgodnych ze snapshotem), ponowne → exit 2; `dist_backend/migrate.js` → `No new migrations (applied total: 2)`; dane zachowane (users 1, user_auth_methods 2, colonies 2), `foreign_key_check` 0. Kontrola: migrator na kopii BEZ naprawy → `table email_verifications already exists`, exit 1. Na produkcji nic nie uruchomiono (dry-run repair = użytkownik). · —
+- 2026-09-26T13:21Z · człowiek · D11 · PRODUKCJA: `db-repair-c.mjs` dry-run (stan C potwierdzony), potem `--apply`: utworzono `maps`, usunięto pustą `__drizzle_migrations`. Baza w stanie wariantu A (bez baseline). Następnie: `db-baseline --variant=A` dry-run. · —
+- 2026-09-26T13:22Z · człowiek · D11 · PRODUKCJA: `db-baseline --variant=A` dry-run (8 tabel zgodnych, DEFAULT-y sprawdzone ręcznie przez nadzorcę z checklistą), potem `--apply`: `__drizzle_migrations` = 2 wiersze (`1778522201990`/`4cd12e0f…`, `1790271837079`/`e4de0522…`). **DEPLOYMENT.md §2 ZAKOŃCZONE.** Oczekiwany log 1. deployu: `No new migrations (applied total: 2)`. Następnie: §3 Fly.io. · —
+- 2026-09-26T13:25Z · człowiek · — · §3: `fly auth login` OK; flyctl zaktualizowany do v0.4.108. `fly launch --no-deploy --copy-config --name mars-terraform-api --region fra` przerwany: „trial has ended”, brak metody płatności, aplikacja NIE utworzona, `fly.toml` bez zmian. BLOKER HUMAN: dodać kartę w Fly (billing), potem powtórzyć `fly launch`. · —
+- 2026-09-26T13:30Z · człowiek · — · §3: karta dodana w Fly; `fly launch --no-deploy --copy-config` utworzył aplikację `mars-terraform-api` (region `fra`, org osobista). flyctl przepisał `fly.toml` (bez komentarzy, VM 256 MB); nadzorca przywrócił wersję z repo (decyzja użytkownika: zostaje 512 MB). Twardych limitów wydatków Fly nie ma (docs); zalecone: budżet/limit w panelu, jeśli dostępny, i `fly scale count 1`. Następnie: sekrety + `fly deploy`. · —
+- 2026-09-27T06:13Z · nadzorca · T10 · D15 = Render + migracje przy starcie. Zrobione w worktree sesji (hook blokuje edycję głównego checkoutu), push na branch roboczy. Lokalnie (Windows): lint 0, tsc app+backend OK, front 617 (−12 Fly, +10 Render), build OK; back 159/166: 7× `EPERM` w `migrate.test.ts` przy sprzątaniu katalogu tymczasowego, identycznie na kodzie bez zmian (problem Windows, follow-up). Symulacja CMD bez Dockera: nieudana migracja → exit 1 bez startu API; udana → `Applied 2`, health 200, `/generate` 404. Obraz zweryfikuje CI (`docker-api`). · 6f8300f
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -147,3 +162,5 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Limit body 2 MB jest globalny (także `/api/maps`).
 - `resumeLocalGame` bez try/catch.
 - Brak walidacji nazwy kolonii przy zapisie (długość, znaki kontrolne).
+- `src_backend/db/migrate.test.ts`: 7 testów pada lokalnie na Windows (`EPERM` przy `rmSync` katalogu z otwartą bazą SQLite); CI (Linux) zielone. Zamknąć klienta przed sprzątaniem albo `maxRetries`.
+- Migrator przy każdym starcie kontenera (D15): przy >1 instancji równoległe starty mogą ścigać się o tę samą migrację.
