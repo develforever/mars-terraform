@@ -23,7 +23,7 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - Branch roboczy przed `main` o commity dokumentacji + T10. Po scaleniu PR → deploy przez Render Blueprint.
 
 ## Czeka na użytkownika
-- DEPLOYMENT.md §4 Vercel (`VITE_API_URL=https://mars-terraform-api.onrender.com`), potem §5 CORS w panelu Render.
+- §4 Vercel ZROBIONE: `https://mars-terraform.vercel.app`, nagłówki zweryfikowane. Dalej §5: `cors_origins` + `frontend_url` = `https://mars-terraform.vercel.app` w panelu Render, potem §6 smoke test.
 - DEPLOYMENT.md §3 (Render): Blueprint z `render.yaml`, zmienne `jwt_secret` (nowy, 48 bajtów), `turso_url`, `turso_token`, deploy.
 - Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups\test-repair` do usunięcia po wdrożeniu.
 - Opcjonalnie: `fly apps destroy mars-terraform-api` (i ewentualnie usunięcie karty z Fly).
