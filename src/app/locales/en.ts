@@ -366,6 +366,23 @@ const en = {
                 googleFailed:  "Failed to initiate Google login",
                 githubFailed:  "Failed to initiate GitHub login",
             },
+            account: {
+                title:              "Account",
+                close:              "Close",
+                signedInAs:         "Signed in as",
+                exportTitle:        "Download my data",
+                exportDesc:         "A JSON file with all account data: profile, sign-in methods, groups, maps and colonies (no password).",
+                exportBtn:          "Download data (JSON)",
+                exporting:          "Preparing...",
+                exportFailed:       "Could not download data",
+                deleteTitle:        "Delete account",
+                deleteDesc:         "Permanently deletes the account with all colonies and maps. This cannot be undone.",
+                deleteConfirmLabel: "Type your e-mail address to confirm",
+                deleteBtn:          "Delete account forever",
+                deleting:           "Deleting...",
+                deleteFailed:       "Could not delete the account",
+                deleted:            "Your account and all data have been deleted. You have been signed out.",
+            },
             register: {
                 title:         "Register",
                 name:          "Name",
@@ -378,6 +395,7 @@ const en = {
                 registerFailed: "Registration failed",
                 success:       "Registration successful! Please check your email to verify your account.",
                 haveAccount:   "Already have an account? Log in",
+                privacyNotice: "By creating an account you confirm you have read the",
             },
             forgot: {
                 title:     "Reset Password",
@@ -416,6 +434,10 @@ const en = {
             logout:   "Log out",
             login:    "Log in",
             register: "Register",
+            account:  "Account",
+        },
+        privacy: {
+            link: "Privacy Policy",
         },
         debug: {
             title:        "🛠 DEBUG",

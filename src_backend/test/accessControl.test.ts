@@ -29,7 +29,8 @@ vi.mock("../service/userService", () => ({
   userService: {
     getById: vi.fn(),
     update: vi.fn(),
-    softDelete: vi.fn(),
+    deleteAccount: vi.fn(),
+    exportData: vi.fn(),
     getGroups: vi.fn(),
   },
 }));
@@ -133,28 +134,28 @@ describe("/api/users (T11): tylko własne konto", () => {
     expect((await call(baseUrl, "GET", `/api/users/${OTHER_ID}`)).status).toBe(404);
     expect((await call(baseUrl, "PUT", `/api/users/${OTHER_ID}`, { body: { name: "x" } })).status).toBe(404);
     expect((await call(baseUrl, "DELETE", `/api/users/${OTHER_ID}`)).status).toBe(404);
-    expect(userService.softDelete).not.toHaveBeenCalled();
+    expect(userService.deleteAccount).not.toHaveBeenCalled();
     expect(userService.update).not.toHaveBeenCalled();
   });
 
   it("DELETE /api/users/me usuwa konto z tokenu", async () => {
-    mocked(userService.softDelete).mockResolvedValue({ id: SELF_ID });
+    mocked(userService.deleteAccount).mockResolvedValue(true);
     const baseUrl = await start();
     const res = await call(baseUrl, "DELETE", "/api/users/me");
     expect(res.status).toBe(200);
-    expect(userService.softDelete).toHaveBeenCalledTimes(1);
-    expect(userService.softDelete).toHaveBeenCalledWith(SELF_ID);
+    expect(userService.deleteAccount).toHaveBeenCalledTimes(1);
+    expect(userService.deleteAccount).toHaveBeenCalledWith(SELF_ID);
   });
 
   it("DELETE /api/users/me bez tokenu -> 401", async () => {
     const baseUrl = await start();
     const res = await call(baseUrl, "DELETE", "/api/users/me", { token: null });
     expect(res.status).toBe(401);
-    expect(userService.softDelete).not.toHaveBeenCalled();
+    expect(userService.deleteAccount).not.toHaveBeenCalled();
   });
 
   it("DELETE /api/users/me dla usuniętego konta -> 404", async () => {
-    mocked(userService.softDelete).mockResolvedValue(null);
+    mocked(userService.deleteAccount).mockResolvedValue(false);
     const baseUrl = await start();
     const res = await call(baseUrl, "DELETE", "/api/users/me");
     expect(res.status).toBe(404);
@@ -178,6 +179,50 @@ describe("/api/users (T11): tylko własne konto", () => {
     const baseUrl = await start();
     const res = await call(baseUrl, "PUT", "/api/users/me", { body: { name: "x" } });
     expect(res.status).toBe(404);
+  });
+});
+
+describe("/api/users/me (T12): eksport, walidacja", () => {
+  it("GET /api/users/me/export zwraca dane konta z tokenu jako plik do pobrania", async () => {
+    mocked(userService.exportData).mockResolvedValue({ formatVersion: 1, profile: { id: SELF_ID } });
+    const baseUrl = await start();
+    const res = await call(baseUrl, "GET", "/api/users/me/export");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-disposition")).toBe('attachment; filename="mars-terraform-my-data.json"');
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(userService.exportData).toHaveBeenCalledWith(SELF_ID);
+    expect(await res.json()).toEqual({ formatVersion: 1, profile: { id: SELF_ID } });
+  });
+
+  it("GET /api/users/me/export: 404 dla usuniętego konta, 401 bez tokenu", async () => {
+    mocked(userService.exportData).mockResolvedValue(null);
+    const baseUrl = await start();
+    expect((await call(baseUrl, "GET", "/api/users/me/export")).status).toBe(404);
+    expect((await call(baseUrl, "GET", "/api/users/me/export", { token: null })).status).toBe(401);
+  });
+
+  it("PUT /api/users/me odrzuca zmianę e-maila (400), bo wymagałaby ponownej weryfikacji", async () => {
+    const baseUrl = await start();
+    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { name: "Ok", email: "new@mars.test" } });
+    expect(res.status).toBe(400);
+    expect(userService.update).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/users/me odrzuca pustą i za długą nazwę (400)", async () => {
+    const baseUrl = await start();
+    expect((await call(baseUrl, "PUT", "/api/users/me", { body: { name: "   " } })).status).toBe(400);
+    expect((await call(baseUrl, "PUT", "/api/users/me", { body: { name: "x".repeat(101) } })).status).toBe(400);
+    expect((await call(baseUrl, "PUT", "/api/users/me", { body: {} })).status).toBe(400);
+    expect(userService.update).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/users/me przycina spacje w nazwie", async () => {
+    mocked(userService.update).mockResolvedValue({ id: SELF_ID });
+    mocked(userService.getById).mockResolvedValue(profile);
+    const baseUrl = await start();
+    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { name: "  Nowa nazwa  " } });
+    expect(res.status).toBe(200);
+    expect(userService.update).toHaveBeenCalledWith(SELF_ID, { name: "Nowa nazwa" });
   });
 });
 

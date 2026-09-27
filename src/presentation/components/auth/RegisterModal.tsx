@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import { useAuthStore } from "../../../application/store/useAuthStore";
 import { useModalStore } from "../../../ui/ModalManager/store";
 
@@ -7,6 +8,7 @@ export default function RegisterModal() {
   const { t } = useTranslation();
   const { register, isLoading } = useAuthStore();
   const { open, close } = useModalStore();
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -94,6 +96,19 @@ export default function RegisterModal() {
           {isLoading ? t("auth.register.submitting") : t("auth.register.submit")}
         </button>
       </form>
+      <p className="mt-3 text-xs text-gray-400">
+        {t("auth.register.privacyNotice")}{" "}
+        <button
+          type="button"
+          onClick={() => {
+            close();
+            navigate("/privacy");
+          }}
+          className="text-blue-400 hover:underline"
+        >
+          {t("privacy.link")}
+        </button>
+      </p>
       <div className="mt-4 text-sm text-center">
         <button onClick={() => open("login")} className="text-blue-400 hover:underline">
           {t("auth.register.haveAccount")}

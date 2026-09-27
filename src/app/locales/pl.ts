@@ -366,6 +366,23 @@ const pl = {
                 googleFailed:  "Błąd logowania przez Google",
                 githubFailed:  "Błąd logowania przez GitHub",
             },
+            account: {
+                title:              "Konto",
+                close:              "Zamknij",
+                signedInAs:         "Zalogowano jako",
+                exportTitle:        "Pobierz moje dane",
+                exportDesc:         "Plik JSON ze wszystkimi danymi konta: profil, metody logowania, grupy, mapy i kolonie (bez hasła).",
+                exportBtn:          "Pobierz dane (JSON)",
+                exporting:          "Przygotowywanie...",
+                exportFailed:       "Nie udało się pobrać danych",
+                deleteTitle:        "Usuń konto",
+                deleteDesc:         "Trwale usuwa konto razem ze wszystkimi koloniami i mapami. Tej operacji nie można cofnąć.",
+                deleteConfirmLabel: "Wpisz swój adres e-mail, aby potwierdzić",
+                deleteBtn:          "Usuń konto na zawsze",
+                deleting:           "Usuwanie...",
+                deleteFailed:       "Nie udało się usunąć konta",
+                deleted:            "Konto i wszystkie dane zostały usunięte. Zostałeś wylogowany.",
+            },
             register: {
                 title:         "Rejestracja",
                 name:          "Imię",
@@ -378,6 +395,7 @@ const pl = {
                 registerFailed: "Rejestracja nieudana",
                 success:       "Rejestracja zakończona! Sprawdź e-mail, aby zweryfikować konto.",
                 haveAccount:   "Masz już konto? Zaloguj się",
+                privacyNotice: "Zakładając konto, potwierdzasz zapoznanie się z dokumentem:",
             },
             forgot: {
                 title:     "Resetuj hasło",
@@ -416,6 +434,10 @@ const pl = {
             logout:   "Wyloguj",
             login:    "Zaloguj",
             register: "Rejestracja",
+            account:  "Konto",
+        },
+        privacy: {
+            link: "Polityka prywatności",
         },
         debug: {
             title:        "🛠 DEBUG",

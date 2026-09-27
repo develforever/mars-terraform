@@ -24,7 +24,8 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 
 ## Czeka na użytkownika
 - §4 Vercel ZROBIONE: `https://mars-terraform.vercel.app`, nagłówki zweryfikowane. §5 CORS ZROBIONE (204/403). §6 smoke test ZALICZONY. **Wdrożenie Fazy 8 zakończone.**
-- T11 (IDOR) DONE `ac8f530` na branchu roboczym, PR do `main` otwarty; na produkcji dopiero po scaleniu (auto-deploy Render po zielonym CI). Nie włączać prawdziwego e-maila przed wdrożeniem T11. Następne: T12 (RODO).
+- T11 (IDOR) na produkcji od 2026-09-27 (PR #8, `e8682bd`), zweryfikowane (404 dla `/api/users`, `/users/{id}`). Prawdziwy e-mail można włączać.
+- T12 (RODO) DONE `fe28886` na branchu roboczym, PR do `main` otwarty. Po scaleniu: administrator uzupełnia pola [UZUPEŁNIJ] w polityce prywatności.
 - DEPLOYMENT.md §3 (Render): Blueprint z `render.yaml`, zmienne `jwt_secret` (nowy, 48 bajtów), `turso_url`, `turso_token`, deploy.
 - Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups\test-repair` do usunięcia po wdrożeniu.
 - Opcjonalnie: `fly apps destroy mars-terraform-api` (i ewentualnie usunięcie karty z Fly).

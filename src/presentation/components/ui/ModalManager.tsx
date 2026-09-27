@@ -9,6 +9,7 @@ import RegisterModal from "../auth/RegisterModal";
 import ForgotPasswordModal from "../auth/ForgotPasswordModal";
 import ResetPasswordModal from "../auth/ResetPasswordModal";
 import VerifyEmailModal from "../auth/VerifyEmailModal";
+import AccountModal from "../auth/AccountModal";
 
 export default function ModalManager() {
     const { isOpen, modalType, close } = useModalStore();
@@ -46,6 +47,8 @@ export default function ModalManager() {
                 return <ExitConfirmModal onClose={close} />;
             case "load-game":
                 return <LoadGameModal onClose={close} />;
+            case "account":
+                return <AccountModal />;
             default:
                 return null;
         }
