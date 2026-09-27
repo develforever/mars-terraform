@@ -28,19 +28,4 @@ describe("userService", () => {
       expect(result).toBeNull();
     });
   });
-
-  describe("list", () => {
-    it("should return users without deleted", async () => {
-      const mockWhere = vi.fn().mockResolvedValue([
-        { id: 1, name: "Test", email: "t@t.com", authProvider: "local", createdAt: null },
-      ]);
-      const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
-      const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
-
-      const result = await userService.list();
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("Test");
-    });
-  });
 });

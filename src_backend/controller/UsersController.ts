@@ -2,10 +2,8 @@ import {
   Controller,
   Route,
   Tags,
-  Get,
   Put,
   Delete,
-  Path,
   Body,
   Security,
   Request,
@@ -15,49 +13,37 @@ import { userService } from "../service/userService";
 import { AuthenticatedRequest } from "../middleware/authMiddleware";
 import { UserResponse, UserUpdateRequest } from "../model/types";
 
+/**
+ * Konto zalogowanego użytkownika (T11). Wszystkie operacje dotyczą WYŁĄCZNIE konta z tokenu JWT:
+ * brak listy użytkowników i brak dostępu po `id` (wcześniej każdy zalogowany widział e-maile wszystkich
+ * i mógł usunąć dowolne konto). Odczyt własnego profilu: `GET /api/auth/me`.
+ */
 @Route("users")
 @Tags("Users")
 export class UsersController extends Controller {
-  @Get()
+  @Put("me")
   @Security("jwt")
-  public async list(): Promise<UserResponse[]> {
-    const users = await userService.list();
-    return users as UserResponse[];
-  }
-
-  @Get("{id}")
-  @Security("jwt")
-  public async getById(@Path() id: number): Promise<UserResponse> {
-    const user = await userService.getById(id);
+  public async updateMe(
+    @Body() body: UserUpdateRequest,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<UserResponse> {
+    const userId = req.user!.userId;
+    const updated = await userService.update(userId, body);
+    if (!updated) {
+      throw new HttpError(404, "User not found");
+    }
+    // Odpowiedź tylko z publicznych pól profilu (bez provider_id, deleted_at itp.).
+    const user = await userService.getById(userId);
     if (!user) {
       throw new HttpError(404, "User not found");
     }
     return user as UserResponse;
   }
 
-  @Put("{id}")
+  @Delete("me")
   @Security("jwt")
-  public async update(
-    @Path() id: number,
-    @Body() body: UserUpdateRequest,
-    @Request() req: AuthenticatedRequest,
-  ): Promise<UserResponse> {
-    if (req.user!.userId !== id) {
-      throw new HttpError(403, "Cannot update another user");
-    }
-    const updated = await userService.update(id, body);
-    if (!updated) {
-      throw new HttpError(404, "User not found");
-    }
-    return updated as UserResponse;
-  }
-
-  @Delete("{id}")
-  @Security("jwt")
-  public async softDelete(
-    @Path() id: number,
-  ): Promise<{ message: string }> {
-    const deleted = await userService.softDelete(id);
+  public async deleteMe(@Request() req: AuthenticatedRequest): Promise<{ message: string }> {
+    const deleted = await userService.softDelete(req.user!.userId);
     if (!deleted) {
       throw new HttpError(404, "User not found");
     }

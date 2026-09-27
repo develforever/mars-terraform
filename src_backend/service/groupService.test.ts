@@ -42,4 +42,26 @@ describe("groupService", () => {
       expect(result).toBeNull();
     });
   });
+  describe("isMemberOf", () => {
+    const mockMembershipQuery = (rows: unknown[]) => {
+      const limit = vi.fn().mockResolvedValue(rows);
+      const where = vi.fn().mockReturnValue({ limit });
+      const join2 = vi.fn().mockReturnValue({ where });
+      const join1 = vi.fn().mockReturnValue({ innerJoin: join2 });
+      const from = vi.fn().mockReturnValue({ innerJoin: join1 });
+      (db.select as ReturnType<typeof vi.fn>).mockReturnValue({ from });
+      return { limit };
+    };
+
+    it("zwraca true, gdy użytkownik należy do grupy", async () => {
+      const { limit } = mockMembershipQuery([{ userId: 7 }]);
+      await expect(groupService.isMemberOf(7, "admin")).resolves.toBe(true);
+      expect(limit).toHaveBeenCalledWith(1);
+    });
+
+    it("zwraca false, gdy brak członkostwa", async () => {
+      mockMembershipQuery([]);
+      await expect(groupService.isMemberOf(7, "admin")).resolves.toBe(false);
+    });
+  });
 });

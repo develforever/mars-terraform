@@ -365,9 +365,15 @@ describe("client errors (HttpError) in production", () => {
 
   it("answers a missing user in a controller with 404 instead of 500", async () => {
     const { baseUrl } = await start({ isProduction: true });
-    selectReturning([]);
+    // T11: konto z tokenu już usunięte -> `softDelete` (update ... returning) nie zwraca wiersza.
+    vi.mocked(db.update).mockReturnValueOnce({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([]) }),
+      }),
+    } as unknown as ReturnType<typeof db.update>);
 
-    const res = await fetch(`${baseUrl}/api/users/999`, {
+    const res = await fetch(`${baseUrl}/api/users/me`, {
+      method: "DELETE",
       headers: { Authorization: `Bearer ${bearer()}` },
     });
     expect(res.status).toBe(404);

@@ -9,12 +9,13 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 
 ## Stan w skrócie
 - DONE (agenci/nadzorca): T0a, T1, T2, T3, T3b, T3c, T4, T4b, T4c, T4d, T4e, T4f, T5, T6, T7, T7b, T8, T9 (dokumentacja), T10 (Render, `6f8300f`).
-- DONE (człowiek): T0b (sekrety zrotowane, w `.env.local`); DEPLOYMENT.md §2: baza była w stanie C (brak `maps`, pusta
+- DONE (człowiek): T0b (sekrety zrotowane, w `.env.local`); DEPLOYMENT.md §2 **tylko dla bazy DEV** (`.env.local` = dev; baza prod NIESPRAWDZONA): baza dev była w stanie C (brak `maps`, pusta
   `__drizzle_migrations` po nieudanym migratorze), naprawa `db-repair-c.mjs` (poza repo, `$HOME\mars-ops`) + baseline A;
   `__drizzle_migrations` = 2 wiersze. Backup przed zmianami w `$HOME\mars-terraform-backups`.
 - D15: API na **Render** (plan Free, Frankfurt), migracje przy starcie kontenera. Fly.io porzucone (trial zakończony, wymaga karty);
   aplikacja `mars-terraform-api` na Fly istnieje bez maszyn (0 $), usunięcie = człowiek (`fly apps destroy`).
-- W toku: PR z T10 do `main` (Render czyta `render.yaml` z `main`). Aktywnych subagentów: brak.
+- PR #7 (T10) scalony: `b1086ac`. Render Blueprint utworzony z danymi bazy **prod**.
+- **API działa na Render** (`https://mars-terraform-api.onrender.com`): baza prod była pusta, migrator zastosował 2 migracje, health 200. Aktywnych subagentów: brak.
 - Gate na HEAD (lokalnie, Windows): lint/tsc OK, front 617, back 159/166 (7× `EPERM` w `migrate.test.ts`, problem Windows,
   identyczny bez zmian; CI Linux ma być zielone), build OK. Obraz API weryfikuje CI `docker-api`.
 
@@ -22,7 +23,8 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - Branch roboczy przed `main` o commity dokumentacji + T10. Po scaleniu PR → deploy przez Render Blueprint.
 
 ## Czeka na użytkownika
-- Scalenie PR z T10 do `main` (po zielonym CI).
+- §4 Vercel ZROBIONE: `https://mars-terraform.vercel.app`, nagłówki zweryfikowane. §5 CORS ZROBIONE (204/403). §6 smoke test ZALICZONY. **Wdrożenie Fazy 8 zakończone.**
+- T11 (IDOR) DONE `ac8f530` na branchu roboczym, PR do `main` otwarty; na produkcji dopiero po scaleniu (auto-deploy Render po zielonym CI). Nie włączać prawdziwego e-maila przed wdrożeniem T11. Następne: T12 (RODO).
 - DEPLOYMENT.md §3 (Render): Blueprint z `render.yaml`, zmienne `jwt_secret` (nowy, 48 bajtów), `turso_url`, `turso_token`, deploy.
 - Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups\test-repair` do usunięcia po wdrożeniu.
 - Opcjonalnie: `fly apps destroy mars-terraform-api` (i ewentualnie usunięcie karty z Fly).
@@ -35,7 +37,7 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - **Odrzucenie wywołania narzędzia nie zawsze cofa efekt.** Po przerwaniu sprawdź `git log origin/<branch>..HEAD` i `git status`.
 - **Raport subagenta może nie dotrzeć.** Źródło prawdy to commit w worktree.
 - **Brak Dockera lokalnie.** Obraz API weryfikuje CI (D9). CMD obrazu można zasymulować: `sh -c "node dist_backend/migrate.js && exec node dist_backend/index.js"` z `turso_url=file:...` w worktree bez plików `.env*`.
-- **`.env.local` w głównym checkoucie wskazuje na PRODUKCYJNĄ bazę Turso.** Nie uruchamiaj tam `npm run dev`, `db:migrate`, `db:push`, testów z env. Worktree sesji nie ma `.env*`.
+- **Turso ma dwie bazy: dev i prod.** `.env.local` w głównym checkoucie = **dev**. Operacje na prod: zmienne sesji PowerShella (`$env:turso_url`, `$env:turso_token` przez `Read-Host -MaskInput`), mają pierwszeństwo przed plikami `--env-file`. Zawsze sprawdź linię `Baza:` w wyniku skryptu. Worktree sesji nie ma `.env*`.
 - **Tryb auto blokuje agentowi odczyt i zapis produkcji** (np. dry-run na Turso). Komendy na produkcji uruchamia użytkownik i wkleja wynik.
 - **Lokalny checkout Windows ma ok. 209 plików z CRLF** mimo `eol=lf`. `drizzle/` odtworzone z LF; hashe plików liczone z dysku mogą się różnić od gita.
 - **`migrate.test.ts` pada na Windows** (`EPERM`), niezależnie od zmian. Gate lokalny: 159/166 back to stan oczekiwany.
@@ -45,6 +47,6 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - Zasada projektu: brak nowych paczek npm bez zgody użytkownika (RULES.md).
 
 ## Najbliższe kroki (kolejność)
-1. PR T10 → `main`, CI zielone (w tym nowe smoke testy migracji przy starcie), scalenie przez użytkownika.
+1. (zrobione) Baza prod: pusta, migracje zastosowane przy 1. starcie; API live.
 2. Użytkownik: DEPLOYMENT.md §3 Render → §4 Vercel (`VITE_API_URL = https://mars-terraform-api.onrender.com`, obowiązkowy `curl -I` nagłówków) → §5 CORS/OAuth (zmienne w panelu Render) → §6 smoke test.
 3. Po wdrożeniu: follow-upy z QUEUE.md (CSP `connect-src`, timing resend/forgot, walidacja nazwy kolonii, graceful shutdown, liveness/readiness, `EPERM` na Windows).
