@@ -25,7 +25,8 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 ## Czeka na użytkownika
 - §4 Vercel ZROBIONE: `https://mars-terraform.vercel.app`, nagłówki zweryfikowane. §5 CORS ZROBIONE (204/403). §6 smoke test ZALICZONY. **Wdrożenie Fazy 8 zakończone.**
 - T11 (IDOR) na produkcji od 2026-09-27 (PR #8, `e8682bd`), zweryfikowane (404 dla `/api/users`, `/users/{id}`). Prawdziwy e-mail można włączać.
-- T12 (RODO) DONE `fe28886` na branchu roboczym, PR do `main` otwarty. Po scaleniu: administrator uzupełnia pola [UZUPEŁNIJ] w polityce prywatności.
+- T12 (RODO) na produkcji od 2026-09-27 (PR #9, `54148ae`), zweryfikowane z zewnątrz.
+- T13 (D17, konta: numer konta + TOTP, bez e-maila/hasła/OAuth/cookies) DONE `e70686d` na branchu roboczym, PR do `main`. **Przed scaleniem użytkownik dodaje `account_secret` w Render** (DEPLOYMENT.md §3a). Migracja `0002` usuwa konta testowe. Po scaleniu: administrator uzupełnia pola [UZUPEŁNIJ] w polityce prywatności.
 - DEPLOYMENT.md §3 (Render): Blueprint z `render.yaml`, zmienne `jwt_secret` (nowy, 48 bajtów), `turso_url`, `turso_token`, deploy.
 - Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups\test-repair` do usunięcia po wdrożeniu.
 - Opcjonalnie: `fly apps destroy mars-terraform-api` (i ewentualnie usunięcie karty z Fly).

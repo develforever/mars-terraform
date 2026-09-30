@@ -1,6 +1,6 @@
 import { db } from "../data-source";
 import { groupsTable, userGroupsTable, usersTable } from "../db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 /** Członkowie tej grupy mogą tworzyć grupy i zarządzać członkami (T11). */
 export const ADMIN_GROUP_NAME = "admin";
@@ -31,31 +31,25 @@ const getMembers = async (groupId: number) => {
   return db
     .select({
       id: usersTable.id,
-      name: usersTable.name,
-      email: usersTable.email,
+      nickname: usersTable.nickname,
     })
     .from(userGroupsTable)
     .innerJoin(usersTable, eq(userGroupsTable.userId, usersTable.id))
-    .where(and(eq(userGroupsTable.groupId, groupId), isNull(usersTable.deletedAt)));
+    .where(eq(userGroupsTable.groupId, groupId));
 };
 
 const addUser = async (userId: number, groupId: number) => {
   await db.insert(userGroupsTable).values({ userId, groupId });
 };
 
-/** Czy aktywny (nieusunięty) użytkownik należy do grupy o podanej nazwie. */
+/** Czy użytkownik należy do grupy o podanej nazwie. */
 const isMemberOf = async (userId: number, groupName: string): Promise<boolean> => {
   const rows = await db
     .select({ userId: userGroupsTable.userId })
     .from(userGroupsTable)
     .innerJoin(groupsTable, eq(userGroupsTable.groupId, groupsTable.id))
-    .innerJoin(usersTable, eq(userGroupsTable.userId, usersTable.id))
     .where(
-      and(
-        eq(userGroupsTable.userId, userId),
-        eq(groupsTable.name, groupName),
-        isNull(usersTable.deletedAt),
-      ),
+      and(eq(userGroupsTable.userId, userId), eq(groupsTable.name, groupName)),
     )
     .limit(1);
   return rows.length > 0;

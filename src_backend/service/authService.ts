@@ -1,360 +1,200 @@
-import { db } from "../data-source";
-import {
-  usersTable,
-  userAuthMethodsTable,
-  userGroupsTable,
-  groupsTable,
-  passwordResetsTable,
-  emailVerificationsTable,
-} from "../db/schema";
-import { eq, and, isNull, gt } from "drizzle-orm";
-import * as bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { eq } from "drizzle-orm";
+import { db } from "../data-source";
+import { usersTable } from "../db/schema";
 import { config } from "../config";
-import { emailService } from "./emailService";
-import * as crypto from "crypto";
 import { HttpError } from "../errors/HttpError";
+import {
+  buildOtpAuthUri,
+  decryptSecret,
+  encryptSecret,
+  formatAccountNumber,
+  generateAccountNumber,
+  generateTotpSecret,
+  hashAccountNumber,
+  normalizeAccountNumber,
+  verifyTotp,
+} from "./accountCrypto";
+import { SlidingWindowLimiter } from "./rateLimiter";
+
+/**
+ * Logowanie bez danych osobowych (T13, D17): numer konta + opcjonalny TOTP.
+ * Brak e-maila, imienia, hasła i OAuth. Aplikacja nie przetwarza adresów IP: limity są globalne
+ * (rejestracja) albo per konto (błędne kody TOTP).
+ */
 
 export interface JwtPayload {
   userId: number;
-  email: string;
 }
 
-/** Koszt bcrypt dla haseł użytkowników (rejestracja, zmiana i reset hasła) oraz hasha-atrapy. */
-const BCRYPT_COST = 10;
+/** Komunikaty 401 rozpoznawane przez frontend. */
+export const INVALID_CREDENTIALS = "Invalid account number or code";
+export const TOTP_REQUIRED = "TOTP code required";
 
-/** Stały sekret hasha-atrapy; nie jest hasłem żadnego konta (hash nie trafia do bazy). */
-const DUMMY_PASSWORD = "mars-terraform:dummy:6f1c0e9a4b7d2385c1e0f4a9b8d7c6e5";
+/** Globalny limit nowych kont (ochrona przed zalewaniem bazy bez śledzenia IP). */
+export const REGISTRATIONS_PER_HOUR = 60;
+/** Błędne kody TOTP na konto w oknie 15 min (6 cyfr = 10^6 kombinacji). */
+export const TOTP_FAILURES_PER_WINDOW = 5;
+const TOTP_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 
-let dummyHashPromise: Promise<string> | null = null;
-
-/**
- * Hash-atrapa dla logowania bez konta / bez metody lokalnej: `bcrypt.compare` na nim trwa tyle,
- * co na prawdziwym haśle (ten sam koszt), więc czas odpowiedzi nie zdradza istnienia konta.
- * Liczony leniwie przy pierwszym użyciu (nie blokuje startu serwera) i cache'owany.
- */
-const getDummyHash = (): Promise<string> => {
-  if (!dummyHashPromise) {
-    dummyHashPromise = bcrypt.hash(DUMMY_PASSWORD, BCRYPT_COST).catch((err: unknown) => {
-      dummyHashPromise = null;
-      throw err;
-    });
-  }
-  return dummyHashPromise;
-};
-
-const registerLocal = async (
-  email: string,
-  password: string,
-  name: string,
-): Promise<{ id: number; email: string }> => {
-  const existing = await db
-    .select()
-    .from(usersTable)
-    .where(and(eq(usersTable.email, email), isNull(usersTable.deletedAt)));
-
-  if (existing.length > 0) {
-    throw new HttpError(409, "User with this email already exists");
-  }
-
-  const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
-
-  const result = await db.transaction(async (tx) => {
-    const [user] = await tx
-      .insert(usersTable)
-      .values({ email, name, authProvider: "local" })
-      .returning();
-
-    await tx.insert(userAuthMethodsTable).values({
-      userId: user.id,
-      provider: "local",
-      passwordHash,
-      verified: false,
-    });
-
-    const defaultGroup = await tx
-      .select()
-      .from(groupsTable)
-      .where(eq(groupsTable.name, "users"));
-
-    if (defaultGroup.length > 0) {
-      await tx.insert(userGroupsTable).values({
-        userId: user.id,
-        groupId: defaultGroup[0].id,
-      });
-    }
-
-    return user;
-  });
-
-  await requestEmailVerification(result.id);
-
-  return { id: result.id, email: result.email };
-};
+const REGISTRATION_KEY = "global";
+export const registrationLimiter = new SlidingWindowLimiter(REGISTRATIONS_PER_HOUR, 60 * 60 * 1000);
+export const totpFailureLimiter = new SlidingWindowLimiter(TOTP_FAILURES_PER_WINDOW, TOTP_FAILURE_WINDOW_MS);
 
 /**
- * Kolejność sprawdzeń chroni przed enumeracją kont: brak konta, brak metody lokalnej i złe hasło
- * dają ten sam 401 po tym samym koszcie bcrypt; „Email not verified” (403) dopiero po poprawnym haśle.
+ * `aud` tokenów modelu kont T13. Tokeny sprzed migracji `0002` (bez `aud`) są odrzucane: po migracji
+ * identyfikatory kont zaczynają się od nowa, więc stary token mógłby wskazywać cudze, nowe konto.
  */
-const loginLocal = async (
-  email: string,
-  password: string,
-): Promise<{ token: string }> => {
-  const users = await db
-    .select()
-    .from(usersTable)
-    .where(and(eq(usersTable.email, email), isNull(usersTable.deletedAt)));
+export const TOKEN_AUDIENCE = "mars-terraform:account-v1";
 
-  const user = users.length > 0 ? users[0] : null;
-
-  const authMethods = user
-    ? await db
-        .select()
-        .from(userAuthMethodsTable)
-        .where(
-          and(
-            eq(userAuthMethodsTable.userId, user.id),
-            eq(userAuthMethodsTable.provider, "local"),
-          ),
-        )
-    : [];
-
-  const passwordHash = authMethods.length > 0 ? authMethods[0].passwordHash : null;
-
-  if (!user || !passwordHash) {
-    await bcrypt.compare(password, await getDummyHash());
-    throw new HttpError(401, "Invalid credentials");
-  }
-
-  const valid = await bcrypt.compare(password, passwordHash);
-  if (!valid) {
-    throw new HttpError(401, "Invalid credentials");
-  }
-
-  if (!user.emailVerifiedAt) {
-    throw new HttpError(403, "Email not verified. Please verify your email before logging in.");
-  }
-
-  const payload: JwtPayload = { userId: user.id, email: user.email };
-  const token = jwt.sign(payload, config.jwtSecret, {
+const generateToken = (payload: JwtPayload): string =>
+  jwt.sign(payload, config.jwtSecret, {
     expiresIn: config.jwtExpiresIn as jwt.SignOptions["expiresIn"],
+    audience: TOKEN_AUDIENCE,
   });
-
-  return { token };
-};
 
 const verifyToken = (token: string): JwtPayload => {
-  return jwt.verify(token, config.jwtSecret) as JwtPayload;
+  const decoded = jwt.verify(token, config.jwtSecret, { audience: TOKEN_AUDIENCE });
+  if (typeof decoded !== "object" || typeof decoded.userId !== "number") {
+    throw new Error("Invalid token payload");
+  }
+  return { userId: decoded.userId };
 };
 
-const changePassword = async (
-  userId: number,
-  oldPassword: string,
-  newPassword: string,
-): Promise<void> => {
-  const authMethods = await db
-    .select()
-    .from(userAuthMethodsTable)
-    .where(
-      and(
-        eq(userAuthMethodsTable.userId, userId),
-        eq(userAuthMethodsTable.provider, "local"),
-      ),
-    );
-
-  if (authMethods.length === 0) {
-    throw new HttpError(400, "No local auth method found");
-  }
-
-  const valid = await bcrypt.compare(oldPassword, authMethods[0].passwordHash!);
-  if (!valid) {
-    throw new HttpError(403, "Invalid current password");
-  }
-
-  const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
-
-  await db
-    .update(userAuthMethodsTable)
-    .set({ passwordHash: newPasswordHash })
-    .where(eq(userAuthMethodsTable.id, authMethods[0].id));
-};
-
-const generateToken = (): string => {
-  return crypto.randomBytes(32).toString("hex");
-};
-
-/** Zawsze kończy się sukcesem dla klienta (anty-enumeracja); e-mail tylko dla istniejącego konta. */
-const requestPasswordReset = async (email: string): Promise<void> => {
-  const users = await db
-    .select()
-    .from(usersTable)
-    .where(and(eq(usersTable.email, email), isNull(usersTable.deletedAt)));
-
-  if (users.length === 0) {
-    return;
-  }
-
-  const user = users[0];
-
-  try {
-    const token = generateToken();
-    const expiresAt = new Date(Date.now() + 3600000);
-
-    await db.delete(passwordResetsTable).where(eq(passwordResetsTable.userId, user.id));
-
-    await db.insert(passwordResetsTable).values({
-      userId: user.id,
-      token,
-      expiresAt,
-    });
-
-    const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
-
-    await emailService.send({
-      to: email,
-      subject: "Password Reset Request",
-      text: `You requested a password reset. Click the link to reset your password: ${resetUrl}\n\nThis link will expire in 1 hour.`,
-    });
-  } catch (err: unknown) {
-    // Błąd (np. SMTP) występuje tylko dla istniejącego konta: 5xx zdradziłby jego istnienie, więc tylko log.
-    console.error("[auth] password reset email failed:", err);
-  }
-};
-
-const resetPassword = async (token: string, newPassword: string): Promise<void> => {
-  const resets = await db
-    .select()
-    .from(passwordResetsTable)
-    .where(and(eq(passwordResetsTable.token, token), gt(passwordResetsTable.expiresAt, new Date())));
-
-  if (resets.length === 0) {
-    throw new HttpError(400, "Invalid or expired reset token");
-  }
-
-  const reset = resets[0];
-  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
-
-  await db
-    .update(userAuthMethodsTable)
-    .set({ passwordHash })
-    .where(
-      and(
-        eq(userAuthMethodsTable.userId, reset.userId),
-        eq(userAuthMethodsTable.provider, "local"),
-      ),
-    );
-
-  await db.delete(passwordResetsTable).where(eq(passwordResetsTable.userId, reset.userId));
-};
-
-/** Nowy token weryfikacyjny (poprzednie unieważnione) + e-mail z linkiem. */
-const sendVerificationEmail = async (userId: number, email: string): Promise<void> => {
-  await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.userId, userId));
-
-  const token = generateToken();
-  const expiresAt = new Date(Date.now() + 86400000);
-
-  await db.insert(emailVerificationsTable).values({
-    userId,
-    token,
-    expiresAt,
-  });
-
-  const verifyUrl = `${config.frontendUrl}/verify-email?token=${token}`;
-
-  await emailService.send({
-    to: email,
-    subject: "Verify Your Email",
-    text: `Please verify your email by clicking this link: ${verifyUrl}\n\nThis link will expire in 24 hours.`,
-  });
-};
-
-const requestEmailVerification = async (userId: number): Promise<void> => {
-  const users = await db
-    .select()
-    .from(usersTable)
-    .where(and(eq(usersTable.id, userId), isNull(usersTable.deletedAt)));
-
-  if (users.length === 0) {
-    // Wywoływane tylko z id właśnie utworzonego użytkownika (rejestracja) → naruszenie niezmiennika, 5xx.
-    throw new Error("User not found");
-  }
-
-  const user = users[0];
-
-  if (user.emailVerifiedAt) {
-    throw new HttpError(409, "Email already verified");
-  }
-
-  await sendVerificationEmail(user.id, user.email);
-};
-
-const verifyEmail = async (token: string): Promise<void> => {
-  const verifications = await db
-    .select()
-    .from(emailVerificationsTable)
-    .where(
-      and(
-        eq(emailVerificationsTable.token, token),
-        gt(emailVerificationsTable.expiresAt, new Date()),
-      ),
-    );
-
-  if (verifications.length === 0) {
-    throw new HttpError(400, "Invalid or expired verification token");
-  }
-
-  const verification = verifications[0];
-
-  await db
-    .update(usersTable)
-    .set({ emailVerifiedAt: new Date() })
-    .where(eq(usersTable.id, verification.userId));
-
-  await db
-    .update(userAuthMethodsTable)
-    .set({ verified: true })
-    .where(eq(userAuthMethodsTable.userId, verification.userId));
-
-  await db.delete(emailVerificationsTable).where(eq(emailVerificationsTable.id, verification.id));
+const findUser = async (userId: number) => {
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  return user ?? null;
 };
 
 /**
- * Zawsze kończy się sukcesem dla klienta (anty-enumeracja): brak konta albo konto już zweryfikowane
- * → bez wysyłki i bez błędu; niezweryfikowane → nowy link. Błąd wysyłki jest tylko logowany,
- * bo 5xx pojawiałby się wyłącznie dla istniejących, niezweryfikowanych kont.
+ * Nowe konto. Numer konta jest zwracany JEDEN raz (w bazie zostaje tylko HMAC) i nie da się go odzyskać.
  */
-const resendVerification = async (email: string): Promise<void> => {
-  const users = await db
+const register = async (now: Date = new Date()): Promise<{ accountNumber: string; token: string }> => {
+  if (!registrationLimiter.hit(REGISTRATION_KEY, now.getTime())) {
+    throw new HttpError(429, "Too many new accounts, try again later");
+  }
+  const accountNumber = generateAccountNumber();
+  const [user] = await db
+    .insert(usersTable)
+    .values({
+      accountHash: hashAccountNumber(accountNumber, config.accountSecret),
+      lastLoginAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning({ id: usersTable.id });
+
+  return { accountNumber: formatAccountNumber(accountNumber), token: generateToken({ userId: user.id }) };
+};
+
+/**
+ * Logowanie numerem konta. Przy włączonym TOTP wymagany jest kod: brak kodu -> 401 `TOTP code required`,
+ * zły kod -> 401 (liczony do limitu), po wyczerpaniu limitu -> 429.
+ */
+const login = async (accountNumber: string, totpCode?: string, now: Date = new Date()): Promise<{ token: string }> => {
+  const normalized = normalizeAccountNumber(accountNumber);
+  if (!normalized) throw new HttpError(401, INVALID_CREDENTIALS);
+
+  const [user] = await db
     .select()
     .from(usersTable)
-    .where(and(eq(usersTable.email, email), isNull(usersTable.deletedAt)));
+    .where(eq(usersTable.accountHash, hashAccountNumber(normalized, config.accountSecret)));
+  if (!user) throw new HttpError(401, INVALID_CREDENTIALS);
 
-  if (users.length === 0) {
-    return;
+  const updates: Partial<typeof usersTable.$inferInsert> = { lastLoginAt: now };
+  if (user.totpEnabled) {
+    if (!totpCode) throw new HttpError(401, TOTP_REQUIRED);
+    const step = checkTotp(user.id, user.totpSecret, user.totpLastStep, totpCode, now);
+    updates.totpLastStep = step;
   }
 
-  const user = users[0];
+  await db.update(usersTable).set(updates).where(eq(usersTable.id, user.id));
+  return { token: generateToken({ userId: user.id }) };
+};
 
-  if (user.emailVerifiedAt) {
-    return;
+/** Weryfikuje kod TOTP z limitem błędnych prób na konto. Zwraca użyty krok (ochrona przed powtórzeniem). */
+const checkTotp = (
+  userId: number,
+  encryptedSecret: string | null,
+  lastStep: number | null,
+  code: string,
+  now: Date,
+  invalidStatus: 400 | 401 = 401,
+): number => {
+  const key = `user:${userId}`;
+  if (totpFailureLimiter.isLimited(key, now.getTime())) {
+    throw new HttpError(429, "Too many invalid codes, try again in 15 minutes");
   }
+  if (!encryptedSecret) throw new HttpError(409, "Authenticator is not set up");
+  const step = verifyTotp(decryptSecret(encryptedSecret, config.accountSecret), code, now.getTime(), lastStep);
+  if (step === null) {
+    totpFailureLimiter.hit(key, now.getTime());
+    throw new HttpError(invalidStatus, invalidStatus === 401 ? INVALID_CREDENTIALS : "Invalid authenticator code");
+  }
+  totpFailureLimiter.reset(key);
+  return step;
+};
 
-  try {
-    await sendVerificationEmail(user.id, user.email);
-  } catch (err: unknown) {
-    console.error("[auth] verification email failed:", err);
-  }
+const me = async (userId: number) => {
+  const user = await findUser(userId);
+  if (!user) return null;
+  return {
+    id: user.id,
+    nickname: user.nickname,
+    totpEnabled: user.totpEnabled,
+    createdAt: user.createdAt,
+    lastLoginAt: user.lastLoginAt,
+  };
+};
+
+/**
+ * Krok 1 włączenia authenticatora: nowy sekret (zapisany zaszyfrowany, jeszcze nieaktywny).
+ * Ponowne wywołanie przed aktywacją podmienia sekret. Przy aktywnym TOTP -> 409.
+ */
+const totpSetup = async (userId: number): Promise<{ secret: string; otpauthUri: string }> => {
+  const user = await findUser(userId);
+  if (!user) throw new HttpError(404, "User not found");
+  if (user.totpEnabled) throw new HttpError(409, "Authenticator is already enabled");
+
+  const secret = generateTotpSecret();
+  await db
+    .update(usersTable)
+    .set({ totpSecret: encryptSecret(secret, config.accountSecret), totpLastStep: null, updatedAt: new Date() })
+    .where(eq(usersTable.id, userId));
+  return { secret, otpauthUri: buildOtpAuthUri(secret, user.nickname || `Gracz ${user.id}`) };
+};
+
+/** Krok 2: aktywacja po podaniu poprawnego kodu z aplikacji. */
+const totpEnable = async (userId: number, code: string, now: Date = new Date()): Promise<void> => {
+  const user = await findUser(userId);
+  if (!user) throw new HttpError(404, "User not found");
+  if (user.totpEnabled) throw new HttpError(409, "Authenticator is already enabled");
+  const step = checkTotp(user.id, user.totpSecret, user.totpLastStep, code, now, 400);
+  await db
+    .update(usersTable)
+    .set({ totpEnabled: true, totpLastStep: step, updatedAt: now })
+    .where(eq(usersTable.id, userId));
+};
+
+/** Wyłączenie authenticatora wymaga aktualnego kodu (ktoś z samym tokenem nie wyłączy 2FA). */
+const totpDisable = async (userId: number, code: string, now: Date = new Date()): Promise<void> => {
+  const user = await findUser(userId);
+  if (!user) throw new HttpError(404, "User not found");
+  if (!user.totpEnabled) throw new HttpError(409, "Authenticator is not enabled");
+  checkTotp(user.id, user.totpSecret, user.totpLastStep, code, now, 400);
+  await db
+    .update(usersTable)
+    .set({ totpEnabled: false, totpSecret: null, totpLastStep: null, updatedAt: now })
+    .where(eq(usersTable.id, userId));
 };
 
 export const authService = {
-  registerLocal,
-  loginLocal,
+  register,
+  login,
+  me,
+  totpSetup,
+  totpEnable,
+  totpDisable,
+  generateToken,
   verifyToken,
-  changePassword,
-  requestPasswordReset,
-  resetPassword,
-  requestEmailVerification,
-  verifyEmail,
-  resendVerification,
 };

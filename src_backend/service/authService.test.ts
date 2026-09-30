@@ -1,353 +1,205 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import * as jwt from "jsonwebtoken";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import path from "node:path";
+import jwt from "jsonwebtoken";
+import { eq } from "drizzle-orm";
+import { migrate } from "drizzle-orm/libsql/migrator";
 
-vi.mock("../data-source", () => ({
-  db: {
-    select: vi.fn(),
-    insert: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    transaction: vi.fn(),
-  },
-}));
+/**
+ * T13: konta bez danych osobowych (numer konta + opcjonalny TOTP) na PRAWDZIWEJ bazie SQLite
+ * (plik tymczasowy, schemat z migracji `drizzle/`).
+ */
+vi.mock("../data-source", async () => {
+  const fs = await import("node:fs");
+  const os = await import("node:os");
+  const nodePath = await import("node:path");
+  const { pathToFileURL } = await import("node:url");
+  const { createClient } = await import("@libsql/client");
+  const { drizzle } = await import("drizzle-orm/libsql");
+  const schema = await import("../db/schema");
+  const dir = fs.mkdtempSync(nodePath.join(os.tmpdir(), "mars-auth-"));
+  const client = createClient({ url: pathToFileURL(nodePath.join(dir, "test.db")).href });
+  return { db: drizzle(client, { schema }), testClient: client, testDir: dir };
+});
 
 vi.mock("../config", () => ({
   config: {
     jwtSecret: "test-secret",
     jwtExpiresIn: "1h",
-    frontendUrl: "http://localhost:5173",
+    accountSecret: "test-account-secret-at-least-32-characters",
   },
 }));
 
-vi.mock("bcrypt", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("bcrypt")>();
-  return { ...actual, compare: vi.fn(actual.compare) };
+import * as dataSource from "../data-source";
+import { usersTable } from "../db/schema";
+import {
+  authService,
+  INVALID_CREDENTIALS,
+  REGISTRATIONS_PER_HOUR,
+  registrationLimiter,
+  TOKEN_AUDIENCE,
+  TOTP_FAILURES_PER_WINDOW,
+  TOTP_REQUIRED,
+  totpFailureLimiter,
+} from "./authService";
+import { base32Decode, hotp, totpStep } from "./accountCrypto";
+
+interface TestDataSource {
+  db: typeof dataSource.db;
+  testClient: { close: () => void };
+  testDir: string;
+}
+const { db, testClient, testDir } = dataSource as unknown as TestDataSource;
+
+const NOW = new Date("2026-09-27T12:00:00Z");
+const codeAt = (secret: string, date: Date, offsetSteps = 0): string =>
+  hotp(base32Decode(secret), totpStep(date.getTime()) + offsetSteps);
+
+const userIdFromToken = (token: string): number => authService.verifyToken(token).userId;
+
+beforeAll(async () => {
+  await migrate(db, { migrationsFolder: path.resolve(process.cwd(), "drizzle") });
 });
 
-vi.mock("./emailService", () => ({
-  emailService: {
-    send: vi.fn().mockResolvedValue(undefined),
-  },
-}));
+beforeEach(async () => {
+  await db.delete(usersTable);
+  registrationLimiter.reset("global");
+});
 
-import * as bcrypt from "bcrypt";
-import { authService } from "../service/authService";
-import { HttpError } from "../errors/HttpError";
-import { db } from "../data-source";
-import { emailService } from "./emailService";
+afterAll(async () => {
+  testClient.close();
+  const fs = await import("node:fs");
+  try {
+    fs.rmSync(testDir, { recursive: true, force: true });
+  } catch {
+    // Windows potrafi trzymać blokadę pliku SQLite chwilę po close().
+  }
+});
 
-describe("authService", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+describe("register", () => {
+  it("zwraca numer konta w formacie XXXX-XXXX-XXXX-XXXX-XXXX i token; w bazie jest tylko hash", async () => {
+    const { accountNumber, token } = await authService.register(NOW);
+
+    expect(accountNumber).toMatch(/^([0-9A-HJKMNP-TV-Z]{4}-){4}[0-9A-HJKMNP-TV-Z]{4}$/);
+    const [row] = await db.select().from(usersTable);
+    expect(row.id).toBe(userIdFromToken(token));
+    expect(row.accountHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(row)).not.toContain(accountNumber.replace(/-/g, ""));
+    expect(row.totpEnabled).toBe(false);
   });
 
-  describe("verifyToken", () => {
-    it("should verify a valid JWT token", () => {
-      const token = jwt.sign({ userId: 1, email: "test@test.com" }, "test-secret", {
-        expiresIn: "1h",
-      });
+  it(`po ${REGISTRATIONS_PER_HOUR} kontach w godzinie zwraca 429 (limit globalny, bez IP)`, async () => {
+    for (let i = 0; i < REGISTRATIONS_PER_HOUR; i += 1) registrationLimiter.hit("global", NOW.getTime());
+    await expect(authService.register(NOW)).rejects.toMatchObject({ status: 429 });
+    expect(await db.select().from(usersTable)).toHaveLength(0);
+  });
+});
 
-      const payload = authService.verifyToken(token);
-      expect(payload.userId).toBe(1);
-      expect(payload.email).toBe("test@test.com");
-    });
+describe("login numerem konta", () => {
+  it("przyjmuje numer z myślnikami, bez nich i małymi literami; aktualizuje last_login_at", async () => {
+    const { accountNumber, token } = await authService.register(NOW);
+    const id = userIdFromToken(token);
+    const later = new Date(NOW.getTime() + 60_000);
 
-    it("should reject an invalid JWT token", () => {
-      expect(() => authService.verifyToken("invalid-token")).toThrow();
-    });
-
-    it("should reject a token signed with wrong secret", () => {
-      const token = jwt.sign({ userId: 1, email: "test@test.com" }, "wrong-secret", {
-        expiresIn: "1h",
-      });
-
-      expect(() => authService.verifyToken(token)).toThrow();
-    });
+    for (const variant of [accountNumber, accountNumber.replace(/-/g, ""), accountNumber.toLowerCase()]) {
+      const result = await authService.login(variant, undefined, later);
+      expect(userIdFromToken(result.token)).toBe(id);
+    }
+    const [row] = await db.select().from(usersTable).where(eq(usersTable.id, id));
+    expect(row.lastLoginAt?.getTime()).toBe(Math.floor(later.getTime() / 1000) * 1000);
   });
 
-  describe("loginLocal", () => {
-    it("should throw for non-existent user", async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
+  it("nieznany i niepoprawny numer -> ten sam 401", async () => {
+    await authService.register(NOW);
+    await expect(authService.login("7KQ2-M9XA-4TRE-01ZC-8HNP")).rejects.toMatchObject({ status: 401, message: INVALID_CREDENTIALS });
+    await expect(authService.login("zly-numer")).rejects.toMatchObject({ status: 401, message: INVALID_CREDENTIALS });
+  });
+});
 
-      await expect(authService.loginLocal("no@user.com", "pass")).rejects.toMatchObject({ name: "HttpError", status: 401, message: "Invalid credentials" });
-    });
+describe("authenticator (TOTP)", () => {
+  const registerWithTotp = async () => {
+    const { accountNumber, token } = await authService.register(NOW);
+    const userId = userIdFromToken(token);
+    const { secret, otpauthUri } = await authService.totpSetup(userId);
+    await authService.totpEnable(userId, codeAt(secret, NOW), NOW);
+    totpFailureLimiter.reset(`user:${userId}`);
+    return { accountNumber, userId, secret, otpauthUri };
+  };
+
+  it("setup daje sekret i link otpauth; do aktywacji logowanie działa bez kodu, sekret jest zaszyfrowany", async () => {
+    const { accountNumber, token } = await authService.register(NOW);
+    const userId = userIdFromToken(token);
+    const { secret, otpauthUri } = await authService.totpSetup(userId);
+
+    expect(secret).toMatch(/^[A-Z2-7]{32}$/);
+    expect(otpauthUri).toContain(`secret=${secret}`);
+    const [row] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+    expect(row.totpEnabled).toBe(false);
+    expect(row.totpSecret).not.toContain(secret);
+    await expect(authService.login(accountNumber)).resolves.toHaveProperty("token");
   });
 
-  describe("registerLocal", () => {
-    it("should throw if email already exists", async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, email: "exists@test.com" }]),
-        }),
-      });
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
+  it("aktywacja: zły kod -> 400, dobry -> włączone", async () => {
+    const { token } = await authService.register(NOW);
+    const userId = userIdFromToken(token);
+    const { secret } = await authService.totpSetup(userId);
 
-      await expect(
-        authService.registerLocal("exists@test.com", "pass", "name"),
-      ).rejects.toMatchObject({ name: "HttpError", status: 409, message: "User with this email already exists" });
-    });
+    await expect(authService.totpEnable(userId, "000000", NOW)).rejects.toMatchObject({ status: 400 });
+    await authService.totpEnable(userId, codeAt(secret, NOW), NOW);
+    expect((await authService.me(userId))?.totpEnabled).toBe(true);
+    await expect(authService.totpSetup(userId)).rejects.toMatchObject({ status: 409 });
   });
 
-  describe("loginLocal", () => {
-    it("should throw 403 if the password is correct but email is not verified", async () => {
-      const passwordHash = await bcrypt.hash("pass", 4);
-      const mockSelect = vi.fn();
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, email: "test@test.com", emailVerifiedAt: null }]),
-        }),
-      });
-      mockSelect.mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 10, userId: 1, provider: "local", passwordHash }]),
-        }),
-      });
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
+  it("po włączeniu: bez kodu 401 TOTP required, z dobrym kodem OK, ten sam kod drugi raz 401", async () => {
+    const { accountNumber, secret } = await registerWithTotp();
+    const t = new Date(NOW.getTime() + 60_000);
 
-      await expect(authService.loginLocal("test@test.com", "pass")).rejects.toMatchObject({ name: "HttpError", status: 403, message: expect.stringContaining("Email not verified") });
-    });
+    await expect(authService.login(accountNumber, undefined, t)).rejects.toMatchObject({ status: 401, message: TOTP_REQUIRED });
+    await expect(authService.login(accountNumber, codeAt(secret, t), t)).resolves.toHaveProperty("token");
+    await expect(authService.login(accountNumber, codeAt(secret, t), t)).rejects.toMatchObject({ status: 401, message: INVALID_CREDENTIALS });
   });
 
-  describe("requestPasswordReset", () => {
-    it("should silently return if user not found", async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
+  it(`po ${TOTP_FAILURES_PER_WINDOW} złych kodach -> 429 nawet dla dobrego kodu`, async () => {
+    const { accountNumber, secret } = await registerWithTotp();
+    const t = new Date(NOW.getTime() + 60_000);
 
-      await expect(authService.requestPasswordReset("no@user.com")).resolves.toBeUndefined();
-    });
+    for (let i = 0; i < TOTP_FAILURES_PER_WINDOW; i += 1) {
+      await expect(authService.login(accountNumber, "000000", t)).rejects.toMatchObject({ status: 401 });
+    }
+    await expect(authService.login(accountNumber, codeAt(secret, t), t)).rejects.toMatchObject({ status: 429 });
   });
 
-  describe("resetPassword", () => {
-    it("should throw for invalid token", async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
+  it("wyłączenie wymaga aktualnego kodu; potem logowanie bez kodu", async () => {
+    const { accountNumber, userId, secret } = await registerWithTotp();
+    const t = new Date(NOW.getTime() + 60_000);
 
-      await expect(authService.resetPassword("invalid-token", "newpass")).rejects.toMatchObject({ name: "HttpError", status: 400, message: "Invalid or expired reset token" });
-    });
+    await expect(authService.totpDisable(userId, "000000", t)).rejects.toMatchObject({ status: 400 });
+    await authService.totpDisable(userId, codeAt(secret, t), t);
+    const [row] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+    expect(row.totpEnabled).toBe(false);
+    expect(row.totpSecret).toBeNull();
+    await expect(authService.login(accountNumber)).resolves.toHaveProperty("token");
+    await expect(authService.totpDisable(userId, "123456", t)).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe("tokeny i profil", () => {
+  it("odrzuca stare tokeny bez aud (sprzed migracji 0002) i tokeny z innym sekretem", () => {
+    const legacy = jwt.sign({ userId: 1, email: "old@mars.test" }, "test-secret", { expiresIn: "1h" });
+    const foreign = jwt.sign({ userId: 1 }, "other-secret", { expiresIn: "1h", audience: TOKEN_AUDIENCE });
+    expect(() => authService.verifyToken(legacy)).toThrow();
+    expect(() => authService.verifyToken(foreign)).toThrow();
   });
 
-  describe("verifyEmail", () => {
-    it("should throw for invalid token", async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
-
-      await expect(authService.verifyEmail("invalid-token")).rejects.toMatchObject({ name: "HttpError", status: 400, message: "Invalid or expired verification token" });
+  it("me zwraca profil bez hasha numeru i sekretu TOTP", async () => {
+    const { token } = await authService.register(NOW);
+    const profile = await authService.me(userIdFromToken(token));
+    expect(profile).toEqual({
+      id: userIdFromToken(token),
+      nickname: null,
+      totpEnabled: false,
+      createdAt: expect.any(Date),
+      lastLoginAt: expect.any(Date),
     });
-  });
-
-  describe("resendVerification", () => {
-    it("should silently return without sending if user not found", async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([]),
-        }),
-      });
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
-
-      await expect(authService.resendVerification("no@user.com")).resolves.toBeUndefined();
-      expect(emailService.send).not.toHaveBeenCalled();
-    });
-
-    it("should silently return without sending if email already verified", async () => {
-      const mockSelect = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ id: 1, email: "test@test.com", emailVerifiedAt: new Date() }]),
-        }),
-      });
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
-
-      await expect(authService.resendVerification("test@test.com")).resolves.toBeUndefined();
-      expect(emailService.send).not.toHaveBeenCalled();
-      expect(db.insert).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("client error statuses", () => {
-    const VERIFIED_USER = { id: 1, email: "test@test.com", emailVerifiedAt: new Date() };
-
-    const mockSelectResults = (...results: unknown[][]): void => {
-      const mockSelect = vi.fn();
-      for (const rows of results) {
-        mockSelect.mockReturnValueOnce({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue(rows),
-          }),
-        });
-      }
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
-    };
-
-    const INVALID_CREDENTIALS = { name: "HttpError", status: 401, message: "Invalid credentials" };
-
-    it("loginLocal answers an unknown email and a wrong password with the same 401", async () => {
-      const passwordHash = await bcrypt.hash("correct", 4);
-
-      mockSelectResults([]);
-      await expect(authService.loginLocal("no@user.com", "correct")).rejects.toMatchObject(
-        INVALID_CREDENTIALS,
-      );
-
-      mockSelectResults([VERIFIED_USER], [{ id: 10, userId: 1, provider: "local", passwordHash }]);
-      await expect(authService.loginLocal("test@test.com", "wrong")).rejects.toMatchObject(
-        INVALID_CREDENTIALS,
-      );
-    });
-
-    it("loginLocal answers a user without a local auth method with the same 401", async () => {
-      mockSelectResults([VERIFIED_USER], []);
-
-      await expect(authService.loginLocal("test@test.com", "pass")).rejects.toMatchObject(
-        INVALID_CREDENTIALS,
-      );
-    });
-
-    it("changePassword rejects an account without a local auth method with 400", async () => {
-      mockSelectResults([]);
-
-      await expect(authService.changePassword(1, "old", "new")).rejects.toMatchObject({
-        name: "HttpError",
-        status: 400,
-        message: "No local auth method found",
-      });
-    });
-
-    it("changePassword rejects a wrong current password with 403 (not 401, which means logged out)", async () => {
-      const passwordHash = await bcrypt.hash("correct", 4);
-      mockSelectResults([{ id: 10, userId: 1, provider: "local", passwordHash }]);
-
-      await expect(authService.changePassword(1, "wrong", "new")).rejects.toMatchObject({
-        name: "HttpError",
-        status: 403,
-        message: "Invalid current password",
-      });
-    });
-
-    it("requestEmailVerification keeps a missing user as a server error (internal invariant)", async () => {
-      mockSelectResults([]);
-
-      const error: unknown = await authService.requestEmailVerification(1).catch((err: unknown) => err);
-      expect(error).toBeInstanceOf(Error);
-      expect(error).not.toBeInstanceOf(HttpError);
-      expect(error).toMatchObject({ message: "User not found" });
-    });
-  });
-
-  describe("account enumeration (T3c)", () => {
-    const UNVERIFIED_USER = { id: 2, email: "new@test.com", emailVerifiedAt: null };
-
-    const mockSelectResults = (...results: unknown[][]): void => {
-      const mockSelect = vi.fn();
-      for (const rows of results) {
-        mockSelect.mockReturnValueOnce({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue(rows),
-          }),
-        });
-      }
-      (db.select as ReturnType<typeof vi.fn>).mockImplementation(mockSelect);
-    };
-
-    const mockWrites = (): void => {
-      (db.delete as ReturnType<typeof vi.fn>).mockReturnValue({
-        where: vi.fn().mockResolvedValue(undefined),
-      });
-      (db.insert as ReturnType<typeof vi.fn>).mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
-      });
-    };
-
-    it("loginLocal checks the password before email verification (unverified + wrong password → 401)", async () => {
-      const passwordHash = await bcrypt.hash("correct", 4);
-      mockSelectResults([UNVERIFIED_USER], [{ id: 20, userId: 2, provider: "local", passwordHash }]);
-
-      await expect(authService.loginLocal("new@test.com", "wrong")).rejects.toMatchObject({
-        name: "HttpError",
-        status: 401,
-        message: "Invalid credentials",
-      });
-    });
-
-    it("loginLocal runs bcrypt.compare against a dummy hash for an unknown email", async () => {
-      const compare = vi.mocked(bcrypt.compare);
-      mockSelectResults([]);
-
-      await expect(authService.loginLocal("no@user.com", "whatever")).rejects.toMatchObject({
-        status: 401,
-        message: "Invalid credentials",
-      });
-      expect(compare).toHaveBeenCalledTimes(1);
-      const [password, hash] = compare.mock.calls[0];
-      expect(password).toBe("whatever");
-      expect(String(hash)).toMatch(/^\$2[aby]\$10\$/);
-    });
-
-    it("loginLocal runs bcrypt.compare for a user without a local auth method", async () => {
-      const compare = vi.mocked(bcrypt.compare);
-      mockSelectResults([UNVERIFIED_USER], []);
-
-      await expect(authService.loginLocal("new@test.com", "whatever")).rejects.toMatchObject({
-        status: 401,
-        message: "Invalid credentials",
-      });
-      expect(compare).toHaveBeenCalledTimes(1);
-    });
-
-    it("resendVerification sends a new link to an unverified account", async () => {
-      mockSelectResults([UNVERIFIED_USER]);
-      mockWrites();
-
-      await expect(authService.resendVerification("new@test.com")).resolves.toBeUndefined();
-      expect(emailService.send).toHaveBeenCalledTimes(1);
-      expect(emailService.send).toHaveBeenCalledWith(
-        expect.objectContaining({ to: "new@test.com", subject: "Verify Your Email" }),
-      );
-    });
-
-    it("resendVerification logs a delivery failure instead of throwing", async () => {
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-      try {
-        mockSelectResults([UNVERIFIED_USER]);
-        mockWrites();
-        const failure = new Error("SMTP connection refused");
-        vi.mocked(emailService.send).mockRejectedValueOnce(failure);
-
-        await expect(authService.resendVerification("new@test.com")).resolves.toBeUndefined();
-        expect(consoleError).toHaveBeenCalledWith("[auth] verification email failed:", failure);
-      } finally {
-        consoleError.mockRestore();
-      }
-    });
-
-    it("requestPasswordReset logs a delivery failure instead of throwing", async () => {
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-      try {
-        mockSelectResults([UNVERIFIED_USER]);
-        mockWrites();
-        const failure = new Error("SMTP connection refused");
-        vi.mocked(emailService.send).mockRejectedValueOnce(failure);
-
-        await expect(authService.requestPasswordReset("new@test.com")).resolves.toBeUndefined();
-        expect(consoleError).toHaveBeenCalledWith("[auth] password reset email failed:", failure);
-      } finally {
-        consoleError.mockRestore();
-      }
-    });
+    await expect(authService.me(999_999)).resolves.toBeNull();
   });
 });

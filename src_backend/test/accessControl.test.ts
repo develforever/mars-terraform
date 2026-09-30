@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
-import jwt from "jsonwebtoken";
+import { signTestToken } from "./testToken";
 
 vi.mock("../data-source", () => ({
   db: {
@@ -80,7 +80,7 @@ const start = async (): Promise<string> => {
 };
 
 const bearer = (userId: number = SELF_ID): string =>
-  jwt.sign({ userId, email: `u${userId}@mars.test` }, "test-secret", { expiresIn: "1h" });
+  signTestToken(userId);
 
 const call = (
   baseUrl: string,
@@ -102,14 +102,12 @@ const mocked = <T extends (...args: never[]) => unknown>(fn: T) => fn as unknown
 
 const profile = {
   id: SELF_ID,
-  name: "Nowa nazwa",
-  email: "u7@mars.test",
-  authProvider: "local",
-  emailVerifiedAt: null,
-  createdAt: null,
-  updatedAt: null,
+  nickname: "Nowy pseudonim",
+  totpEnabled: false,
+  createdAt: new Date("2026-09-27T00:00:00Z"),
+  updatedAt: new Date("2026-09-27T00:00:00Z"),
+  lastLoginAt: null,
 };
-
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -132,7 +130,7 @@ describe("/api/users (T11): tylko własne konto", () => {
   it("brak dostępu po id: GET/PUT/DELETE /api/users/{id} -> 404, serwis nie jest wołany", async () => {
     const baseUrl = await start();
     expect((await call(baseUrl, "GET", `/api/users/${OTHER_ID}`)).status).toBe(404);
-    expect((await call(baseUrl, "PUT", `/api/users/${OTHER_ID}`, { body: { name: "x" } })).status).toBe(404);
+    expect((await call(baseUrl, "PUT", `/api/users/${OTHER_ID}`, { body: { nickname: "x" } })).status).toBe(404);
     expect((await call(baseUrl, "DELETE", `/api/users/${OTHER_ID}`)).status).toBe(404);
     expect(userService.deleteAccount).not.toHaveBeenCalled();
     expect(userService.update).not.toHaveBeenCalled();
@@ -162,22 +160,23 @@ describe("/api/users (T11): tylko własne konto", () => {
   });
 
   it("PUT /api/users/me aktualizuje konto z tokenu i zwraca tylko pola profilu", async () => {
-    mocked(userService.update).mockResolvedValue({ ...profile, providerId: "secret-provider-id", deletedAt: null });
+    mocked(userService.update).mockResolvedValue({ id: SELF_ID });
     mocked(userService.getById).mockResolvedValue(profile);
     const baseUrl = await start();
-    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { name: "Nowa nazwa" } });
+    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { nickname: "Nowy pseudonim" } });
     expect(res.status).toBe(200);
-    expect(userService.update).toHaveBeenCalledWith(SELF_ID, { name: "Nowa nazwa" });
+    expect(userService.update).toHaveBeenCalledWith(SELF_ID, { nickname: "Nowy pseudonim" });
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.id).toBe(SELF_ID);
-    expect(body).not.toHaveProperty("providerId");
-    expect(body).not.toHaveProperty("deletedAt");
+    expect(body).not.toHaveProperty("accountHash");
+    expect(body).not.toHaveProperty("totpSecret");
+    expect(body).not.toHaveProperty("updatedAt");
   });
 
   it("PUT /api/users/me dla usuniętego konta -> 404", async () => {
     mocked(userService.update).mockResolvedValue(null);
     const baseUrl = await start();
-    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { name: "x" } });
+    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { nickname: "x" } });
     expect(res.status).toBe(404);
   });
 });
@@ -201,28 +200,28 @@ describe("/api/users/me (T12): eksport, walidacja", () => {
     expect((await call(baseUrl, "GET", "/api/users/me/export", { token: null })).status).toBe(401);
   });
 
-  it("PUT /api/users/me odrzuca zmianę e-maila (400), bo wymagałaby ponownej weryfikacji", async () => {
+  it("PUT /api/users/me odrzuca pola spoza profilu, np. e-mail (400)", async () => {
     const baseUrl = await start();
-    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { name: "Ok", email: "new@mars.test" } });
+    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { nickname: "Ok", email: "new@mars.test" } });
     expect(res.status).toBe(400);
     expect(userService.update).not.toHaveBeenCalled();
   });
 
-  it("PUT /api/users/me odrzuca pustą i za długą nazwę (400)", async () => {
+  it("PUT /api/users/me odrzuca pusty i za długi pseudonim (400)", async () => {
     const baseUrl = await start();
-    expect((await call(baseUrl, "PUT", "/api/users/me", { body: { name: "   " } })).status).toBe(400);
-    expect((await call(baseUrl, "PUT", "/api/users/me", { body: { name: "x".repeat(101) } })).status).toBe(400);
+    expect((await call(baseUrl, "PUT", "/api/users/me", { body: { nickname: "   " } })).status).toBe(400);
+    expect((await call(baseUrl, "PUT", "/api/users/me", { body: { nickname: "x".repeat(33) } })).status).toBe(400);
     expect((await call(baseUrl, "PUT", "/api/users/me", { body: {} })).status).toBe(400);
     expect(userService.update).not.toHaveBeenCalled();
   });
 
-  it("PUT /api/users/me przycina spacje w nazwie", async () => {
+  it("PUT /api/users/me przycina spacje w pseudonimie", async () => {
     mocked(userService.update).mockResolvedValue({ id: SELF_ID });
     mocked(userService.getById).mockResolvedValue(profile);
     const baseUrl = await start();
-    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { name: "  Nowa nazwa  " } });
+    const res = await call(baseUrl, "PUT", "/api/users/me", { body: { nickname: "  Nowy pseudonim  " } });
     expect(res.status).toBe(200);
-    expect(userService.update).toHaveBeenCalledWith(SELF_ID, { name: "Nowa nazwa" });
+    expect(userService.update).toHaveBeenCalledWith(SELF_ID, { nickname: "Nowy pseudonim" });
   });
 });
 

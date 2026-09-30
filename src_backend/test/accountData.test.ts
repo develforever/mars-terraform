@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/libsql/migrator";
 
 /**
- * T12 (RODO): trwałe usunięcie konta, eksport danych i retencja na PRAWDZIWEJ bazie SQLite
+ * T12/T13 (RODO): trwałe usunięcie konta, eksport danych i retencja na PRAWDZIWEJ bazie SQLite
  * (plik tymczasowy, schemat z migracji `drizzle/`), bo liczy się, czy z bazy znikają wszystkie wiersze.
  */
 vi.mock("../data-source", async () => {
@@ -21,21 +21,12 @@ vi.mock("../data-source", async () => {
 });
 
 import * as dataSource from "../data-source";
-import {
-  coloniesTable,
-  emailVerificationsTable,
-  groupsTable,
-  mapsTable,
-  passwordResetsTable,
-  userAuthMethodsTable,
-  userGroupsTable,
-  usersTable,
-} from "../db/schema";
+import { coloniesTable, groupsTable, mapsTable, userGroupsTable, usersTable } from "../db/schema";
 import { userService } from "../service/userService";
 import {
+  INACTIVE_ACCOUNT_RETENTION_DAYS,
   purgeExpiredData,
   scheduleRetention,
-  UNVERIFIED_ACCOUNT_RETENTION_DAYS,
 } from "../service/retentionService";
 
 interface TestDataSource {
@@ -47,55 +38,46 @@ const { db, testClient, testDir } = dataSource as unknown as TestDataSource;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const NOW = new Date("2026-09-27T12:00:00Z");
-const RESET_TOKEN = "reset-token-secret-a";
-const VERIFY_TOKEN = "verify-token-secret-a";
-const PASSWORD_HASH = "$2b$12$hash-that-must-never-be-exported";
+const ACCOUNT_HASH_PREFIX = "hash-that-must-never-be-exported-";
+const TOTP_SECRET = "v1:encrypted-totp-secret-never-exported";
 
+let seq = 0;
 const createUser = async (
-  email: string,
-  options: { verified?: boolean; createdAt?: Date; deletedAt?: Date | null } = {},
+  options: { nickname?: string; createdAt?: Date; lastLoginAt?: Date | null } = {},
 ): Promise<number> => {
+  seq += 1;
   const [user] = await db
     .insert(usersTable)
     .values({
-      name: email.split("@")[0],
-      email,
-      emailVerifiedAt: options.verified === false ? null : NOW,
+      accountHash: `${ACCOUNT_HASH_PREFIX}${seq}`,
+      nickname: options.nickname ?? null,
+      totpSecret: TOTP_SECRET,
+      totpEnabled: true,
       createdAt: options.createdAt ?? NOW,
       updatedAt: options.createdAt ?? NOW,
-      deletedAt: options.deletedAt ?? null,
+      lastLoginAt: options.lastLoginAt === undefined ? NOW : options.lastLoginAt,
     })
     .returning({ id: usersTable.id });
   return user.id;
 };
 
-const seedFullAccount = async (email: string): Promise<number> => {
-  const userId = await createUser(email);
-  await db.insert(userAuthMethodsTable).values({ userId, provider: "local", passwordHash: PASSWORD_HASH, verified: true });
+const seedFullAccount = async (nickname: string): Promise<number> => {
+  const userId = await createUser({ nickname });
   const [group] = await db.select().from(groupsTable).where(eq(groupsTable.name, "players"));
   await db.insert(userGroupsTable).values({ userId, groupId: group.id });
-  await db.insert(mapsTable).values({ userId, name: `map-${email}`, data: JSON.stringify({ meta: { name: "Olympus" } }) });
-  await db.insert(coloniesTable).values({ userId, name: `colony-${email}`, state: JSON.stringify({ credits: 42 }) });
-  await db.insert(passwordResetsTable).values({ userId, token: `${RESET_TOKEN}-${email}`, expiresAt: new Date(NOW.getTime() + DAY_MS) });
-  await db.insert(emailVerificationsTable).values({ userId, token: `${VERIFY_TOKEN}-${email}`, expiresAt: new Date(NOW.getTime() + DAY_MS) });
+  await db.insert(mapsTable).values({ userId, name: `map-${nickname}`, data: JSON.stringify({ meta: { name: "Olympus" } }) });
+  await db.insert(coloniesTable).values({ userId, name: `colony-${nickname}`, state: JSON.stringify({ credits: 42 }) });
   return userId;
 };
 
-const countRows = async (userId: number): Promise<Record<string, number>> => {
-  const count = async (table: typeof coloniesTable | typeof mapsTable | typeof userGroupsTable | typeof userAuthMethodsTable | typeof passwordResetsTable | typeof emailVerificationsTable): Promise<number> =>
-    (await db.select().from(table).where(eq(table.userId, userId))).length;
-  return {
-    users: (await db.select().from(usersTable).where(eq(usersTable.id, userId))).length,
-    colonies: await count(coloniesTable),
-    maps: await count(mapsTable),
-    userGroups: await count(userGroupsTable),
-    authMethods: await count(userAuthMethodsTable),
-    passwordResets: await count(passwordResetsTable),
-    emailVerifications: await count(emailVerificationsTable),
-  };
-};
+const countRows = async (userId: number): Promise<Record<string, number>> => ({
+  users: (await db.select().from(usersTable).where(eq(usersTable.id, userId))).length,
+  colonies: (await db.select().from(coloniesTable).where(eq(coloniesTable.userId, userId))).length,
+  maps: (await db.select().from(mapsTable).where(eq(mapsTable.userId, userId))).length,
+  userGroups: (await db.select().from(userGroupsTable).where(eq(userGroupsTable.userId, userId))).length,
+});
 
-const ZERO = { users: 0, colonies: 0, maps: 0, userGroups: 0, authMethods: 0, passwordResets: 0, emailVerifications: 0 };
+const ZERO = { users: 0, colonies: 0, maps: 0, userGroups: 0 };
 
 beforeAll(async () => {
   await migrate(db, { migrationsFolder: path.resolve(process.cwd(), "drizzle") });
@@ -103,7 +85,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  for (const table of [coloniesTable, mapsTable, userGroupsTable, userAuthMethodsTable, passwordResetsTable, emailVerificationsTable]) {
+  for (const table of [coloniesTable, mapsTable, userGroupsTable]) {
     await db.delete(table);
   }
   await db.delete(usersTable);
@@ -121,58 +103,49 @@ afterAll(async () => {
 
 describe("userService.deleteAccount (RODO art. 17)", () => {
   it("usuwa konto i WSZYSTKIE powiązane wiersze, nie ruszając innych kont ani grup", async () => {
-    const victim = await seedFullAccount("a@mars.test");
-    const other = await seedFullAccount("b@mars.test");
+    const victim = await seedFullAccount("ares");
+    const other = await seedFullAccount("phobos");
 
     await expect(userService.deleteAccount(victim)).resolves.toBe(true);
 
     expect(await countRows(victim)).toEqual(ZERO);
-    expect(await countRows(other)).toEqual({
-      users: 1, colonies: 1, maps: 1, userGroups: 1, authMethods: 1, passwordResets: 1, emailVerifications: 1,
-    });
+    expect(await countRows(other)).toEqual({ users: 1, colonies: 1, maps: 1, userGroups: 1 });
     expect(await db.select().from(groupsTable)).toHaveLength(1);
   });
 
   it("zwraca false dla nieistniejącego konta", async () => {
     await expect(userService.deleteAccount(999_999)).resolves.toBe(false);
   });
-
-  it("po usunięciu ten sam e-mail można zarejestrować ponownie (brak konfliktu unikalności)", async () => {
-    const id = await seedFullAccount("again@mars.test");
-    await userService.deleteAccount(id);
-    await expect(createUser("again@mars.test")).resolves.toBeGreaterThan(0);
-  });
 });
 
 describe("userService.exportData (RODO art. 15 i 20)", () => {
-  it("zwraca profil, metody logowania, grupy, mapy i kolonie jako obiekty", async () => {
-    const id = await seedFullAccount("export@mars.test");
+  it("zwraca profil, grupy, mapy i kolonie jako obiekty", async () => {
+    const id = await seedFullAccount("deimos");
     const data = await userService.exportData(id);
 
     expect(data).not.toBeNull();
     expect(data!.formatVersion).toBe(1);
-    expect(data!.profile.email).toBe("export@mars.test");
-    expect(data!.authMethods).toEqual([expect.objectContaining({ provider: "local", verified: true })]);
+    expect(data!.profile).toMatchObject({ id, nickname: "deimos", totpEnabled: true });
     expect(data!.groups).toEqual([{ name: "players", description: null }]);
     expect(data!.maps[0].data).toEqual({ meta: { name: "Olympus" } });
     expect(data!.colonies[0].state).toEqual({ credits: 42 });
   });
 
-  it("nie zawiera hasha hasła ani tokenów resetu/weryfikacji", async () => {
-    const id = await seedFullAccount("secret@mars.test");
+  it("nie zawiera hasha numeru konta ani sekretu TOTP", async () => {
+    const id = await seedFullAccount("secret");
     const json = JSON.stringify(await userService.exportData(id));
 
-    expect(json).not.toContain(PASSWORD_HASH);
-    expect(json).not.toContain(RESET_TOKEN);
-    expect(json).not.toContain(VERIFY_TOKEN);
-    expect(json).not.toContain("passwordHash");
+    expect(json).not.toContain(ACCOUNT_HASH_PREFIX);
+    expect(json).not.toContain(TOTP_SECRET);
+    expect(json).not.toContain("accountHash");
+    expect(json).not.toContain("totpSecret");
   });
 
   it("nie zawiera danych innych użytkowników", async () => {
-    const id = await seedFullAccount("mine@mars.test");
-    await seedFullAccount("theirs@mars.test");
+    const id = await seedFullAccount("mine");
+    await seedFullAccount("theirs");
     const json = JSON.stringify(await userService.exportData(id));
-    expect(json).not.toContain("theirs@mars.test");
+    expect(json).not.toContain("theirs");
   });
 
   it("zwraca null dla nieistniejącego konta", async () => {
@@ -180,43 +153,23 @@ describe("userService.exportData (RODO art. 15 i 20)", () => {
   });
 });
 
-describe("purgeExpiredData (retencja)", () => {
-  it("usuwa wygasłe tokeny, zostawia ważne", async () => {
-    const id = await createUser("tokens@mars.test");
-    await db.insert(passwordResetsTable).values([
-      { userId: id, token: "expired-reset", expiresAt: new Date(NOW.getTime() - 1000) },
-      { userId: id, token: "valid-reset", expiresAt: new Date(NOW.getTime() + DAY_MS) },
-    ]);
-    await db.insert(emailVerificationsTable).values([
-      { userId: id, token: "expired-verify", expiresAt: new Date(NOW.getTime() - 1000) },
-      { userId: id, token: "valid-verify", expiresAt: new Date(NOW.getTime() + DAY_MS) },
-    ]);
-
-    const result = await purgeExpiredData(NOW);
-
-    expect(result.expiredPasswordResets).toBe(1);
-    expect(result.expiredEmailVerifications).toBe(1);
-    expect((await db.select().from(passwordResetsTable)).map((r) => r.token)).toEqual(["valid-reset"]);
-    expect((await db.select().from(emailVerificationsTable)).map((r) => r.token)).toEqual(["valid-verify"]);
-  });
-
-  it(`usuwa niepotwierdzone konta starsze niż ${UNVERIFIED_ACCOUNT_RETENTION_DAYS} dni i konta z deleted_at`, async () => {
-    const old = new Date(NOW.getTime() - (UNVERIFIED_ACCOUNT_RETENTION_DAYS + 1) * DAY_MS);
-    const recent = new Date(NOW.getTime() - (UNVERIFIED_ACCOUNT_RETENTION_DAYS - 1) * DAY_MS);
-    const staleUnverified = await createUser("stale@mars.test", { verified: false, createdAt: old });
-    await db.insert(coloniesTable).values({ userId: staleUnverified, name: "x", state: "{}" });
-    const freshUnverified = await createUser("fresh@mars.test", { verified: false, createdAt: recent });
-    const oldVerified = await createUser("veteran@mars.test", { verified: true, createdAt: old });
-    const softDeleted = await createUser("gone@mars.test", { deletedAt: NOW });
+describe("purgeExpiredData (retencja nieaktywnych kont)", () => {
+  it(`usuwa konta nieużywane dłużej niż ${INACTIVE_ACCOUNT_RETENTION_DAYS} dni razem z danymi`, async () => {
+    const old = new Date(NOW.getTime() - (INACTIVE_ACCOUNT_RETENTION_DAYS + 1) * DAY_MS);
+    const recent = new Date(NOW.getTime() - (INACTIVE_ACCOUNT_RETENTION_DAYS - 1) * DAY_MS);
+    const inactive = await createUser({ createdAt: old, lastLoginAt: old });
+    await db.insert(coloniesTable).values({ userId: inactive, name: "x", state: "{}" });
+    const neverLoggedOld = await createUser({ createdAt: old, lastLoginAt: null });
+    const oldButActive = await createUser({ createdAt: old, lastLoginAt: recent });
+    const fresh = await createUser({ createdAt: recent, lastLoginAt: null });
 
     const result = await purgeExpiredData(NOW);
 
     expect(result.deletedAccounts).toBe(2);
-    expect((await countRows(staleUnverified)).users).toBe(0);
-    expect((await countRows(staleUnverified)).colonies).toBe(0);
-    expect((await countRows(softDeleted)).users).toBe(0);
-    expect((await countRows(freshUnverified)).users).toBe(1);
-    expect((await countRows(oldVerified)).users).toBe(1);
+    expect(await countRows(inactive)).toEqual(ZERO);
+    expect((await countRows(neverLoggedOld)).users).toBe(0);
+    expect((await countRows(oldButActive)).users).toBe(1);
+    expect((await countRows(fresh)).users).toBe(1);
   });
 });
 
@@ -233,12 +186,12 @@ describe("scheduleRetention", () => {
     errorSpy.mockRestore();
   });
 
-  it("loguje liczbę usuniętych rekordów tylko, gdy coś usunięto", async () => {
+  it("loguje liczbę usuniętych kont tylko, gdy coś usunięto", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const run = vi.fn().mockResolvedValue({ expiredPasswordResets: 0, expiredEmailVerifications: 2, deletedAccounts: 1 });
+    const run = vi.fn().mockResolvedValue({ deletedAccounts: 3 });
 
     const timer = scheduleRetention(60_000, run);
-    await vi.waitFor(() => expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("2 email verifications, 1 accounts")));
+    await vi.waitFor(() => expect(logSpy).toHaveBeenCalledWith("[retention] removed 3 inactive accounts"));
     clearInterval(timer);
     logSpy.mockRestore();
   });

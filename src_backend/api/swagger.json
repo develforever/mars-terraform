@@ -8,26 +8,24 @@
 		"responses": {},
 		"schemas": {
 			"UserResponse": {
+				"description": "Profil konta (T13): bez e-maila i imienia.",
 				"properties": {
 					"id": {
 						"type": "number",
 						"format": "double"
 					},
-					"name": {
-						"type": "string"
-					},
-					"email": {
-						"type": "string"
-					},
-					"authProvider": {
-						"type": "string"
-					},
-					"emailVerifiedAt": {
+					"nickname": {
 						"type": "string",
-						"format": "date-time",
 						"nullable": true
 					},
+					"totpEnabled": {
+						"type": "boolean"
+					},
 					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"lastLoginAt": {
 						"type": "string",
 						"format": "date-time",
 						"nullable": true
@@ -35,26 +33,25 @@
 				},
 				"required": [
 					"id",
-					"name",
-					"email",
-					"authProvider",
-					"emailVerifiedAt",
-					"createdAt"
+					"nickname",
+					"totpEnabled",
+					"createdAt",
+					"lastLoginAt"
 				],
 				"type": "object",
 				"additionalProperties": false
 			},
 			"UserUpdateRequest": {
-				"description": "T12: tylko nazwa. Zmiana e-maila nie jest obsługiwana (wymagałaby ponownej weryfikacji).",
+				"description": "T13: tylko pseudonim (opcjonalny, widoczny dla innych graczy w przyszłym trybie sieciowym).",
 				"properties": {
-					"name": {
+					"nickname": {
 						"type": "string",
 						"minLength": 1,
-						"maxLength": 100
+						"maxLength": 32
 					}
 				},
 				"required": [
-					"name"
+					"nickname"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -71,6 +68,11 @@
 					},
 					"profile": {
 						"properties": {
+							"lastLoginAt": {
+								"type": "string",
+								"format": "date-time",
+								"nullable": true
+							},
 							"updatedAt": {
 								"type": "string",
 								"format": "date-time"
@@ -79,19 +81,12 @@
 								"type": "string",
 								"format": "date-time"
 							},
-							"emailVerifiedAt": {
+							"totpEnabled": {
+								"type": "boolean"
+							},
+							"nickname": {
 								"type": "string",
-								"format": "date-time",
 								"nullable": true
-							},
-							"authProvider": {
-								"type": "string"
-							},
-							"email": {
-								"type": "string"
-							},
-							"name": {
-								"type": "string"
 							},
 							"id": {
 								"type": "number",
@@ -99,43 +94,14 @@
 							}
 						},
 						"required": [
+							"lastLoginAt",
 							"updatedAt",
 							"createdAt",
-							"emailVerifiedAt",
-							"authProvider",
-							"email",
-							"name",
+							"totpEnabled",
+							"nickname",
 							"id"
 						],
 						"type": "object"
-					},
-					"authMethods": {
-						"items": {
-							"properties": {
-								"createdAt": {
-									"type": "string",
-									"format": "date-time"
-								},
-								"verified": {
-									"type": "boolean"
-								},
-								"providerId": {
-									"type": "string",
-									"nullable": true
-								},
-								"provider": {
-									"type": "string"
-								}
-							},
-							"required": [
-								"createdAt",
-								"verified",
-								"providerId",
-								"provider"
-							],
-							"type": "object"
-						},
-						"type": "array"
 					},
 					"groups": {
 						"items": {
@@ -241,7 +207,6 @@
 					"formatVersion",
 					"exportedAt",
 					"profile",
-					"authMethods",
 					"groups",
 					"maps",
 					"colonies"
@@ -542,22 +507,19 @@
 				"type": "object",
 				"additionalProperties": false
 			},
-			"RegisterRequest": {
+			"RegisterResponse": {
+				"description": "Odpowiedź rejestracji: numer konta pokazywany JEDEN raz (serwer trzyma tylko hash).",
 				"properties": {
-					"email": {
+					"accountNumber": {
 						"type": "string"
 					},
-					"password": {
-						"type": "string"
-					},
-					"name": {
+					"token": {
 						"type": "string"
 					}
 				},
 				"required": [
-					"email",
-					"password",
-					"name"
+					"accountNumber",
+					"token"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -576,84 +538,50 @@
 			},
 			"LoginRequest": {
 				"properties": {
-					"email": {
-						"type": "string"
+					"accountNumber": {
+						"type": "string",
+						"description": "Numer konta, np. `7KQ2-M9XA-4TRE-01ZC-8HNP` (myślniki i spacje opcjonalne).",
+						"maxLength": 64
 					},
-					"password": {
-						"type": "string"
+					"totpCode": {
+						"type": "string",
+						"description": "Kod z aplikacji authenticator (6 cyfr), wymagany tylko przy włączonym TOTP.",
+						"maxLength": 12
 					}
 				},
 				"required": [
-					"email",
-					"password"
+					"accountNumber"
 				],
 				"type": "object",
 				"additionalProperties": false
 			},
-			"ChangePasswordRequest": {
+			"TotpSetupResponse": {
 				"properties": {
-					"oldPassword": {
-						"type": "string"
+					"secret": {
+						"type": "string",
+						"description": "Sekret base32 do wpisania ręcznie w aplikacji authenticator."
 					},
-					"newPassword": {
-						"type": "string"
+					"otpauthUri": {
+						"type": "string",
+						"description": "Link `otpauth://totp/...` (dla aplikacji obsługujących linki lub do wygenerowania QR)."
 					}
 				},
 				"required": [
-					"oldPassword",
-					"newPassword"
+					"secret",
+					"otpauthUri"
 				],
 				"type": "object",
 				"additionalProperties": false
 			},
-			"ForgotPasswordRequest": {
+			"TotpCodeRequest": {
 				"properties": {
-					"email": {
-						"type": "string"
+					"code": {
+						"type": "string",
+						"maxLength": 12
 					}
 				},
 				"required": [
-					"email"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"ResetPasswordRequest": {
-				"properties": {
-					"token": {
-						"type": "string"
-					},
-					"newPassword": {
-						"type": "string"
-					}
-				},
-				"required": [
-					"token",
-					"newPassword"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"VerifyEmailRequest": {
-				"properties": {
-					"token": {
-						"type": "string"
-					}
-				},
-				"required": [
-					"token"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"ResendVerificationRequest": {
-				"properties": {
-					"email": {
-						"type": "string"
-					}
-				},
-				"required": [
-					"email"
+					"code"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -724,7 +652,7 @@
 						}
 					}
 				},
-				"description": "RODO art. 17: trwałe usunięcie konta z koloniami, mapami, metodami logowania, członkostwem w grupach\ni tokenami. Nieodwracalne. Wydany JWT wygasa sam (domyślnie po 1 h) i nie ma już czego odczytać.",
+				"description": "RODO art. 17: trwałe usunięcie konta z koloniami, mapami i członkostwem w grupach. Nieodwracalne. Wydany JWT wygasa sam (domyślnie po 1 h) i nie ma już czego odczytać.",
 				"tags": [
 					"Users"
 				],
@@ -751,7 +679,7 @@
 						}
 					}
 				},
-				"description": "RODO art. 15 i 20: wszystkie dane konta w JSON (bez hasła i tokenów), jako plik do pobrania.",
+				"description": "RODO art. 15 i 20: wszystkie dane konta w JSON (bez hasha numeru konta i sekretu TOTP), jako plik do pobrania.",
 				"tags": [
 					"Users"
 				],
@@ -1336,44 +1264,18 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"email": {
-											"type": "string"
-										},
-										"userId": {
-											"type": "number",
-											"format": "double"
-										},
-										"message": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"email",
-										"userId",
-										"message"
-									],
-									"type": "object"
+									"$ref": "#/components/schemas/RegisterResponse"
 								}
 							}
 						}
 					}
 				},
+				"description": "Tworzy konto i od razu loguje. `accountNumber` jest zwracany tylko tutaj i nie da się go odzyskać.",
 				"tags": [
 					"Auth"
 				],
 				"security": [],
-				"parameters": [],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/RegisterRequest"
-							}
-						}
-					}
-				}
+				"parameters": []
 			}
 		},
 		"/auth/login": {
@@ -1434,9 +1336,36 @@
 				"parameters": []
 			}
 		},
-		"/auth/change-password": {
+		"/auth/totp/setup": {
 			"post": {
-				"operationId": "ChangePassword",
+				"operationId": "TotpSetup",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TotpSetupResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Krok 1 włączenia authenticatora: sekret do dodania w aplikacji (jeszcze nieaktywny).",
+				"tags": [
+					"Auth"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/auth/totp/enable": {
+			"post": {
+				"operationId": "TotpEnable",
 				"responses": {
 					"200": {
 						"description": "Ok",
@@ -1457,6 +1386,7 @@
 						}
 					}
 				},
+				"description": "Krok 2: aktywacja po podaniu poprawnego kodu z aplikacji.",
 				"tags": [
 					"Auth"
 				],
@@ -1471,16 +1401,16 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/ChangePasswordRequest"
+								"$ref": "#/components/schemas/TotpCodeRequest"
 							}
 						}
 					}
 				}
 			}
 		},
-		"/auth/forgot-password": {
+		"/auth/totp/disable": {
 			"post": {
-				"operationId": "ForgotPassword",
+				"operationId": "TotpDisable",
 				"responses": {
 					"200": {
 						"description": "Ok",
@@ -1501,283 +1431,26 @@
 						}
 					}
 				},
+				"description": "Wyłączenie wymaga aktualnego kodu z aplikacji.",
 				"tags": [
 					"Auth"
 				],
-				"security": [],
-				"parameters": [],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/ForgotPasswordRequest"
-							}
-						}
-					}
-				}
-			}
-		},
-		"/auth/reset-password": {
-			"post": {
-				"operationId": "ResetPassword",
-				"responses": {
-					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"message": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"message"
-									],
-									"type": "object"
-								}
-							}
-						}
-					}
-				},
-				"tags": [
-					"Auth"
-				],
-				"security": [],
-				"parameters": [],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/ResetPasswordRequest"
-							}
-						}
-					}
-				}
-			}
-		},
-		"/auth/verify-email": {
-			"post": {
-				"operationId": "VerifyEmail",
-				"responses": {
-					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"message": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"message"
-									],
-									"type": "object"
-								}
-							}
-						}
-					}
-				},
-				"tags": [
-					"Auth"
-				],
-				"security": [],
-				"parameters": [],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/VerifyEmailRequest"
-							}
-						}
-					}
-				}
-			}
-		},
-		"/auth/resend-verification": {
-			"post": {
-				"operationId": "ResendVerification",
-				"responses": {
-					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"message": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"message"
-									],
-									"type": "object"
-								}
-							}
-						}
-					}
-				},
-				"tags": [
-					"Auth"
-				],
-				"security": [],
-				"parameters": [],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/ResendVerificationRequest"
-							}
-						}
-					}
-				}
-			}
-		},
-		"/auth/providers": {
-			"get": {
-				"operationId": "Providers",
-				"responses": {
-					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"github": {
-											"type": "boolean"
-										},
-										"google": {
-											"type": "boolean"
-										}
-									},
-									"required": [
-										"github",
-										"google"
-									],
-									"type": "object"
-								}
-							}
-						}
-					}
-				},
-				"tags": [
-					"Auth"
-				],
-				"security": [],
-				"parameters": []
-			}
-		},
-		"/auth/google": {
-			"get": {
-				"operationId": "GoogleAuth",
-				"responses": {
-					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"url": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"url"
-									],
-									"type": "object"
-								}
-							}
-						}
-					}
-				},
-				"tags": [
-					"Auth"
-				],
-				"security": [],
-				"parameters": []
-			}
-		},
-		"/auth/google/callback": {
-			"get": {
-				"operationId": "GoogleCallback",
-				"responses": {
-					"204": {
-						"description": "No content"
-					}
-				},
-				"tags": [
-					"Auth"
-				],
-				"security": [],
-				"parameters": [
+				"security": [
 					{
-						"in": "query",
-						"name": "code",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
+						"jwt": []
 					}
-				]
-			}
-		},
-		"/auth/github": {
-			"get": {
-				"operationId": "GithubAuth",
-				"responses": {
-					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"url": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"url"
-									],
-									"type": "object"
-								}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/TotpCodeRequest"
 							}
 						}
 					}
-				},
-				"tags": [
-					"Auth"
-				],
-				"security": [],
-				"parameters": []
-			}
-		},
-		"/auth/github/callback": {
-			"get": {
-				"operationId": "GithubCallback",
-				"responses": {
-					"204": {
-						"description": "No content"
-					}
-				},
-				"tags": [
-					"Auth"
-				],
-				"security": [],
-				"parameters": [
-					{
-						"in": "query",
-						"name": "code",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					}
-				]
+				}
 			}
 		}
 	},

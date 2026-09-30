@@ -7,8 +7,10 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   setUser: (user: User | null) => void;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  /** T13: logowanie numerem konta (+ kod z authenticatora, jeśli włączony). */
+  login: (accountNumber: string, totpCode?: string) => Promise<void>;
+  /** T13: nowe konto; zwraca numer konta do pokazania graczowi (jedyny raz). */
+  register: () => Promise<string>;
   logout: () => void;
   /** T12: trwałe usunięcie konta; po sukcesie użytkownik jest wylogowany. */
   deleteAccount: () => Promise<void>;
@@ -22,13 +24,12 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: authClient.isAuthenticated(),
       isLoading: false,
 
-      setUser: (user: User | null) =>
-        set({ user, isAuthenticated: !!user }),
+      setUser: (user: User | null) => set({ user, isAuthenticated: !!user }),
 
-      login: async (email: string, password: string) => {
+      login: async (accountNumber: string, totpCode?: string) => {
         set({ isLoading: true });
         try {
-          await authClient.login({ email, password });
+          await authClient.login(accountNumber, totpCode);
           const user = await authClient.me();
           set({ user, isAuthenticated: true });
         } finally {
@@ -36,10 +37,13 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (email: string, password: string, name: string) => {
+      register: async () => {
         set({ isLoading: true });
         try {
-          await authClient.register({ email, password, name });
+          const { accountNumber } = await authClient.register();
+          const user = await authClient.me();
+          set({ user, isAuthenticated: true });
+          return accountNumber;
         } finally {
           set({ isLoading: false });
         }

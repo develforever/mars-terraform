@@ -6,9 +6,6 @@ import { ExitConfirmModal } from "../game/ExitConfirmModal";
 import { LoadGameModal } from "../game/LoadGameModal";
 import LoginModal from "../auth/LoginModal";
 import RegisterModal from "../auth/RegisterModal";
-import ForgotPasswordModal from "../auth/ForgotPasswordModal";
-import ResetPasswordModal from "../auth/ResetPasswordModal";
-import VerifyEmailModal from "../auth/VerifyEmailModal";
 import AccountModal from "../auth/AccountModal";
 
 export default function ModalManager() {
@@ -37,12 +34,6 @@ export default function ModalManager() {
                 return <LoginModal />;
             case "register":
                 return <RegisterModal />;
-            case "forgot-password":
-                return <ForgotPasswordModal />;
-            case "reset-password":
-                return <ResetPasswordModal />;
-            case "verify-email":
-                return <VerifyEmailModal />;
             case "exit-confirm":
                 return <ExitConfirmModal onClose={close} />;
             case "load-game":

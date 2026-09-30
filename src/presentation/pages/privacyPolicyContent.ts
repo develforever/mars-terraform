@@ -1,6 +1,7 @@
 /**
- * Treść polityki prywatności (T12, RODO art. 13). SZKIC: pola oznaczone [UZUPEŁNIJ] / [TO FILL IN]
- * musi uzupełnić administrator danych. Dokument prawny utrzymywany w całości per język (nie w plikach tłumaczeń).
+ * Krótka informacja o prywatności (T13, RODO art. 13) dla modelu kont BEZ danych osobowych
+ * (numer konta + opcjonalny authenticator). Pola [UZUPEŁNIJ] / [TO FILL IN] uzupełnia administrator.
+ * Dokument prawny utrzymywany w całości per język (nie w plikach tłumaczeń).
  */
 
 export interface PolicySection {
@@ -16,162 +17,106 @@ export interface PolicyContent {
 }
 
 const PL: PolicyContent = {
-  title: "Polityka prywatności",
+  title: "Prywatność",
   updated: "Ostatnia aktualizacja: [UZUPEŁNIJ: data]",
   draftNotice: "Wersja robocza. Pola oznaczone [UZUPEŁNIJ] zostaną uzupełnione przez administratora.",
   sections: [
     {
-      heading: "1. Administrator danych",
+      heading: "1. W skrócie",
       paragraphs: [
-        "Administratorem Twoich danych osobowych jest [UZUPEŁNIJ: imię i nazwisko albo nazwa podmiotu, adres].",
-        "Kontakt w sprawach danych osobowych: [UZUPEŁNIJ: adres e-mail].",
+        "Nie zbieramy e-maila, imienia, nazwiska ani hasła i nie używamy plików cookies. Konto to losowy numer konta, który znasz tylko Ty.",
       ],
     },
     {
-      heading: "2. Jakie dane przetwarzamy",
+      heading: "2. Administrator",
       paragraphs: [
-        "Przy zakładaniu i używaniu konta: nazwę (imię lub pseudonim), adres e-mail, skrót (hash) hasła, a przy logowaniu przez Google lub GitHub także identyfikator konta u tego dostawcy.",
-        "W trakcie gry: zapisane kolonie (stan gry) i mapy z generatora wraz z datami utworzenia i zmiany.",
-        "Dane techniczne: dostawcy hostingu rejestrują w logach serwera m.in. adres IP i czas żądania.",
-        "Generator map działa bez konta; wtedy nie przekazujesz nam żadnych danych osobowych.",
+        "Administratorem danych jest [UZUPEŁNIJ: imię i nazwisko albo nazwa]. Kontakt: [UZUPEŁNIJ: adres e-mail].",
       ],
     },
     {
-      heading: "3. Cele i podstawy prawne",
+      heading: "3. Jakie dane przetwarzamy",
       paragraphs: [
-        "Prowadzenie konta, logowanie, zapisywanie gier i map oraz wysyłka wiadomości potrzebnych do działania konta (weryfikacja adresu e-mail, reset hasła): art. 6 ust. 1 lit. b RODO (wykonanie umowy o świadczenie usługi).",
-        "Zapewnienie bezpieczeństwa serwisu i obsługa logów technicznych: art. 6 ust. 1 lit. f RODO (prawnie uzasadniony interes administratora).",
-        "Nie profilujemy użytkowników, nie podejmujemy zautomatyzowanych decyzji i nie używamy danych do reklamy.",
+        "Przy koncie: skrót kryptograficzny numeru konta (samego numeru nie przechowujemy), opcjonalny pseudonim, zaszyfrowany klucz authenticatora (jeśli go włączysz), daty utworzenia i ostatniego logowania oraz zapisane kolonie i mapy.",
+        "Serwer gry nie zapisuje adresów IP. Techniczne logi dostawców hostingu mogą zawierać adres IP i czas żądania.",
+        "Grę i generator map można używać bez konta: wtedy dane gry zostają wyłącznie w Twojej przeglądarce.",
       ],
     },
     {
-      heading: "4. Odbiorcy danych",
+      heading: "4. Cel, podstawa i odbiorcy",
       paragraphs: [
-        "Dane powierzamy dostawcom infrastruktury, którzy przetwarzają je wyłącznie na nasze polecenie: Vercel Inc. (hosting strony), Render Services, Inc. (serwer API, region Frankfurt, UE), Turso (baza danych, region Irlandia, UE)[UZUPEŁNIJ: dostawca wysyłki e-maili].",
-        "Przy logowaniu przez Google lub GitHub dane przekazuje nam odpowiednio Google LLC lub GitHub, Inc.",
+        "Prowadzenie konta i zapisów gry: art. 6 ust. 1 lit. b RODO. Bezpieczeństwo serwisu: art. 6 ust. 1 lit. f RODO.",
+        "Dane przechowują dostawcy infrastruktury działający na nasze polecenie: Vercel Inc. (strona), Render Services, Inc. (serwer gry, Frankfurt, UE) i Turso (baza danych, Irlandia, UE). Vercel i Render mają siedzibę w USA; podstawa przekazania: [UZUPEŁNIJ po sprawdzeniu umów powierzenia, np. standardowe klauzule umowne].",
       ],
     },
     {
-      heading: "5. Przekazywanie danych poza EOG",
+      heading: "5. Jak długo",
       paragraphs: [
-        "Vercel Inc. i Render Services, Inc. to firmy z siedzibą w USA. Przekazanie danych odbywa się na podstawie [UZUPEŁNIJ po sprawdzeniu umów powierzenia (DPA): np. decyzji Komisji Europejskiej w sprawie EU-US Data Privacy Framework albo standardowych klauzul umownych].",
+        "Do czasu usunięcia konta. Konta nieużywane przez 2 lata usuwamy automatycznie razem z zapisami gry.",
       ],
     },
     {
-      heading: "6. Jak długo przechowujemy dane",
+      heading: "6. Twoje prawa",
       paragraphs: [
-        "Dane konta, zapisy gier i mapy: do czasu usunięcia konta.",
-        "Konta z niepotwierdzonym adresem e-mail: usuwane automatycznie po 30 dniach od rejestracji.",
-        "Linki weryfikacyjne i linki resetu hasła: usuwane po wygaśnięciu.",
-        "Kopie zapasowe bazy danych: [UZUPEŁNIJ: okres i miejsce przechowywania].",
+        "W panelu „Konto” (kliknij swój pseudonim w menu) możesz w każdej chwili pobrać wszystkie dane w pliku JSON, zmienić pseudonim i trwale usunąć konto. Masz też prawo do ograniczenia przetwarzania i sprzeciwu oraz prawo wniesienia skargi do Prezesa UODO (ul. Stawki 2, 00-193 Warszawa, uodo.gov.pl).",
       ],
     },
     {
-      heading: "7. Twoje prawa",
+      heading: "7. Cookies i pamięć przeglądarki",
       paragraphs: [
-        "Masz prawo do dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, przenoszenia oraz sprzeciwu wobec przetwarzania opartego na prawnie uzasadnionym interesie.",
-        "W panelu „Konto” (kliknij swoją nazwę w menu) możesz w każdej chwili pobrać wszystkie swoje dane w pliku JSON oraz trwale usunąć konto razem z koloniami i mapami.",
-        "Masz prawo wnieść skargę do Prezesa Urzędu Ochrony Danych Osobowych (ul. Stawki 2, 00-193 Warszawa, uodo.gov.pl).",
-      ],
-    },
-    {
-      heading: "8. Dobrowolność",
-      paragraphs: [
-        "Podanie danych jest dobrowolne, ale bez adresu e-mail i hasła nie można założyć konta ani zapisywać gier na serwerze.",
-      ],
-    },
-    {
-      heading: "9. Pliki cookies i pamięć przeglądarki",
-      paragraphs: [
-        "Serwis nie używa plików cookies ani narzędzi analitycznych czy reklamowych.",
-        "W pamięci przeglądarki (localStorage) zapisujemy wyłącznie: token logowania (usuwany przy wylogowaniu i usunięciu konta), wybrany język oraz lokalny autozapis gry. Są one niezbędne do działania funkcji, z których korzystasz. Możesz je usunąć, czyszcząc dane witryny w przeglądarce.",
-      ],
-    },
-    {
-      heading: "10. Zmiany polityki",
-      paragraphs: [
-        "O istotnych zmianach tej polityki poinformujemy na tej stronie.",
+        "Serwis nie używa plików cookies ani narzędzi analitycznych czy reklamowych. W pamięci przeglądarki zapisujemy tylko: token logowania (usuwany przy wylogowaniu), wybrany język i lokalny autozapis gry. Są niezbędne do działania funkcji, z których korzystasz.",
       ],
     },
   ],
 };
 
 const EN: PolicyContent = {
-  title: "Privacy Policy",
+  title: "Privacy",
   updated: "Last updated: [TO FILL IN: date]",
   draftNotice: "Draft. Fields marked [TO FILL IN] will be completed by the controller.",
   sections: [
     {
-      heading: "1. Data controller",
+      heading: "1. In short",
       paragraphs: [
-        "The controller of your personal data is [TO FILL IN: full name or entity name, address].",
-        "Contact for data protection matters: [TO FILL IN: e-mail address].",
+        "We do not collect your e-mail, name or password and we do not use cookies. Your account is a random account number that only you know.",
       ],
     },
     {
-      heading: "2. What data we process",
+      heading: "2. Controller",
       paragraphs: [
-        "When you create and use an account: your name (or nickname), e-mail address, a password hash and, if you sign in with Google or GitHub, your account identifier at that provider.",
-        "While playing: saved colonies (game state) and generator maps, with creation and update dates.",
-        "Technical data: hosting providers record server logs including IP address and request time.",
-        "The map generator works without an account; in that case you do not give us any personal data.",
+        "The data controller is [TO FILL IN: full name or entity name]. Contact: [TO FILL IN: e-mail address].",
       ],
     },
     {
-      heading: "3. Purposes and legal bases",
+      heading: "3. What data we process",
       paragraphs: [
-        "Running your account, signing in, saving games and maps, and sending messages required for the account (e-mail verification, password reset): Art. 6(1)(b) GDPR (performance of a contract).",
-        "Keeping the service secure and handling technical logs: Art. 6(1)(f) GDPR (legitimate interest).",
-        "We do not profile users, make automated decisions or use data for advertising.",
+        "For an account: a cryptographic hash of the account number (we never store the number itself), an optional nickname, an encrypted authenticator key (if you enable it), creation and last login dates, and your saved colonies and maps.",
+        "The game server does not store IP addresses. Technical logs of hosting providers may contain IP addresses and request times.",
+        "You can play and use the map generator without an account: game data then stays only in your browser.",
       ],
     },
     {
-      heading: "4. Recipients",
+      heading: "4. Purpose, legal basis and recipients",
       paragraphs: [
-        "We entrust data to infrastructure providers who process it only on our instructions: Vercel Inc. (website hosting), Render Services, Inc. (API server, Frankfurt region, EU), Turso (database, Ireland region, EU)[TO FILL IN: e-mail delivery provider].",
-        "If you sign in with Google or GitHub, Google LLC or GitHub, Inc. provides data to us.",
+        "Running your account and game saves: Art. 6(1)(b) GDPR. Service security: Art. 6(1)(f) GDPR.",
+        "Data is stored by infrastructure providers acting on our instructions: Vercel Inc. (website), Render Services, Inc. (game server, Frankfurt, EU) and Turso (database, Ireland, EU). Vercel and Render are based in the USA; transfer basis: [TO FILL IN after reviewing the data processing agreements, e.g. standard contractual clauses].",
       ],
     },
     {
-      heading: "5. Transfers outside the EEA",
+      heading: "5. Retention",
       paragraphs: [
-        "Vercel Inc. and Render Services, Inc. are based in the USA. Transfers rely on [TO FILL IN after reviewing the data processing agreements: e.g. the EU-US Data Privacy Framework adequacy decision or standard contractual clauses].",
+        "Until you delete your account. Accounts unused for 2 years are deleted automatically together with game saves.",
       ],
     },
     {
-      heading: "6. Retention",
+      heading: "6. Your rights",
       paragraphs: [
-        "Account data, saved games and maps: until you delete your account.",
-        "Accounts with an unconfirmed e-mail address: deleted automatically 30 days after registration.",
-        "Verification and password reset links: deleted once expired.",
-        "Database backups: [TO FILL IN: retention period and location].",
+        "In the “Account” panel (click your nickname in the menu) you can download all your data as a JSON file, change your nickname and permanently delete your account at any time. You may also restrict or object to processing and lodge a complaint with the Polish supervisory authority (UODO, ul. Stawki 2, 00-193 Warsaw, uodo.gov.pl) or the authority in your country.",
       ],
     },
     {
-      heading: "7. Your rights",
+      heading: "7. Cookies and browser storage",
       paragraphs: [
-        "You have the right to access, rectify and erase your data, to restrict processing, to data portability, and to object to processing based on legitimate interest.",
-        "In the “Account” panel (click your name in the menu) you can download all your data as a JSON file at any time and permanently delete your account together with your colonies and maps.",
-        "You may lodge a complaint with the Polish supervisory authority, the President of the Personal Data Protection Office (ul. Stawki 2, 00-193 Warsaw, uodo.gov.pl), or with the authority in your country of residence.",
-      ],
-    },
-    {
-      heading: "8. Voluntary provision",
-      paragraphs: [
-        "Providing data is voluntary, but without an e-mail address and password you cannot create an account or save games on the server.",
-      ],
-    },
-    {
-      heading: "9. Cookies and browser storage",
-      paragraphs: [
-        "The service does not use cookies, analytics or advertising tools.",
-        "In your browser's local storage we keep only: the sign-in token (removed on sign-out and account deletion), your chosen language and a local game autosave. They are necessary for features you use. You can remove them by clearing site data in your browser.",
-      ],
-    },
-    {
-      heading: "10. Changes",
-      paragraphs: [
-        "We will announce material changes to this policy on this page.",
+        "The service does not use cookies, analytics or advertising tools. In your browser we store only: the sign-in token (removed on sign-out), your chosen language and a local game autosave. They are necessary for the features you use.",
       ],
     },
   ],
