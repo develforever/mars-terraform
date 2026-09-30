@@ -942,7 +942,7 @@ Preflight 204 dla originu Vercel, 403 dla obcego; w przeglądarce brak błędów
 
 ### Follow-upy z `QUEUE.md` (poza zakresem Fazy 8)
 
-- Token JWT w query string po OAuth (`/?token=`) → fragment `#token=` albo wymiana jednorazowego kodu.
+- ~~Token JWT w query string po OAuth~~: nieaktualne od T13 (brak OAuth).
 - Wersjonowanie nazw assetów w `public/` (umożliwi `immutable` dla `/models`, `/textures`, `/icons`).
 - Hardcodowane hosty ngrok w `vite.config.ts` (`server.allowedHosts`).
 - Rozjazd wersji Node: `.nvmrc` v25, obrazy node 24, backend target node22.
@@ -958,7 +958,7 @@ Preflight 204 dla originu Vercel, 403 dla obcego; w przeglądarce brak błędów
 - Migrator przy każdym starcie kontenera (D15): przy wielu instancjach równoległe starty mogą ścigać się o tę samą migrację; przy 1 instancji bez znaczenia.
 - `src_backend/db/migrate.test.ts` pada lokalnie na Windows (`EPERM` przy usuwaniu katalogu tymczasowego z otwartą bazą SQLite); CI (Linux) zielone.
 - Migracja z `file:` w produkcji tylko ostrzega (celowo, dla smoke testów kontenera).
-- Timing `resend-verification` / `forgot-password` zdradza istnienie konta; rejestracja: 409 przy zajętym e-mailu, 500 przy awarii SMTP po utworzeniu konta.
+- ~~Timing resend/forgot, 409 przy zajętym e-mailu~~: nieaktualne od T13 (brak e-maili).
 - `GET /api/colony` zwraca pełny `state` każdej kolonii (lekka lista = zmiana kontraktu API).
 - Limit body 2 MB jest globalny (także `/api/maps`).
 - `resumeLocalGame` bez try/catch.
