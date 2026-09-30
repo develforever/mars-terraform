@@ -1,8 +1,11 @@
 /**
- * Informacja o prywatności (T14: gra BEZ kont). Aplikacja nie przetwarza danych osobowych na serwerze:
- * zapisy gry i mapy są wyłącznie w przeglądarce gracza. Pola [UZUPEŁNIJ] / [TO FILL IN] uzupełnia administrator.
+ * Informacja o prywatności (T14, D18: gra BEZ kont). Aplikacja nie przetwarza danych osobowych na serwerze:
+ * zapisy gry i mapy są wyłącznie w przeglądarce gracza. Kontakt: e-mail projektu (bez danych osobowych autora).
  * Dokument utrzymywany w całości per język (nie w plikach tłumaczeń).
  */
+
+/** Adres kontaktowy projektu (skrzynka projektu, nie osoby). */
+export const CONTACT_EMAIL = "mars_terraform@proton.me";
 
 export interface PolicySection {
   heading: string;
@@ -12,14 +15,12 @@ export interface PolicySection {
 export interface PolicyContent {
   title: string;
   updated: string;
-  draftNotice: string;
   sections: PolicySection[];
 }
 
 const PL: PolicyContent = {
   title: "Prywatność",
-  updated: "Ostatnia aktualizacja: [UZUPEŁNIJ: data]",
-  draftNotice: "Wersja robocza. Pola oznaczone [UZUPEŁNIJ] zostaną uzupełnione przez administratora.",
+  updated: "Ostatnia aktualizacja: 30 września 2026",
   sections: [
     {
       heading: "1. W skrócie",
@@ -42,10 +43,9 @@ const PL: PolicyContent = {
       ],
     },
     {
-      heading: "4. Administrator i kontakt",
+      heading: "4. Kontakt",
       paragraphs: [
-        "Administratorem serwisu jest [UZUPEŁNIJ: imię i nazwisko albo nazwa]. Kontakt: [UZUPEŁNIJ: adres e-mail].",
-        "Przysługuje Ci prawo wniesienia skargi do Prezesa UODO (ul. Stawki 2, 00-193 Warszawa, uodo.gov.pl).",
+        `Pytania i zgłoszenia dotyczące gry i prywatności: ${CONTACT_EMAIL}.`,
       ],
     },
     {
@@ -59,8 +59,7 @@ const PL: PolicyContent = {
 
 const EN: PolicyContent = {
   title: "Privacy",
-  updated: "Last updated: [TO FILL IN: date]",
-  draftNotice: "Draft. Fields marked [TO FILL IN] will be completed by the controller.",
+  updated: "Last updated: 30 September 2026",
   sections: [
     {
       heading: "1. In short",
@@ -83,10 +82,9 @@ const EN: PolicyContent = {
       ],
     },
     {
-      heading: "4. Controller and contact",
+      heading: "4. Contact",
       paragraphs: [
-        "The service is run by [TO FILL IN: full name or entity name]. Contact: [TO FILL IN: e-mail address].",
-        "You may lodge a complaint with the Polish supervisory authority (UODO, ul. Stawki 2, 00-193 Warsaw, uodo.gov.pl) or the authority in your country.",
+        `Questions and reports about the game and privacy: ${CONTACT_EMAIL}.`,
       ],
     },
     {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getPolicyContent } from "./privacyPolicyContent";
+import { CONTACT_EMAIL, getPolicyContent } from "./privacyPolicyContent";
 
 describe("privacyPolicyContent (T14: gra bez kont)", () => {
   const pl = getPolicyContent("pl");
@@ -29,14 +29,13 @@ describe("privacyPolicyContent (T14: gra bez kont)", () => {
     expect(text(pl)).toContain("Wczytaj → ⬇");
   });
 
-  it("wskazuje hosting, administratora i skargę do UODO", () => {
+  it("wskazuje hosting i kontakt e-mail projektu, bez danych osobowych autora ani pól do uzupełnienia", () => {
+    expect(CONTACT_EMAIL).toBe("mars_terraform@proton.me");
     expect(text(pl)).toContain("Vercel");
-    expect(text(pl)).toContain("Administratorem");
-    expect(text(pl)).toContain("uodo.gov.pl");
-  });
-
-  it("oznacza pola do uzupełnienia przez administratora", () => {
-    expect(JSON.stringify(pl)).toContain("[UZUPEŁNIJ");
-    expect(JSON.stringify(en)).toContain("[TO FILL IN");
+    expect(text(pl)).toContain(CONTACT_EMAIL);
+    expect(text(en)).toContain(CONTACT_EMAIL);
+    expect(JSON.stringify(pl)).not.toContain("UZUPEŁNIJ");
+    expect(JSON.stringify(en)).not.toContain("TO FILL IN");
+    expect(text(pl)).not.toContain("Administrator");
   });
 });
