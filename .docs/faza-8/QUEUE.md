@@ -165,6 +165,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-30T16:15Z · człowiek · D18 · Użytkownik usunął obie bazy Turso (dev i prod). Skutek: API na Render bez bazy (health 503 / migracja przy starcie pada); produkcyjny frontend T13 miał niedziałające konta. · —
 - 2026-09-30T16:15Z · nadzorca · T14 · Frontend bez kont i bez wywołań API (zapisy/mapy lokalnie, eksport/import pliku, komunikaty dla gracza). Gate: lint 0, tsc OK, front 627, back 191, build OK. Następnie: T15 backend bez bazy (usunąć auth/users/groups/maps/colony/colony-names, Drizzle, migracje, `account_secret`, health bez DB) albo wstrzymać usługę Render do fazy logiki serwerowej. · c2e9a87
 - 2026-09-30T16:22Z · nadzorca · T14 · Decyzja użytkownika: notka prywatności bez danych osobowych autora (brak przetwarzania danych przez aplikację); kontakt przez e-mail projektu. Uwaga: polska ustawa o świadczeniu usług drogą elektroniczną (art. 5) formalnie może wymagać danych usługodawcy; ryzyko zaakceptowane przez użytkownika. · e12f18c
+- 2026-09-30T16:29Z · człowiek+nadzorca · T14 · PR #12 (`f73cafd`) i #13 (`98b62c9`) scalone, CI zielone. Produkcja (Vercel): frontend bez kont (komunikat „Grasz bez konta”, brak „Zaloguj się” w bundlu), `/privacy` z kontaktem `mars_terraform@proton.me`, bez pól [UZUPEŁNIJ]. Do zrobienia przez człowieka: wstrzymać API na Render, usunąć lokalne backupy baz. Następne: T15 (backend bez bazy) lub plan fazy logiki serwerowej. · 98b62c9
 
 ## Follow-upy (poza zakresem Fazy 8)
 
