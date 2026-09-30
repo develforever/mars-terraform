@@ -5,7 +5,6 @@ import ModalManager from "../presentation/components/ui/ModalManager";
 import { useAuthStore } from "../application/store/useAuthStore";
 import { useModalStore } from "../ui/ModalManager/store";
 import { useGameStore } from "../application/store/useGameStore";
-import { authClient } from "../application/service/authService";
 import { useUIStore } from "../application/store/useUIStore";
 import { useEconomy } from "../application/hooks/useEconomy";
 
@@ -151,39 +150,6 @@ function AutoPauseToast() {
 }
 
 
-function AuthRouteHandler() {
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const { open } = useModalStore();
-    const { fetchUser } = useAuthStore();
-
-    useEffect(() => {
-        const token = searchParams.get("token");
-        const path = window.location.pathname;
-
-        if (token && path !== "/reset-password" && path !== "/verify-email") {
-            authClient.setToken(token);
-            fetchUser();
-            navigate("/", { replace: true });
-            return;
-        }
-
-        if (path === "/reset-password" && token) {
-            open("reset-password", { token });
-            navigate("/", { replace: true });
-            return;
-        }
-
-        if (path === "/verify-email" && token) {
-            open("verify-email", { token });
-            navigate("/", { replace: true });
-            return;
-        }
-    }, [searchParams, navigate, open, fetchUser]);
-
-    return null;
-}
-
 export default function App() {
     const { fetchUser } = useAuthStore();
     const alive = useGameStore(state => state.alive);
@@ -230,7 +196,7 @@ export default function App() {
             <div className={isGenerator ? 'w-full h-full' : 'mars-root'}>
                 <Suspense fallback={<MarsLoadingFallback />}>
                     <Routes>
-                        <Route path="/" element={<><AuthRouteHandler /><StartView /></>} />
+                        <Route path="/" element={<StartView />} />
                         <Route
                             path="/mars"
                             element={
@@ -239,8 +205,6 @@ export default function App() {
                                 </ProtectedRoute>
                             }
                         />
-                        <Route path="/reset-password" element={<AuthRouteHandler />} />
-                        <Route path="/verify-email" element={<AuthRouteHandler />} />
                         <Route path="/generate" element={<GeneratorPage />} />
                         <Route path="/privacy" element={<PrivacyPolicyPage />} />
                     </Routes>

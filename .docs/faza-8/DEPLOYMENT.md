@@ -21,7 +21,7 @@ Przeglądarka ──► Vercel CDN (dist/, vercel.json): /, /generate, /mars, /a
                                                                       │  CORS allowlist = cors_origins
                                                                       ▼
                                                                     Turso (libsql://)
-OAuth: <app>.onrender.com/api/auth/{google|github}/callback ──302──► ${frontend_url}/?token=...
+Konta (T13, D17): numer konta + opcjonalny TOTP, bez e-maila, hasła, OAuth i cookies.
 ```
 
 ## Spis treści
@@ -31,7 +31,7 @@ OAuth: <app>.onrender.com/api/auth/{google|github}/callback ──302──► $
 2. [Baza: backup i baseline migracji (D11)](#2-baza-backup-i-baseline-migracji-d11)
 3. [Backend na Render (D15)](#3-backend-na-render-d15)
 4. [Frontend na Vercel (D3)](#4-frontend-na-vercel-d3)
-5. [Spięcie: CORS, frontend_url, OAuth](#5-spięcie-cors-frontend_url-oauth)
+5. [Spięcie: CORS](#5-spięcie-cors)
 6. [Smoke test produkcji](#6-smoke-test-produkcji)
 7. [Rollback i awarie](#7-rollback-i-awarie)
 8. [Po wdrożeniu](#8-po-wdrożeniu)
@@ -70,7 +70,6 @@ OAuth: <app>.onrender.com/api/auth/{google|github}/callback ──302──► $
 - [ ] Dostęp do panelu Turso: https://app.turso.tech (bez Turso CLI).
 - [ ] Konto Render (plan Free, bez karty), połączone z GitHubem.
 - [ ] Konto Vercel połączone z GitHubem (dostęp do repo `develforever/mars-terraform`).
-- [ ] (Opcjonalnie) dostęp do Google Cloud Console i GitHub Developer Settings, jeśli OAuth ma działać od razu.
 - [ ] Katalog na skrypty i backupy **poza repo**, np. `New-Item -ItemType Directory -Force $HOME\mars-ops`.
 
 ### Kolejność (każdy krok zależy od poprzedniego)
@@ -79,7 +78,7 @@ OAuth: <app>.onrender.com/api/auth/{google|github}/callback ──302──► $
 - [ ] 2. Backup bazy, inwentaryzacja, baseline `__drizzle_migrations` (sekcja 2). **Bez tego pierwszy deploy padnie.**
 - [ ] 3. Render: Blueprint z `render.yaml`, zmienne tajne, deploy, `/api/health` = 200 (sekcja 3).
 - [ ] 4. Vercel: import repo, `VITE_API_URL`, preview, weryfikacja nagłówków `curl.exe -I` (sekcja 4).
-- [ ] 5. Render: `cors_origins` + `frontend_url`, test CORS, OAuth redirect URI (sekcja 5).
+- [ ] 5. Render: `cors_origins`, test CORS (sekcja 5).
 - [ ] 6. Smoke test produkcji (sekcja 6).
 - [ ] 7. Porządki po wdrożeniu (sekcja 8).
 
@@ -685,7 +684,7 @@ Render nie obsługuje pre-deploy command.
    usługa `mars-terraform-api`, runtime Docker (`Dockerfile.api`), plan Free, region Frankfurt, health check `/api/health`,
    automatyczny deploy po zielonym CI (`autoDeployTrigger: checksPass`).
    - Jeśli adres usługi będzie inny niż `https://mars-terraform-api.onrender.com` (nazwa zajęta), zmień `backend_url`
-     w panelu (usługa → Environment) i w `render.yaml` (commit przez PR). Od niego zależą callbacki OAuth.
+     w panelu (usługa → Environment). T13: `backend_url` nie jest już używany (brak OAuth), wystarczy nowy adres w `VITE_API_URL` (Vercel).
 3. **Zmienne tajne** (`sync: false` w `render.yaml`): Render pyta o nie przy tworzeniu Blueprintu. Wartości wpisujesz
    tylko w panelu, nigdy w repo ani w terminalu:
    - `jwt_secret`: **nowy, osobny od lokalnego**. Wygeneruj prosto do schowka (bez wypisywania na ekran):
@@ -694,9 +693,12 @@ Render nie obsługuje pre-deploy command.
      ```
      Wklej w pole `jwt_secret`, a potem wyczyść schowek: `Set-Clipboard -Value ' '`.
    - `turso_url`, `turso_token`: te same co w `.env.local` (skopiuj z pliku w edytorze). `turso_url` musi zaczynać się od `libsql://`.
-   - Opcjonalne (OAuth, e-mail, AI) dodajesz później: usługa → Environment (lista nazw w komentarzu `render.yaml`).
+   - `account_secret` (T13): **osobny** losowy sekret, min. 32 znaki, generowany tak samo jak `jwt_secret` (do schowka).
+     **Nigdy go nie zmieniaj ani nie gub**: w bazie są tylko skróty numerów kont, więc zmiana sekretu = utrata dostępu do WSZYSTKICH kont.
+     Zapisz kopię w menedżerze haseł.
+   - Opcjonalne (AI: `openrouter_api_key`) dodajesz później: usługa → Environment.
      `NODE_ENV`, `serve_frontend`, `PORT`, `backend_url` ustawia `render.yaml`; nie dubluj ich w panelu.
-   - `frontend_url` i `cors_origins` ustawiasz dopiero w sekcji 5 (po poznaniu domeny Vercel).
+   - `cors_origins` ustawiasz dopiero w sekcji 5 (po poznaniu domeny Vercel).
 4. **Deploy:** utworzenie Blueprintu uruchamia pierwszy build i start. Kolejne deploye idą same po pushu na `main`
    z zielonym CI; ręcznie: usługa → Manual Deploy → Deploy latest commit (**do potwierdzenia**: etykieta).
    Co się dzieje:
@@ -724,7 +726,8 @@ Render nie obsługuje pre-deploy command.
 | Objaw | Działanie |
 |---|---|
 | Deploy nieudany, log: `[migrate] Failed ... table ... already exists` | Brak baseline. Sekcja 2, potem Manual Deploy. |
-| `[migrate] Failed ... Missing required env variable: jwt_secret` | Zmienna nie ustawiona: usługa → Environment, krok 3. |
+| `[migrate] Failed ... Missing required env variable: jwt_secret` / `account_secret` | Zmienna nie ustawiona: usługa → Environment, krok 3. |
+| `[migrate] Failed ... account_secret: must be at least 32 characters` | Za krótki `account_secret`. Wygeneruj nowy (krok 3), zanim powstaną konta. |
 | `[migrate] Failed ... 401` / `fetch failed` | Zły `turso_url` / `turso_token` (np. stary, unieważniony token). |
 | `[migrate] Warning: NODE_ENV=production with a local file database` | `turso_url` nie ustawiony; migracja poszła na plik w kontenerze. Ustaw zmienną i wdroż ponownie. |
 | Health 503 `{"status":"degraded","database":"unavailable"}` | API działa, baza nie odpowiada w 2 s. Logi (`[health] database check failed`), token i status Turso. Render nie przełączy ruchu na taki deploy. |
@@ -736,6 +739,21 @@ Render nie obsługuje pre-deploy command.
 Rollback do poprzedniej wersji: usługa → Events → poprzedni udany deploy → **Rollback** (**do potwierdzenia**: etykieta).
 Rollback obrazu **nie cofa** migracji bazy. Migrator starszej wersji nie zna nowszych migracji i wypisze `No new migrations`,
 więc stary kod musi działać z nowszym schematem (dotychczasowe migracje tylko dodają tabele). Cofnięcie schematu: sekcja 7.
+
+---
+
+## 3a. Zmiana modelu kont: numer konta + TOTP (T13, D17)
+
+**Cel:** wdrożyć konta bez danych osobowych. Migracja `0002` usuwa **wszystkie** istniejące konta (na produkcji tylko testowe)
+razem z ich koloniami i mapami oraz tabele e-mail/hasło/OAuth.
+
+1. **PRZED scaleniem PR:** Render → usługa → Environment → dodaj `account_secret` (krok 3 sekcji 3: osobny, min. 32 znaki,
+   do schowka, kopia w menedżerze haseł). Bez niego nowy kontener nie wystartuje (bezpiecznie: zostaje poprzednia wersja).
+2. Scal PR. Render wdroży po zielonym CI. Oczekiwany log: `[migrate] Applied 1 migration(s) (applied total: 3)`, potem `Backend running`.
+3. Usuń z panelu zbędne zmienne: `frontend_url`, `backend_url`, `email_strategy`, `smtp_*`, `sendgrid_*`, `mailgun_*`,
+   `resend_api_key`, `mailjet_*`, `mailtrap_*`, `google_client_*`, `github_client_*` (API ich już nie czyta).
+4. Smoke test: sekcja 6 (utworzenie konta, logowanie, authenticator, konto).
+5. Lokalnie: dopisz `account_secret` do `.env.local` (inny niż produkcyjny), inaczej `npm run dev` nie wystartuje.
 
 ---
 
@@ -796,10 +814,10 @@ W przeglądarce: `https://<projekt>.vercel.app/generate` i `/mars` ładują się
 
 ---
 
-## 5. Spięcie: CORS, frontend_url, OAuth
+## 5. Spięcie: CORS
 
-**Cel:** API akceptuje żądania z domeny Vercel (dokładna allowlista, bez wildcardów, bez credentials), linki e-mail
-i przekierowania OAuth prowadzą na frontend na Vercel.
+**Cel:** API akceptuje żądania z domeny Vercel (dokładna allowlista, bez wildcardów, bez credentials).
+T13: `frontend_url` nie jest już potrzebny (brak linków e-mail i OAuth); jeśli jest w panelu, możesz go usunąć.
 
 ### Kroki
 
@@ -807,14 +825,12 @@ i przekierowania OAuth prowadzą na frontend na Vercel.
    panel Render → usługa → **Environment** → dodaj:
    ```
    cors_origins=https://<projekt>.vercel.app
-   frontend_url=https://<projekt>.vercel.app
    # z domeną własną:
    cors_origins=https://<projekt>.vercel.app,https://<domena>
-   frontend_url=https://<domena>
    ```
    Zapisz i wdroż (opcja zapisu z deployem, **do potwierdzenia**: etykieta), żeby kontener wystartował z nowymi wartościami.
    Niepoprawny origin (np. `https://x.vercel.app/`) zatrzyma start API z błędem `Invalid env variable cors_origins`.
-   Nie dopisuj tych kluczy do `render.yaml` (pusty `frontend_url` nie włącza wartości domyślnej).
+   Nie dopisuj tego klucza do `render.yaml`.
 2. **Test preflight z konsoli:**
    ```powershell
    curl.exe -s -i -X OPTIONS https://<app>.onrender.com/api/maps `
@@ -834,20 +850,10 @@ i przekierowania OAuth prowadzą na frontend na Vercel.
 3. **Test z przeglądarki:** otwórz `https://<projekt>.vercel.app`, DevTools (F12) → **Network**, zaloguj się albo otwórz
    listę map w `/generate`. Żądania do `https://<app>.onrender.com/api/...` mają status 2xx/4xx aplikacji,
    w odpowiedzi `access-control-allow-origin` = origin strony, a w **Console** brak `blocked by CORS policy`.
-4. **OAuth (jeśli używasz):** callback jest na API (`backend_url` z `render.yaml`), a po sukcesie API przekierowuje na
-   `${frontend_url}/?token=...`.
-   - Google Cloud Console → APIs & Services → Credentials → OAuth client → **Authorized redirect URIs**:
-     `https://<app>.onrender.com/api/auth/google/callback`
-   - GitHub → Settings → Developer settings → OAuth Apps → **Authorization callback URL**:
-     `https://<app>.onrender.com/api/auth/github/callback`
-     (aplikacja OAuth GitHub ma jeden callback URL, więc na lokalny dev załóż osobną aplikację).
-   - Zmienne: `google_client_id`, `google_client_secret` (i/lub `github_*`) w panelu → Environment.
-   - Sprawdzenie: `curl.exe -s https://<app>.onrender.com/api/auth/providers` pokazuje skonfigurowanych dostawców.
 
 ### Oczekiwany wynik
 
-Preflight 204 dla originu Vercel, 403 dla obcego; w przeglądarce brak błędów CORS; logowanie OAuth kończy się
-na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
+Preflight 204 dla originu Vercel, 403 dla obcego; w przeglądarce brak błędów CORS.
 
 ### Co jeśli nie wyszło
 
@@ -856,8 +862,6 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
 | `blocked by CORS policy: No 'Access-Control-Allow-Origin'` | Origin strony nie jest na liście. Porównaj znak po znaku (schemat, brak `/` na końcu, `www`). Popraw `cors_origins` w panelu → Environment. |
 | CORS działa na Production, nie działa na Preview | Oczekiwane: URL-e preview (`<projekt>-<hash>-<team>.vercel.app`) nie są na allowliście (dokładne dopasowanie, bez wildcardów). Na czas testu dopisz konkretny URL preview do `cors_origins` i usuń go potem. |
 | Preflight 403 z poprawnym originem | Zmiana zmiennych nie została wdrożona: panel → Events, czy nowy deploy jest „live”. |
-| OAuth: `redirect_uri_mismatch` (Google) / `redirect_uri is not associated` (GitHub) | Redirect URI w konsoli dostawcy musi być identyczny z `${backend_url}/api/auth/<provider>/callback`. |
-| Po OAuth ląduje na `http://localhost:5173/?token=...` | `frontend_url` nie ustawiony w Render. Krok 1. |
 
 ---
 
@@ -868,19 +872,15 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
 - [ ] **Health:** `curl.exe -s https://<app>.onrender.com/api/health` → `{"status":"ok",...}`. Pierwsze wywołanie po przerwie może trwać
       ok. 1 min (cold start planu Free Render).
 - [ ] **Front:** `/`, `/generate`, `/mars` ładują się, także po F5 (SPA rewrite). Tekstury i modele z `/textures`, `/models`.
-- [ ] **Rejestracja:** formularz rejestracji → komunikat „Registration successful. Please check your email…”.
-- [ ] **Weryfikacja e-mail:**
-  - przy `email_strategy=console` (domyślnie) e-mail trafia tylko do logów (panel Render → usługa → Logs).
-    Szukaj bloku `========== EMAIL ==========` z `Subject: Verify Your Email` i linkiem
-    `https://<projekt>.vercel.app/verify-email?token=...`. Otwórz link w przeglądarce.
-    (Jeśli link zaczyna się od `http://localhost:5173`, `frontend_url` nie jest ustawiony: sekcja 5; możesz ręcznie podmienić host.)
-  - przy prawdziwym dostawcy (SMTP/Resend/...) sprawdź skrzynkę; błąd wysyłki jest w logach usługi Render.
-- [ ] **Logowanie** (e-mail + hasło) → UI zalogowany. Złe hasło → komunikat „Invalid credentials” (401), nie 500.
+- [ ] **Utworzenie konta (T13):** „Utwórz konto” → numer `XXXX-XXXX-XXXX-XXXX-XXXX`, kopiuj / pobierz plik, potwierdź zapis.
+- [ ] **Logowanie numerem konta** → UI zalogowany. Zły numer → „Invalid account number or code” (401), nie 500.
+- [ ] **Authenticator:** Konto → „Włącz authenticator” → dodaj klucz w aplikacji → kod → włączony. Wyloguj, zaloguj:
+      formularz dopyta o kod; z kodem logowanie działa.
+- [ ] **Konto:** zmiana pseudonimu, „Pobierz dane (JSON)”, a na koncie testowym „Usuń konto na zawsze” (wpisz USUŃ).
 - [ ] **Zapis mapy w `/generate`:** wygeneruj teren → zapis do chmury (`CloudMapsModal`) → `POST /api/maps` = 2xx →
       mapa widoczna na liście po odświeżeniu (`GET /api/maps`).
 - [ ] **Zapis i wczytanie kolonii w `/mars`:** zapis gry → `POST /api/colony` = 2xx; odśwież stronę → wczytaj
       (`LoadGameModal`, `GET /api/colony/<nazwa>`) → stan gry odtworzony (budynki, zasoby).
-- [ ] **OAuth** (jeśli skonfigurowany): logowanie Google / GitHub kończy się zalogowanym UI.
 - [ ] (Opcjonalnie) **413 dla ciała > 2 MB** (limit globalny `express.json`, sprawdzany przed autoryzacją, więc token nie jest potrzebny):
   ```powershell
   $big = '{"name":"smoke-413","state":{"x":"' + ('a' * 3MB) + '"}}'
@@ -933,7 +933,7 @@ na `https://<projekt>.vercel.app/?token=...` i zalogowanym UI.
 3. **HSTS `includeSubDomains`:** obecnie `max-age=63072000; includeSubDomains`. Przed podpięciem domeny własnej upewnij się,
    że **wszystkie** subdomeny tej domeny obsługują HTTPS (inaczej przeglądarki odetną je na 2 lata). W razie wątpliwości usuń
    `includeSubDomains` przed podpięciem domeny.
-4. **Domena własna:** po podpięciu dopisz ją do `cors_origins`, ustaw `frontend_url`, zaktualizuj redirecty OAuth, jeśli API
+4. **Domena własna:** po podpięciu dopisz ją do `cors_origins` (i zmień `VITE_API_URL` w Vercel, jeśli API
    dostanie domenę (`backend_url` w `render.yaml` i w panelu Render).
 5. **Lokalny dev a produkcja:** jeśli `.env.local` wskazuje na produkcyjną bazę Turso, to lokalne `npm run dev` i `npm run db:push`
    działają na produkcji. Po wdrożeniu przełącz lokalny dev na `turso_url=file:./local.db` albo osobną bazę deweloperską.

@@ -45,7 +45,7 @@ export default function TopMenu() {
                             className="text-white text-sm hover:text-gray-300"
                             title={t("topMenu.account")}
                         >
-                            {user.name || user.email}
+                            {user.nickname || `#${user.id}`}
                         </button><button
                             onClick={logout}
                             className="text-sm text-red-400 hover:text-red-300"
