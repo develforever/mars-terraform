@@ -1,17 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
-import { apiUrl } from "../../../application/config/apiConfig";
-
-/** Element `GET /api/colony` (`ColonySummary` w `src_backend/model/types.ts`), bez `state`. */
-interface ColonySummary {
-    id: number;
-    name: string;
-    createdAt: string;
-    updatedAt: string;
-}
+import { colonySaveService, type ColonySaveSummary } from "../../../application/service/colonySaveService";
+import { downloadBlob } from "../ui/downloadFile";
 
 interface LoadGameModalProps {
     onClose: () => void;
@@ -19,7 +12,7 @@ interface LoadGameModalProps {
 
 export function LoadGameModal({ onClose }: LoadGameModalProps) {
     const { t } = useTranslation();
-    const [colonies, setColonies] = useState<ColonySummary[]>([]);
+    const [colonies, setColonies] = useState<ColonySaveSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingName, setLoadingName] = useState<string | null>(null);
     const [deletingName, setDeletingName] = useState<string | null>(null);
@@ -27,25 +20,17 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
     const loadGame = useGameStore((s) => s.loadGame);
+    const importSaveFile = useGameStore((s) => s.importSaveFile);
     const resetUI = useUIStore((s) => s.resetUI);
+    const fileInput = useRef<HTMLInputElement>(null);
 
+    // T14: zapisy tylko w tej przeglądarce (bez kont i serwera).
     useEffect(() => {
-        const fetchColonies = async () => {
-            setLoading(true);
-            try {
-                const res = await fetch(apiUrl("/api/colony"), {
-                    headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
-                });
-                if (!res.ok) throw new Error(t("modal.loadGame.errorList"));
-                const data = await res.json() as ColonySummary[];
-                setColonies(data);
-            } catch {
-                setError(t("modal.loadGame.errorFetch"));
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchColonies();
+        colonySaveService
+            .list()
+            .then(setColonies)
+            .catch(() => setError(t("modal.loadGame.errorFetch")))
+            .finally(() => setLoading(false));
     }, [t]);
 
     const handleLoad = async (name: string) => {
@@ -64,11 +49,7 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
     const handleDelete = async (name: string) => {
         setDeletingName(name);
         try {
-            const res = await fetch(apiUrl(`/api/colony/${encodeURIComponent(name)}`), {
-                method: "DELETE",
-                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
-            });
-            if (!res.ok) throw new Error(t("modal.loadGame.errorDelete"));
+            await colonySaveService.delete(name);
             setColonies((prev) => prev.filter((c) => c.name !== name));
             setConfirmDelete(null);
         } catch {
@@ -78,10 +59,31 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
         }
     };
 
-    const formatDate = (iso?: string) => {
-        if (!iso) return "";
+    const handleDownload = async (name: string) => {
+        const saved = await colonySaveService.load(name);
+        if (!saved) {
+            setError(t("modal.loadGame.errorLoad", { name }));
+            return;
+        }
+        const safeName = name.replace(/[^\p{L}\p{N}_-]+/gu, "_");
+        downloadBlob(new Blob([colonySaveService.toFile(saved)], { type: "application/json" }), `mars-terraform-${safeName}.json`);
+    };
+
+    const handleImport = async (file: File) => {
+        setError(null);
         try {
-            return new Date(iso).toLocaleString("pl-PL", { dateStyle: "short", timeStyle: "short" });
+            resetUI();
+            await importSaveFile(await file.text());
+            onClose();
+            navigate("/mars");
+        } catch {
+            setError(t("modal.loadGame.errorImport"));
+        }
+    };
+
+    const formatDate = (timestamp: number) => {
+        try {
+            return new Date(timestamp).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" });
         } catch {
             return "";
         }
@@ -125,8 +127,11 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
             <h2 style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "1.5px", textTransform: "uppercase", color: "#fff", marginBottom: "4px" }}>
                 {t("modal.loadGame.title")}
             </h2>
-            <p style={{ fontSize: "12px", color: "#6b7280", marginBottom: "20px" }}>
+            <p style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
                 {t("modal.loadGame.subtitle")}
+            </p>
+            <p role="note" style={{ fontSize: "11px", color: "#fbbf24", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: "6px", padding: "8px 10px", marginBottom: "16px" }}>
+                {t("modal.loadGame.localNotice")}
             </p>
 
             <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -166,11 +171,9 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
                                 <span style={{ fontWeight: 700, fontSize: "14px", letterSpacing: "0.5px" }}>
                                     🏛 {colony.name}
                                 </span>
-                                {colony.updatedAt && (
-                                    <span style={{ fontSize: "11px", color: "#6b7280" }}>
-                                        {t("modal.loadGame.lastSave")}: {formatDate(colony.updatedAt)}
-                                    </span>
-                                )}
+                                <span style={{ fontSize: "11px", color: "#6b7280" }}>
+                                    {t("modal.loadGame.lastSave")}: {formatDate(colony.savedAt)} · Sol {colony.sol}
+                                </span>
                                 {isConfirming && (
                                     <span style={{ fontSize: "11px", color: "#fca5a5" }}>
                                         {t("modal.loadGame.deleteConfirm", { name: colony.name })}
@@ -196,6 +199,23 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
                                             }}
                                         >
                                             {isLoading ? t("modal.loadGame.loadingBtn") : t("modal.loadGame.loadBtn")}
+                                        </button>
+                                        <button
+                                            onClick={() => handleDownload(colony.name)}
+                                            disabled={isBusy}
+                                            title={t("modal.loadGame.downloadBtn")}
+                                            aria-label={`${t("modal.loadGame.downloadBtn")}: ${colony.name}`}
+                                            style={{
+                                                padding: "6px 10px",
+                                                background: "rgba(255,255,255,0.06)",
+                                                border: "1px solid rgba(255,255,255,0.1)",
+                                                borderRadius: "6px",
+                                                color: "#e5e7eb",
+                                                cursor: isBusy ? "not-allowed" : "pointer",
+                                                fontSize: "12px",
+                                            }}
+                                        >
+                                            ⬇
                                         </button>
                                         <button
                                             onClick={() => setConfirmDelete(colony.name)}
@@ -259,10 +279,37 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
                 })}
             </div>
 
+            <input
+                ref={fileInput}
+                type="file"
+                accept="application/json,.json"
+                style={{ display: "none" }}
+                data-testid="import-save-input"
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file) void handleImport(file);
+                }}
+            />
+            <button
+                onClick={() => fileInput.current?.click()}
+                style={{
+                    marginTop: "16px",
+                    padding: "8px 20px",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    borderRadius: "8px",
+                    color: "#e5e7eb",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                }}
+            >
+                {t("modal.loadGame.importBtn")}
+            </button>
             <button
                 onClick={onClose}
                 style={{
-                    marginTop: "16px",
+                    marginTop: "8px",
                     padding: "8px 20px",
                     background: "transparent",
                     border: "1px solid rgba(255,255,255,0.08)",

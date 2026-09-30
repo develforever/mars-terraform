@@ -1,14 +1,12 @@
 import { NavLink, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import { LanguageToggle } from "./LanguageToggle";
-import { useAuthStore } from "../../../application/store/useAuthStore";
 import { useModalStore } from "../../../ui/ModalManager/store";
 import { useGameStore } from "../../../application/store/useGameStore";
 import "./TopMenu.css";
 
 export default function TopMenu() {
     const { t } = useTranslation();
-    const { user, isAuthenticated, logout } = useAuthStore();
     const { open } = useModalStore();
     const location = useLocation();
     const colonyName = useGameStore((s) => s.colonyName);
@@ -38,35 +36,9 @@ export default function TopMenu() {
             <div className="top-menu__auth">
                 <div className="flex items-center gap-3">
                     <LanguageToggle />
-                    {isAuthenticated && user ? (
-
-                        <><button
-                            onClick={() => open("account")}
-                            className="text-white text-sm hover:text-gray-300"
-                            title={t("topMenu.account")}
-                        >
-                            {user.nickname || `#${user.id}`}
-                        </button><button
-                            onClick={logout}
-                            className="text-sm text-red-400 hover:text-red-300"
-                        >
-                            {t("topMenu.logout")}
-                        </button></>
-
-                    ) : (
-                        <><button
-                            onClick={() => open("login")}
-                            className="text-sm text-blue-400 hover:text-blue-300"
-                        >
-                            {t("topMenu.login")}
-                        </button><button
-                            onClick={() => open("register")}
-                            className="text-sm text-green-400 hover:text-green-300"
-                        >
-                                {t("topMenu.register")}
-                            </button></>
-
-                    )}
+                    <NavLink to="/privacy" className="text-sm text-gray-300 hover:text-white">
+                        {t("privacy.link")}
+                    </NavLink>
                 </div>
             </div>
         </nav>

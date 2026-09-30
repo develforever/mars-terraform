@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
-import { useAuthStore } from "../../../application/store/useAuthStore";
 import { useMapConfigStore } from "../../../application/store/useMapConfigStore";
 import { useModalStore } from "../../../ui/ModalManager/store";
 import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
@@ -65,7 +64,6 @@ export const HUD = () => {
     const o2Accumulated  = useGameStore((state) => state.o2Accumulated);
     const placedBuildings = useGameStore((state) => state.placed);
     const resourceNodes  = useGameStore((state) => state.resourceNodes);
-    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const activeQuests   = useGameStore((state) => state.activeQuests);
     const victoryModalDismissed = useGameStore((state) => state.victoryModalDismissed);
     const defeatModalDismissed  = useGameStore((state) => state.defeatModalDismissed);
@@ -326,7 +324,6 @@ export const HUD = () => {
                             </span>
                         )}
                     </button>
-                    {isAuthenticated && (
                         <>
                             <button
                                 type="button"
@@ -349,7 +346,6 @@ export const HUD = () => {
                                 {t("hud.load")}
                             </button>
                         </>
-                    )}
                 </div>
 
                 <BuildingPalette

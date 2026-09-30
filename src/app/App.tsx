@@ -2,7 +2,6 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Route, Routes, useSearchParams, useNavigate, useLocation } from "react-router";
 import TopMenu from "../presentation/components/ui/TopMenu";
 import ModalManager from "../presentation/components/ui/ModalManager";
-import { useAuthStore } from "../application/store/useAuthStore";
 import { useModalStore } from "../ui/ModalManager/store";
 import { useGameStore } from "../application/store/useGameStore";
 import { useUIStore } from "../application/store/useUIStore";
@@ -151,15 +150,11 @@ function AutoPauseToast() {
 
 
 export default function App() {
-    const { fetchUser } = useAuthStore();
     const alive = useGameStore(state => state.alive);
     const { start, stop } = useEconomy();
     const location = useLocation();
     const isGenerator = location.pathname === '/generate';
 
-    useEffect(() => {
-        fetchUser();
-    }, [fetchUser]);
 
     useEffect(() => {
         if (alive) {

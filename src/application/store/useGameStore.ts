@@ -17,8 +17,7 @@ import type { GameMode } from "../../domain/services/GameModeService";
 import { GAME_MODE_CONFIGS } from "../../domain/services/GameModeService";
 import { AlienService, INITIAL_ALIEN_STATE } from "../../domain/services/AlienService";
 import type { AlienState, AlienShip, AlienGroundUnit } from "../../domain/entities/Alien";
-import { authClient } from "../service/authService";
-import { apiUrl } from "../config/apiConfig";
+import { colonySaveService } from "../service/colonySaveService";
 import { HexGrid } from "../../presentation/generator/hex/HexGrid";
 import { applyProceduralTerrain } from "../../presentation/generator/terrain/ProceduralTerrain";
 import { generateResources, generateDecor, generateSpawns } from "../../presentation/generator/terrain/ProceduralPlacement";
@@ -126,6 +125,8 @@ export interface GameState {
   startScenarioGame: (scenario: Scenario, colonyName?: string, customSeed?: number) => void;
   saveGame: () => Promise<boolean>;
   loadGame: (name: string) => Promise<boolean>;
+  /** T14: wczytuje plik zapisu (JSON), zapisuje go w przeglądarce i uruchamia grę. Rzuca błąd dla złego pliku. */
+  importSaveFile: (text: string) => Promise<void>;
   hydrateSavedState: (savedState: Partial<SavedGame> & { colonyName?: string; name?: string }) => void;
   resumeLocalGame: () => boolean;
   triggerAlienWave: (wave: 0 | 1 | 2, count?: number) => void;
@@ -913,50 +914,13 @@ export const useGameStore = create<GameState>()(
         });
       },
 
+      /** T14: zapis kolonii w przeglądarce (slot = nazwa kolonii). Bez kont i bez serwera. */
       saveGame: async () => {
         const state = get();
         if (!state.colonyName) return false;
-
         try {
-          const response = await fetch(apiUrl("/api/colony"), {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${authClient.getToken()}`
-            },
-            body: JSON.stringify({
-              name: state.colonyName,
-              state: {
-                mapSeed: state.mapSeed,
-                resources: state.resources,
-                capacity: state.capacity,
-                placed: state.placed,
-                occupied: state.occupied,
-                units: state.units,
-                weather: state.weather,
-                terraforming: state.terraforming,
-                o2Accumulated: state.o2Accumulated,
-                difficulty: state.difficulty,
-                gameMode: state.gameMode,
-                sun: state.sun,
-                alienState: state.alienState,
-                resourceNodes: state.resourceNodes,
-                decorations: state.decorations,
-                currentMapData: state.currentMapData ?? null,
-                researchPoints: state.researchPoints,
-                unlockedTechs: state.unlockedTechs,
-                activeQuests: state.activeQuests,
-                tick: state.tick,
-                sol: state.sol,
-                aliensDefeated: state.aliensDefeated,
-                analyticsSnapshots: state.analyticsSnapshots,
-                isEndless: state.isEndless,
-                population: state.population,
-                morale: state.morale,
-              }
-            })
-          });
-          return response.ok;
+          await colonySaveService.save(LocalSaveService.buildSavedGame({ ...state, colonyName: state.colonyName }));
+          return true;
         } catch (error) {
           console.error("Save game failed", error);
           return false;
@@ -1129,20 +1093,20 @@ export const useGameStore = create<GameState>()(
 
       loadGame: async (name: string) => {
         try {
-          const response = await fetch(apiUrl(`/api/colony/${encodeURIComponent(name)}`), {
-            headers: {
-              "Authorization": `Bearer ${authClient.getToken()}`
-            }
-          });
-          if (!response.ok) return false;
-          
-          const data = await response.json();
-          get().hydrateSavedState({ ...data.state, colonyName: data.name });
+          const saved = await colonySaveService.load(name);
+          if (!saved) return false;
+          get().hydrateSavedState(saved);
           return true;
         } catch (error) {
           console.error("Load game failed", error);
           return false;
         }
+      },
+
+      importSaveFile: async (text: string) => {
+        const saved = colonySaveService.fromFile(text);
+        await colonySaveService.save(saved);
+        get().hydrateSavedState(saved);
       },
     }),
     { name: "GameStore", enabled: true }

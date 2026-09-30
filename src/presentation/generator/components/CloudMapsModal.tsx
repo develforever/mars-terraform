@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { authClient } from "../../../application/service/authService";
-import { mapApiService, type MapSummaryResponse } from "../../../application/service/mapApiService";
+import { mapLibraryService, type MapSummaryResponse } from "../../../application/service/mapLibraryService";
 import { useMapEditorStore } from "../../../application/store/useMapEditorStore";
 import { parseMapJSON } from "../schema/mapSchema";
 
@@ -11,7 +10,6 @@ interface CloudMapsModalProps {
 export const CloudMapsModal = ({ onClose }: CloudMapsModalProps) => {
   const loadFromJSON = useMapEditorStore((s) => s.loadFromJSON);
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(authClient.isAuthenticated());
   const [maps, setMaps] = useState<MapSummaryResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingMapId, setLoadingMapId] = useState<number | null>(null);
@@ -20,31 +18,27 @@ export const CloudMapsModal = ({ onClose }: CloudMapsModalProps) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchMaps = useCallback(async () => {
-    if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await mapApiService.listMaps();
+      const data = await mapLibraryService.listMaps();
       setMaps(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Nie udało się pobrać listy map.");
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
-    setIsAuthenticated(authClient.isAuthenticated());
-    if (authClient.isAuthenticated()) {
-      fetchMaps();
-    }
+    fetchMaps();
   }, [fetchMaps]);
 
   const handleLoadMap = async (id: number) => {
     setLoadingMapId(id);
     setError(null);
     try {
-      const detail = await mapApiService.getMap(id);
+      const detail = await mapLibraryService.getMap(id);
       let rawData: unknown;
       try {
         rawData = typeof detail.data === "string" ? JSON.parse(detail.data) : detail.data;
@@ -64,7 +58,7 @@ export const CloudMapsModal = ({ onClose }: CloudMapsModalProps) => {
       loadFromJSON(parsed.data);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nie udało się załadować mapy z chmury.");
+      setError(err instanceof Error ? err.message : "Nie udało się wczytać mapy z biblioteki.");
       setLoadingMapId(null);
     }
   };
@@ -73,7 +67,7 @@ export const CloudMapsModal = ({ onClose }: CloudMapsModalProps) => {
     setDeletingMapId(id);
     setError(null);
     try {
-      await mapApiService.deleteMap(id);
+      await mapLibraryService.deleteMap(id);
       setMaps((prev) => prev.filter((m) => m.id !== id));
       setConfirmDeleteId(null);
     } catch (err) {
@@ -118,10 +112,10 @@ export const CloudMapsModal = ({ onClose }: CloudMapsModalProps) => {
         <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
           <div>
             <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2 tracking-wide uppercase">
-              <span className="text-[#e74c3c]">☁</span> Cloud Maps Browser
+              <span className="text-[#e74c3c]">🗂</span> Biblioteka map
             </h2>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Przeglądaj, wczytuj i zarządzaj swoimi mapami zapisanymi w chmurze Mars.
+              Mapy zapisane w tej przeglądarce. Nie trafiają na żaden serwer: wyczyszczenie danych przeglądarki je usuwa, więc ważne mapy eksportuj też do pliku (Export JSON).
             </p>
           </div>
           <button
@@ -135,25 +129,17 @@ export const CloudMapsModal = ({ onClose }: CloudMapsModalProps) => {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto my-4 pr-1 flex flex-col gap-2.5 min-h-[160px]">
-          {!isAuthenticated ? (
-            <div className="flex flex-col items-center justify-center text-center p-6 bg-zinc-950/50 rounded-lg border border-zinc-800/80 my-auto">
-              <span className="text-3xl mb-2">🔒</span>
-              <p className="text-sm font-medium text-zinc-300">Wymagane zalogowanie</p>
-              <p className="text-xs text-zinc-500 mt-1 max-w-xs">
-                Musisz być zalogowany, aby przeglądać i pobierać swoje mapy z chmury.
-              </p>
-            </div>
-          ) : loading ? (
+          {loading ? (
             <div className="flex flex-col items-center justify-center text-center p-8 my-auto text-zinc-400">
               <div className="w-6 h-6 border-2 border-[#e74c3c] border-t-transparent rounded-full animate-spin mb-2" />
-              <span className="text-xs">Ładowanie map z chmury...</span>
+              <span className="text-xs">Ładowanie map...</span>
             </div>
           ) : maps.length === 0 && !error ? (
             <div className="flex flex-col items-center justify-center text-center p-8 bg-zinc-950/40 rounded-lg border border-zinc-800/60 my-auto text-zinc-400">
               <span className="text-3xl mb-2">🗺️</span>
               <p className="text-sm font-medium text-zinc-300">Brak zapisanych map</p>
               <p className="text-xs text-zinc-500 mt-1">
-                Nie masz jeszcze żadnych map w chmurze. Użyj przycisku &quot;Save Cloud&quot;, aby zapisać bieżącą mapę.
+                Nie masz jeszcze zapisanych map. Użyj przycisku &quot;Zapisz w bibliotece&quot;, aby zapisać bieżącą mapę.
               </p>
             </div>
           ) : (
@@ -186,7 +172,7 @@ export const CloudMapsModal = ({ onClose }: CloudMapsModalProps) => {
                     </span>
                     {isConfirming && (
                       <span className="text-xs text-red-400 mt-1 font-medium">
-                        Czy na pewno usunąć tę mapę z chmury?
+                        Czy na pewno usunąć tę mapę z biblioteki?
                       </span>
                     )}
                   </div>

@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useGameStore } from "../useGameStore";
+import { createLocalStorageStore, setBrowserStoreForTests } from "../../service/browserStore";
+import { colonySaveService } from "../../service/colonySaveService";
+import { LocalSaveService } from "../../service/localSaveService";
 import type { MapExportJSON } from "../../../domain/mapEditorTypes";
 
 const sampleMapData: MapExportJSON = {
@@ -26,6 +29,8 @@ const sampleMapData: MapExportJSON = {
 describe("useGameStore — custom map selection & game lifecycle", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    localStorage.clear();
+    setBrowserStoreForTests(createLocalStorageStore(localStorage));
     useGameStore.getState().resetGame();
   });
 
@@ -65,47 +70,23 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     expect(cell00?.userType).toBe("build");
   });
 
-  it("persists currentMapData in saveGame payload", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({ status: "ok" }),
-    } as Response);
+  it("T14: saveGame zapisuje kolonię (z currentMapData) w przeglądarce, bez serwera", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    useGameStore.getState().startNewGame("Local Colony", "easy", "adventure", sampleMapData);
 
-    useGameStore.getState().startNewGame("Cloud Colony", "easy", "adventure", sampleMapData);
-    const saveResult = await useGameStore.getState().saveGame();
+    expect(await useGameStore.getState().saveGame()).toBe(true);
 
-    expect(saveResult).toBe(true);
-    expect(fetchSpy).toHaveBeenCalledWith(
-      "/api/colony",
-      expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining('"currentMapData"'),
-      })
-    );
-
-    const callBody = JSON.parse(fetchSpy.mock.calls[0][1]?.body as string);
-    expect(callBody.state.currentMapData).toEqual(sampleMapData);
+    const saved = await colonySaveService.load("Local Colony");
+    expect(saved?.currentMapData).toEqual(sampleMapData);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("restores custom mapData and rebuilds hexGrid on loadGame", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        name: "Loaded Colony",
-        state: {
-          colonyName: "Loaded Colony",
-          resources: { o2: 100, power: 50, water: 50, biomass: 10 },
-          capacity: { power: 100, water: 100, biomass: 100 },
-          placed: [],
-          occupied: {},
-          currentMapData: sampleMapData,
-        },
-      }),
-    } as Response);
+  it("T14: loadGame odtwarza własną mapę i hexGrid z zapisu w przeglądarce", async () => {
+    await colonySaveService.save(
+      LocalSaveService.buildSavedGame({ colonyName: "Loaded Colony", currentMapData: sampleMapData }),
+    );
 
-    const loadResult = await useGameStore.getState().loadGame("Loaded Colony");
-
-    expect(loadResult).toBe(true);
+    expect(await useGameStore.getState().loadGame("Loaded Colony")).toBe(true);
     const state = useGameStore.getState();
     expect(state.colonyName).toBe("Loaded Colony");
     expect(state.currentMapData).toEqual(sampleMapData);
@@ -113,25 +94,30 @@ describe("useGameStore — custom map selection & game lifecycle", () => {
     expect(state.hexGrid.getCell(1, 0)?.terrainType).toBe("peak");
   });
 
-  it.each<[string, string]>([
-    ["Nowa Kolonia", "/api/colony/Nowa%20Kolonia"],
-    ["Baza/Alfa", "/api/colony/Baza%2FAlfa"],
-    ["Kolonia?", "/api/colony/Kolonia%3F"],
-    ["Kolonia #1", "/api/colony/Kolonia%20%231"],
-    ["Żółć", "/api/colony/%C5%BB%C3%B3%C5%82%C4%87"],
-    ["100% Mars", "/api/colony/100%25%20Mars"],
-  ])("encodes the colony name %s in the loadGame URL", async (name, expectedUrl) => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({ name, state: { placed: [], occupied: {} } }),
-    } as Response);
+  it("T14: loadGame nieistniejącej kolonii zwraca false", async () => {
+    expect(await useGameStore.getState().loadGame("Brak")).toBe(false);
+  });
 
-    const loadResult = await useGameStore.getState().loadGame(name);
+  it.each(["Nowa Kolonia", "Baza/Alfa", "Kolonia?", "Kolonia #1", "Żółć", "100% Mars"])(
+    "T14: zapis i odczyt kolonii o nazwie %s",
+    async (name) => {
+      useGameStore.getState().startNewGame(name, "normal", "exploration");
+      expect(await useGameStore.getState().saveGame()).toBe(true);
+      useGameStore.getState().resetGame();
 
-    expect(loadResult).toBe(true);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(fetchSpy.mock.calls[0][0]).toBe(expectedUrl);
-    expect(useGameStore.getState().colonyName).toBe(name);
+      expect(await useGameStore.getState().loadGame(name)).toBe(true);
+      expect(useGameStore.getState().colonyName).toBe(name);
+    },
+  );
+
+  it("T14: importSaveFile zapisuje plik w przeglądarce i uruchamia grę; zły plik rzuca błąd", async () => {
+    const file = colonySaveService.toFile(LocalSaveService.buildSavedGame({ colonyName: "Z pliku", sol: 12 }));
+
+    await useGameStore.getState().importSaveFile(file);
+
+    expect(useGameStore.getState().colonyName).toBe("Z pliku");
+    expect((await colonySaveService.list()).map((s) => s.name)).toEqual(["Z pliku"]);
+    await expect(useGameStore.getState().importSaveFile("{}")).rejects.toThrow("Not a Mars Terraform save file");
   });
 
   it("generates and manages resourceNodes during startNewGame and economy tick", () => {

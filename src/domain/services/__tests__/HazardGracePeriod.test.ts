@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { WeatherService, type WeatherState } from "../WeatherService";
 import { useGameStore } from "../../../application/store/useGameStore";
+import { createLocalStorageStore, setBrowserStoreForTests } from "../../../application/service/browserStore";
+import { colonySaveService } from "../../../application/service/colonySaveService";
+import { LocalSaveService } from "../../../application/service/localSaveService";
 
 describe("HazardGracePeriod - Initial Colony Protection", () => {
   beforeEach(() => {
@@ -63,19 +66,16 @@ describe("HazardGracePeriod - Initial Colony Protection", () => {
     useGameStore.getState().startNewGame("GraceColony", "normal", "exploration");
     expect(useGameStore.getState().weather.cooldownTicks).toBe(WeatherService.INITIAL_GRACE_TICKS);
 
-    // Mock fetch for loadGame with custom saved weather state
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        name: "LoadedColony",
-        state: {
-          colonyName: "LoadedColony",
-          weather: savedWeather,
-          placed: [],
-          resources: { o2: 10, power: 10, water: 10, biomass: 10, minerals: 50 },
-        },
+    // T14: zapis w przeglądarce z własnym stanem pogody.
+    localStorage.clear();
+    setBrowserStoreForTests(createLocalStorageStore(localStorage));
+    await colonySaveService.save(
+      LocalSaveService.buildSavedGame({
+        colonyName: "LoadedColony",
+        weather: savedWeather,
+        resources: { o2: 10, power: 10, water: 10, biomass: 10, minerals: 50 },
       }),
-    }) as unknown as typeof fetch;
+    );
 
     const loaded = await useGameStore.getState().loadGame("LoadedColony");
     expect(loaded).toBe(true);

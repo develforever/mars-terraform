@@ -3,11 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
-import { useAuthStore } from "../../../application/store/useAuthStore";
 import { generateLocalNames } from "../../../domain/services/ColonyNameGenerator";
-import { authClient } from "../../../application/service/authService";
-import { apiUrl } from "../../../application/config/apiConfig";
-import { mapApiService, type MapSummaryResponse } from "../../../application/service/mapApiService";
+import { mapLibraryService, type MapSummaryResponse } from "../../../application/service/mapLibraryService";
 import { parseMapJSON } from "../../generator/schema/mapSchema";
 import type { MapExportJSON } from "../../../domain/mapEditorTypes";
 import { useModalStore } from "../../../ui/ModalManager/store";
@@ -40,31 +37,29 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
     const difficulty = useGameStore((s) => s.difficulty);
     const gameMode = useGameStore((s) => s.gameMode);
     const resetUI = useUIStore((s) => s.resetUI);
-    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const openModal = useModalStore((s) => s.open);
 
     const setLaunching = useUIStore((s) => s.setLaunching);
 
     const fetchCloudMaps = useCallback(async () => {
-        if (!isAuthenticated) return;
         setIsLoadingMaps(true);
         setMapError(null);
         try {
-            const data = await mapApiService.listMaps();
+            const data = await mapLibraryService.listMaps();
             setCloudMaps(data);
         } catch (err) {
-            setMapError(err instanceof Error ? err.message : "Nie udało się pobrać listy map z chmury.");
+            setMapError(err instanceof Error ? err.message : "Nie udało się pobrać listy map z biblioteki.");
         } finally {
             setIsLoadingMaps(false);
         }
-    }, [isAuthenticated]);
+    }, []);
 
     const handleSelectCloudMap = async (mapId: number) => {
         setSelectedCloudMapId(mapId);
         setIsLoadingMapDetail(true);
         setMapError(null);
         try {
-            const detail = await mapApiService.getMap(mapId);
+            const detail = await mapLibraryService.getMap(mapId);
             let rawData: unknown;
             try {
                 rawData = typeof detail.data === "string" ? JSON.parse(detail.data) : detail.data;
@@ -104,31 +99,12 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
         }, 3000);
     };
 
-    const handleGenerate = useCallback(async () => {
+    // T14: nazwy generowane lokalnie (bez serwera i bez kont).
+    const handleGenerate = useCallback(() => {
         setIsGenerating(true);
-        try {
-            if (isAuthenticated) {
-                const token = authClient.getToken();
-                const res = await fetch(apiUrl("/api/colony-names/generate"), {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                });
-                if (res.ok) {
-                    const data = await res.json() as { names: string[] };
-                    setSuggestions(data.names);
-                    return;
-                }
-            }
-            setSuggestions(generateLocalNames(5));
-        } catch {
-            setSuggestions(generateLocalNames(5));
-        } finally {
-            setIsGenerating(false);
-        }
-    }, [isAuthenticated]);
+        setSuggestions(generateLocalNames(5));
+        setIsGenerating(false);
+    }, []);
 
     useEffect(() => {
         handleGenerate();
@@ -174,7 +150,7 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
             </button>
             <h2 className="colony-modal__title">{t("modal.colony.title")}</h2>
             <p className="colony-modal__subtitle">
-                {isAuthenticated ? t("modal.colony.aiActive") : t("modal.colony.localGen")}
+                {t("modal.colony.localGen")}
             </p>
 
             {/* Input + generate button */}
@@ -193,9 +169,9 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
                     className="colony-modal__gen-btn"
                     onClick={handleGenerate}
                     disabled={isGenerating || isLaunching}
-                    title={isAuthenticated ? t("modal.colony.genAI") : t("modal.colony.genLocal")}
+                    title={t("modal.colony.genLocal")}
                 >
-                    {isGenerating ? "⏳" : isAuthenticated ? "🤖" : "🎲"}
+                    {isGenerating ? "⏳" : "🎲"}
                 </button>
             </div>
 
@@ -249,14 +225,14 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
                         onClick={() => {
                             setMapSource("cloud");
                             setMapError(null);
-                            if (isAuthenticated && cloudMaps.length === 0) {
+                            if (cloudMaps.length === 0) {
                                 fetchCloudMaps();
                             }
                         }}
                         disabled={isLaunching}
                     >
-                        <span className="colony-modal__map-source-icon">☁</span>
-                        <span>Cloud Maps</span>
+                        <span className="colony-modal__map-source-icon">🗂</span>
+                        <span>Moje mapy</span>
                     </button>
                     <button
                         type="button"
@@ -302,26 +278,22 @@ export function ColonyNameModal({ onConfirm, onCancel }: ColonyNameModalProps) {
 
                 {mapSource === "cloud" && (
                     <div className="colony-modal__cloud-section">
-                        {!isAuthenticated ? (
-                            <div className="colony-modal__notice">
-                                🔒 Zaloguj się, aby wybrać zapisaną mapę z chmury.
-                            </div>
-                        ) : isLoadingMaps ? (
+                        {isLoadingMaps ? (
                             <div className="colony-modal__loading">⏳ Pobieranie listy map...</div>
                         ) : cloudMaps.length === 0 ? (
                             <div className="colony-modal__notice">
-                                🗺️ Brak zapisanych map w chmurze. Użyj edytora map do ich stworzenia.
+                                🗺️ Brak map w bibliotece tej przeglądarki. Stwórz mapę w edytorze i użyj „Zapisz w bibliotece”.
                             </div>
                         ) : (
                             <div className="colony-modal__select-row">
                                 <select
-                                    aria-label="Wybierz mapę z chmury"
+                                    aria-label="Wybierz mapę z biblioteki"
                                     className="colony-modal__select"
                                     value={selectedCloudMapId ?? ""}
                                     onChange={(e) => handleSelectCloudMap(Number(e.target.value))}
                                     disabled={isLaunching || isLoadingMapDetail}
                                 >
-                                    <option value="" disabled>-- Wybierz mapę z chmury --</option>
+                                    <option value="" disabled>-- Wybierz mapę z biblioteki --</option>
                                     {cloudMaps.map((m) => (
                                         <option key={m.id} value={m.id}>
                                             {m.name} ({m.players} graczy)

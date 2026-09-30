@@ -3,8 +3,7 @@ import { useMapEditorStore } from '../../../application/store/useMapEditorStore'
 import { validateMap } from '../utils/validateMap'
 import type { ValidationResult } from '../utils/validateMap'
 import { parseMapJSON } from '../schema/mapSchema'
-import { authClient } from '../../../application/service/authService'
-import { mapApiService } from '../../../application/service/mapApiService'
+import { mapLibraryService } from '../../../application/service/mapLibraryService'
 import { CloudMapsModal } from './CloudMapsModal'
 import { AIAssistantModal } from './AIAssistantModal'
 
@@ -132,17 +131,12 @@ const GeneratorToolbar = () => {
   }
 
   const handleSaveCloud = async () => {
-    if (!authClient.isAuthenticated()) {
-      alert('Musisz być zalogowany, aby zapisać mapę w chmurze.')
-      return
-    }
-
     const data = exportToJSON()
     const result = validateMap(data)
     const hasErrors = result.errors.some(e => e.level === 'error')
 
     if (hasErrors) {
-      if (!window.confirm('Mapa zawiera błędy walidacji. Czy na pewno chcesz ją zapisać w chmurze?')) {
+      if (!window.confirm('Mapa zawiera błędy walidacji. Czy na pewno chcesz ją zapisać w bibliotece?')) {
         return
       }
     }
@@ -151,10 +145,10 @@ const GeneratorToolbar = () => {
     setCloudSaveStatus(null)
 
     try {
-      const saved = await mapApiService.saveMap(data)
+      const saved = await mapLibraryService.saveMap(data)
       setCloudSaveStatus({
         type: 'success',
-        message: `Mapa "${saved.name}" została zapisana w chmurze!`,
+        message: `Mapa "${saved.name}" zapisana w bibliotece tej przeglądarki.`,
       })
       setTimeout(() => setCloudSaveStatus(null), 4000)
     } catch (err) {
@@ -297,17 +291,17 @@ const GeneratorToolbar = () => {
           onClick={handleSaveCloud}
           disabled={isSavingCloud}
           className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-zinc-200 hover:text-white transition-colors text-xs flex items-center gap-1 font-medium"
-          title="Zapisz mapę do chmury Mars"
+          title="Zapisz mapę w bibliotece tej przeglądarki (bez serwera)"
         >
-          ☁ {isSavingCloud ? 'Saving...' : 'Save Cloud'}
+          💾 {isSavingCloud ? 'Zapisywanie...' : 'Zapisz w bibliotece'}
         </button>
 
         <button
           onClick={() => setIsCloudModalOpen(true)}
           className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white transition-colors text-xs flex items-center gap-1 font-medium"
-          title="Otwórz przeglądarkę map w chmurze"
+          title="Otwórz bibliotekę map zapisanych w tej przeglądarce"
         >
-          ☁ Cloud
+          🗂 Biblioteka
         </button>
 
         <div className="w-px h-4 bg-zinc-700" />
