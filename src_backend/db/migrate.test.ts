@@ -54,7 +54,13 @@ describe("runMigrations (T7)", () => {
   });
 
   afterEach(() => {
-    rmSync(dir, { recursive: true, force: true });
+    // Windows: natywny libsql potrafi trzymać blokadę pliku po close(), więc EPERM przy sprzątaniu
+    // nie może maskować wyniku testu (katalog tymczasowy posprząta system). Na Linuksie usuwa się od razu.
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+    } catch (error: unknown) {
+      if (!(error instanceof Error && "code" in error && error.code === "EPERM")) throw error;
+    }
   });
 
   it("tworzy tabele ze schema.ts i zapisuje migracje w __drizzle_migrations", async () => {
@@ -64,21 +70,17 @@ describe("runMigrations (T7)", () => {
     expect(result.total).toBe(result.applied);
     const tables = await listTables(url);
     expect(tables).toEqual(
-      expect.arrayContaining([
-        MIGRATIONS_TABLE,
-        "users",
-        "user_auth_methods",
-        "groups",
-        "user_groups",
-        "password_resets",
-        "email_verifications",
-      ]),
+      expect.arrayContaining([MIGRATIONS_TABLE, "users", "groups", "user_groups", "maps", "colonies"]),
     );
+    // T13 (0002): tabele modelu e-mail/hasło/OAuth usunięte.
+    for (const removed of ["user_auth_methods", "password_resets", "email_verifications"]) {
+      expect(tables).not.toContain(removed);
+    }
   });
 
   it("po migracji istnieje KAŻDA tabela zdefiniowana w schema.ts (T7b)", async () => {
     // Sanity: lista z schema.ts nie jest pusta i obejmuje tabele dodane po 0000.
-    expect(SCHEMA_TABLES.length).toBeGreaterThanOrEqual(8);
+    expect(SCHEMA_TABLES.length).toBeGreaterThanOrEqual(5);
     expect(SCHEMA_TABLES).toEqual(expect.arrayContaining(["maps", "colonies"]));
 
     await runMigrations({ url, migrationsFolder: MIGRATIONS_FOLDER });
