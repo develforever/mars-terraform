@@ -164,6 +164,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-30T15:43Z · nadzorca · T13 · PR #10 scalony jako `de166b7` przy CZERWONYM CI (2 testy `migrate.test.ts` z listą tabel starego modelu; lokalnie maskowane przez EPERM). Skutek: Vercel wdrożył nowy frontend, Render (checksPass) został na starym API, więc konta na produkcji niespójne do czasu poprawki. Poprawka: test pod schemat T13 + EPERM nie maskuje wyniku. Lokalnie back 191/191. Wymaga PR do `main`. · 8528989
 - 2026-09-30T16:15Z · człowiek · D18 · Użytkownik usunął obie bazy Turso (dev i prod). Skutek: API na Render bez bazy (health 503 / migracja przy starcie pada); produkcyjny frontend T13 miał niedziałające konta. · —
 - 2026-09-30T16:15Z · nadzorca · T14 · Frontend bez kont i bez wywołań API (zapisy/mapy lokalnie, eksport/import pliku, komunikaty dla gracza). Gate: lint 0, tsc OK, front 627, back 191, build OK. Następnie: T15 backend bez bazy (usunąć auth/users/groups/maps/colony/colony-names, Drizzle, migracje, `account_secret`, health bez DB) albo wstrzymać usługę Render do fazy logiki serwerowej. · c2e9a87
+- 2026-09-30T16:22Z · nadzorca · T14 · Decyzja użytkownika: notka prywatności bez danych osobowych autora (brak przetwarzania danych przez aplikację); kontakt przez e-mail projektu. Uwaga: polska ustawa o świadczeniu usług drogą elektroniczną (art. 5) formalnie może wymagać danych usługodawcy; ryzyko zaakceptowane przez użytkownika. · e12f18c
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -188,7 +189,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Brak walidacji nazwy kolonii przy zapisie (długość, znaki kontrolne).
 - ~~`migrate.test.ts` EPERM na Windows~~: naprawione (EPERM przy sprzątaniu nie maskuje wyniku).
 - Po T12: token JWT usuniętego konta działa do wygaśnięcia (domyślnie 1 h; middleware nie sprawdza bazy), ale konto i dane już nie istnieją. Zmiana e-maila (z ponowną weryfikacją) do zrobienia, jeśli potrzebna. Pierwszy admin grup: ręcznie w bazie (grupa `admin` + `user_groups`).
-- RODO (administrator): uzupełnić pola [UZUPEŁNIJ] w `src/presentation/pages/privacyPolicyContent.ts` (administrator, kontakt, podstawa transferu do USA po sprawdzeniu DPA Vercel/Render, backupy, data); zaakceptować DPA w panelach Vercel, Render, Turso; dopisać dostawcę e-mail.
+- ~~RODO (administrator): uzupełnić pola [UZUPEŁNIJ]~~ nieaktualne od T14 (brak danych osobowych, kontakt e-mail projektu). w `src/presentation/pages/privacyPolicyContent.ts` (administrator, kontakt, podstawa transferu do USA po sprawdzeniu DPA Vercel/Render, backupy, data); zaakceptować DPA w panelach Vercel, Render, Turso; dopisać dostawcę e-mail.
 - ~~`email_strategy=console` na produkcji~~: nieaktualne od T13 (brak e-maili).
 - JWT w `localStorage` (ryzyko XSS): CSP z Report-Only na enforce po zebraniu raportów.
 - Szum w logach: `dotenv-flow` przy braku plików `.env*` w obrazie wypisuje ostrzeżenie przy każdym starcie (wyciszyć w produkcji).
