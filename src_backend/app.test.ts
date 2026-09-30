@@ -4,8 +4,7 @@ import type { AddressInfo } from "net";
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
-import * as bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import { signTestToken } from "./test/testToken";
 
 vi.mock("./data-source", () => ({
   db: {
@@ -21,17 +20,13 @@ vi.mock("./config", () => ({
   config: {
     jwtSecret: "test-secret",
     jwtExpiresIn: "1h",
-    frontendUrl: "http://localhost:5173",
-    backendUrl: "http://localhost:3000",
-    emailStrategy: "console",
-    smtpFrom: "noreply@mars-terraform.local",
+    accountSecret: "test-account-secret-at-least-32-chars",
     corsOrigins: [],
   },
 }));
 
 import { createApp, type CreateAppOptions } from "./app";
 import { db } from "./data-source";
-import { emailService } from "./service/emailService";
 
 const ALLOWED = "https://mars-terraform.vercel.app";
 const INDEX_HTML = "<!doctype html><title>spa</title>";
@@ -257,7 +252,7 @@ describe("error handler", () => {
     failDatabase();
     const { baseUrl } = await start({ isProduction: true });
 
-    const res = await login(baseUrl, { email: "a@b.c", password: "x" });
+    const res = await login(baseUrl, { accountNumber: "7KQ2-M9XA-4TRE-01ZC-8HNP" });
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: "Internal Server Error" });
     expect(console.error).toHaveBeenCalledWith(
@@ -270,7 +265,7 @@ describe("error handler", () => {
     failDatabase();
     const { baseUrl } = await start({ isProduction: false });
 
-    const res = await login(baseUrl, { email: "a@b.c", password: "x" });
+    const res = await login(baseUrl, { accountNumber: "7KQ2-M9XA-4TRE-01ZC-8HNP" });
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: SECRET_DETAIL });
   });
@@ -286,11 +281,11 @@ describe("error handler", () => {
   it.each([true, false])("keeps TSOA validation fields for 400 (isProduction=%s)", async (isProduction) => {
     const { baseUrl } = await start({ isProduction });
 
-    const res = await login(baseUrl, { email: 1 });
+    const res = await login(baseUrl, { accountNumber: 1 });
     expect(res.status).toBe(400);
     const body: unknown = await res.json();
     expect(body).toMatchObject({ error: expect.any(String), fields: expect.any(Object) });
-    expect(JSON.stringify(body)).toContain("password");
+    expect(JSON.stringify(body)).toContain("accountNumber");
   });
 
   it("keeps the JSON parse error message for 400 in production", async () => {
@@ -331,36 +326,33 @@ describe("client errors (HttpError) in production", () => {
       body: JSON.stringify(body),
     });
 
-  const bearer = (): string =>
-    jwt.sign({ userId: 7, email: "u@mars.test" }, "test-secret", { expiresIn: "1h" });
+  const bearer = (): string => signTestToken(7);
 
-  it("answers an unknown email and a wrong password with the same 401", async () => {
-    const passwordHash = await bcrypt.hash("correct", 4);
+  it("answers a malformed account number with 401 without touching the database", async () => {
     const { baseUrl } = await start({ isProduction: true });
+    vi.mocked(db.select).mockClear();
 
+    const res = await post(`${baseUrl}/api/auth/login`, { accountNumber: "not-a-number" });
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Invalid account number or code" });
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it("answers an unknown account number with the same 401", async () => {
+    const { baseUrl } = await start({ isProduction: true });
     selectReturning([]);
-    const unknown = await post(`${baseUrl}/api/auth/login`, { email: "no@mars.test", password: "correct" });
 
-    selectReturning(
-      [{ id: 7, email: "u@mars.test", emailVerifiedAt: new Date() }],
-      [{ id: 1, userId: 7, provider: "local", passwordHash }],
-    );
-    const wrong = await post(`${baseUrl}/api/auth/login`, { email: "u@mars.test", password: "wrong" });
-
-    for (const res of [unknown, wrong]) {
-      expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ error: "Invalid credentials" });
-    }
+    const res = await post(`${baseUrl}/api/auth/login`, { accountNumber: "7KQ2-M9XA-4TRE-01ZC-8HNP" });
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "Invalid account number or code" });
     expect(console.error).not.toHaveBeenCalled();
   });
 
-  it("answers an invalid reset token with 400 and its message", async () => {
+  it("rejects extra fields on login (e.g. the old email/password body) with 400", async () => {
     const { baseUrl } = await start({ isProduction: true });
-    selectReturning([]);
 
-    const res = await post(`${baseUrl}/api/auth/reset-password`, { token: "nope", newPassword: "secret123" });
+    const res = await post(`${baseUrl}/api/auth/login`, { email: "u@mars.test", password: "x" });
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "Invalid or expired reset token" });
   });
 
   it("answers a missing user in a controller with 404 instead of 500", async () => {
@@ -375,7 +367,7 @@ describe("client errors (HttpError) in production", () => {
     const res = await fetch(`${baseUrl}/api/users/me`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${bearer()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Nowa nazwa" }),
+      body: JSON.stringify({ nickname: "Nowy pseudonim" }),
     });
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "User not found" });
@@ -396,112 +388,5 @@ describe("client errors (HttpError) in production", () => {
     const res = await fetch(`${baseUrl}/api/maps`, { headers: { Authorization: "Bearer garbage" } });
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: "Invalid or expired token" });
-  });
-});
-
-describe("account enumeration (T3c) in production", () => {
-  const RESEND_BODY = { message: "If the account exists and is unverified, a verification email has been sent." };
-  const UNVERIFIED = { id: 8, email: "new@mars.test", emailVerifiedAt: null };
-  const VERIFIED = { id: 7, email: "u@mars.test", emailVerifiedAt: new Date() };
-
-  const selectReturning = (...results: unknown[][]): void => {
-    for (const rows of results) {
-      vi.mocked(db.select).mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(rows) }),
-      } as unknown as ReturnType<typeof db.select>);
-    }
-  };
-
-  const mockWrites = (): void => {
-    vi.mocked(db.delete).mockReturnValue({
-      where: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ReturnType<typeof db.delete>);
-    vi.mocked(db.insert).mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
-    } as unknown as ReturnType<typeof db.insert>);
-  };
-
-  const post = (url: string, body: unknown): Promise<Response> =>
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-  beforeEach(() => {
-    vi.spyOn(console, "log").mockImplementation(() => {});
-  });
-
-  it("checks the password before email verification on login", async () => {
-    const passwordHash = await bcrypt.hash("correct", 4);
-    const { baseUrl } = await start({ isProduction: true });
-
-    selectReturning([UNVERIFIED], [{ id: 2, userId: 8, provider: "local", passwordHash }]);
-    const wrong = await post(`${baseUrl}/api/auth/login`, { email: "new@mars.test", password: "wrong" });
-    expect(wrong.status).toBe(401);
-    expect(await wrong.json()).toEqual({ error: "Invalid credentials" });
-
-    selectReturning([UNVERIFIED], [{ id: 2, userId: 8, provider: "local", passwordHash }]);
-    const correct = await post(`${baseUrl}/api/auth/login`, { email: "new@mars.test", password: "correct" });
-    expect(correct.status).toBe(403);
-    expect(await correct.json()).toEqual({
-      error: "Email not verified. Please verify your email before logging in.",
-    });
-  });
-
-  it("answers resend-verification identically for unknown, verified and unverified accounts", async () => {
-    const send = vi.spyOn(emailService, "send");
-    mockWrites();
-    const { baseUrl } = await start({ isProduction: true });
-
-    const responses: { status: number; body: string }[] = [];
-    for (const rows of [[], [VERIFIED], [UNVERIFIED]]) {
-      selectReturning(rows);
-      const res = await post(`${baseUrl}/api/auth/resend-verification`, { email: "x@mars.test" });
-      responses.push({ status: res.status, body: await res.text() });
-    }
-
-    for (const { status, body } of responses) {
-      expect(status).toBe(200);
-      expect(JSON.parse(body)).toEqual(RESEND_BODY);
-    }
-    expect(new Set(responses.map((r) => r.body)).size).toBe(1);
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send).toHaveBeenCalledWith(expect.objectContaining({ to: UNVERIFIED.email }));
-    expect(console.error).not.toHaveBeenCalled();
-  });
-
-  it("keeps the same resend-verification success when email delivery fails, and logs it", async () => {
-    const failure = new Error("SMTP connection refused");
-    vi.spyOn(emailService, "send").mockRejectedValueOnce(failure);
-    mockWrites();
-    const { baseUrl } = await start({ isProduction: true });
-
-    selectReturning([UNVERIFIED]);
-    const res = await post(`${baseUrl}/api/auth/resend-verification`, { email: UNVERIFIED.email });
-
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual(RESEND_BODY);
-    expect(console.error).toHaveBeenCalledWith("[auth] verification email failed:", failure);
-  });
-
-  it("keeps the same forgot-password success when email delivery fails, and logs it", async () => {
-    const failure = new Error("SMTP connection refused");
-    vi.spyOn(emailService, "send").mockRejectedValueOnce(failure);
-    mockWrites();
-    const { baseUrl } = await start({ isProduction: true });
-
-    selectReturning([]);
-    const unknown = await post(`${baseUrl}/api/auth/forgot-password`, { email: "no@mars.test" });
-    selectReturning([VERIFIED]);
-    const existing = await post(`${baseUrl}/api/auth/forgot-password`, { email: VERIFIED.email });
-
-    for (const res of [unknown, existing]) {
-      expect(res.status).toBe(200);
-      expect(await res.json()).toEqual({
-        message: "If an account with that email exists, a reset link has been sent.",
-      });
-    }
-    expect(console.error).toHaveBeenCalledWith("[auth] password reset email failed:", failure);
   });
 });

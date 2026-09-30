@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
-import jwt from "jsonwebtoken";
+import { signTestToken } from "./testToken";
 
 vi.mock("../data-source", () => ({
   db: {
@@ -56,7 +56,7 @@ const start = async (): Promise<string> => {
 };
 
 const bearer = (): string =>
-  jwt.sign({ userId: 7, email: "u@mars.test" }, "test-secret", { expiresIn: "1h" });
+  signTestToken(7);
 
 const postRaw = (baseUrl: string, body: string): Promise<Response> =>
   fetch(`${baseUrl}/api/colony`, {

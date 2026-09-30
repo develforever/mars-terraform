@@ -28,24 +28,24 @@ export class UsersController extends Controller {
     @Body() body: UserUpdateRequest,
     @Request() req: AuthenticatedRequest,
   ): Promise<UserResponse> {
-    const name = body.name.trim();
-    if (name.length === 0) {
-      throw new HttpError(400, "Name must not be empty");
+    const nickname = body.nickname.trim();
+    if (nickname.length === 0) {
+      throw new HttpError(400, "Nickname must not be empty");
     }
     const userId = req.user!.userId;
-    const updated = await userService.update(userId, { name });
+    const updated = await userService.update(userId, { nickname });
     if (!updated) {
       throw new HttpError(404, "User not found");
     }
-    // Odpowiedź tylko z publicznych pól profilu (bez provider_id, deleted_at itp.).
+    // Odpowiedź tylko z pól profilu (bez hasha numeru konta i sekretu TOTP).
     const user = await userService.getById(userId);
     if (!user) {
       throw new HttpError(404, "User not found");
     }
-    return user as UserResponse;
+    return { id: user.id, nickname: user.nickname, totpEnabled: user.totpEnabled, createdAt: user.createdAt, lastLoginAt: user.lastLoginAt };
   }
 
-  /** RODO art. 15 i 20: wszystkie dane konta w JSON (bez hasła i tokenów), jako plik do pobrania. */
+  /** RODO art. 15 i 20: wszystkie dane konta w JSON (bez hasha numeru konta i sekretu TOTP), jako plik do pobrania. */
   @Get("me/export")
   @Security("jwt")
   public async exportMe(@Request() req: AuthenticatedRequest): Promise<UserDataExport> {
@@ -59,8 +59,7 @@ export class UsersController extends Controller {
   }
 
   /**
-   * RODO art. 17: trwałe usunięcie konta z koloniami, mapami, metodami logowania, członkostwem w grupach
-   * i tokenami. Nieodwracalne. Wydany JWT wygasa sam (domyślnie po 1 h) i nie ma już czego odczytać.
+   * RODO art. 17: trwałe usunięcie konta z koloniami, mapami i członkostwem w grupach. Nieodwracalne. Wydany JWT wygasa sam (domyślnie po 1 h) i nie ma już czego odczytać.
    */
   @Delete("me")
   @Security("jwt")

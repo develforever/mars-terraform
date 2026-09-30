@@ -48,6 +48,7 @@ lines.forEach((line, index) => {
 
 const SECRET_KEYS = [
   'jwt_secret',
+  'account_secret',
   'turso_url',
   'turso_token',
   'google_client_secret',
@@ -88,11 +89,11 @@ describe('render.yaml (API na Render)', () => {
     expect(envVars.get('NODE_ENV')).toEqual({ value: 'production' })
     expect(envVars.get('serve_frontend')).toEqual({ value: 'false' })
     expect(envVars.get('PORT')).toEqual({ value: '8080' })
-    expect(envVars.get('backend_url')).toEqual({ value: 'https://mars-terraform-api.onrender.com' })
+    expect(envVars.has('backend_url')).toBe(false)
   })
 
   it('wymagane sekrety są zadeklarowane wyłącznie jako sync: false (bez wartości)', () => {
-    for (const key of ['jwt_secret', 'turso_url', 'turso_token']) {
+    for (const key of ['jwt_secret', 'account_secret', 'turso_url', 'turso_token']) {
       expect(envVars.get(key), key).toEqual({ sync: 'false' })
     }
     for (const key of SECRET_KEYS) {
@@ -101,7 +102,7 @@ describe('render.yaml (API na Render)', () => {
     }
   })
 
-  it('nie deklaruje frontend_url / cors_origins (ustawiane po poznaniu domeny Vercel)', () => {
+  it('nie deklaruje frontend_url / cors_origins (T13: frontend_url zbędny, CORS po poznaniu domeny Vercel)', () => {
     expect(envVars.has('frontend_url')).toBe(false)
     expect(envVars.has('cors_origins')).toBe(false)
   })
@@ -112,7 +113,7 @@ describe('render.yaml (API na Render)', () => {
   })
 
   it('wymienia w komentarzu nazwy opcjonalnych zmiennych', () => {
-    for (const key of ['frontend_url', 'cors_origins', 'openrouter_api_key', 'google_client_id']) {
+    for (const key of ['account_secret', 'cors_origins', 'openrouter_api_key']) {
       expect(raw).toContain(key)
     }
   })

@@ -1,39 +1,54 @@
+/** Profil konta (T13): bez e-maila i imienia. */
 export interface UserResponse {
   id: number;
-  name: string;
-  email: string;
-  authProvider: string;
-  emailVerifiedAt: Date | null;
-  createdAt: Date | null;
+  nickname: string | null;
+  totpEnabled: boolean;
+  createdAt: Date;
+  lastLoginAt: Date | null;
 }
 
 export interface AuthResponse {
   token: string;
 }
 
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
+/** Odpowiedź rejestracji: numer konta pokazywany JEDEN raz (serwer trzyma tylko hash). */
+export interface RegisterResponse {
+  accountNumber: string;
+  token: string;
 }
 
 export interface LoginRequest {
-  email: string;
-  password: string;
+  /**
+   * Numer konta, np. `7KQ2-M9XA-4TRE-01ZC-8HNP` (myślniki i spacje opcjonalne).
+   * @maxLength 64
+   */
+  accountNumber: string;
+  /**
+   * Kod z aplikacji authenticator (6 cyfr), wymagany tylko przy włączonym TOTP.
+   * @maxLength 12
+   */
+  totpCode?: string;
 }
 
-export interface ChangePasswordRequest {
-  oldPassword: string;
-  newPassword: string;
+export interface TotpCodeRequest {
+  /** @maxLength 12 */
+  code: string;
 }
 
-/** T12: tylko nazwa. Zmiana e-maila nie jest obsługiwana (wymagałaby ponownej weryfikacji). */
+export interface TotpSetupResponse {
+  /** Sekret base32 do wpisania ręcznie w aplikacji authenticator. */
+  secret: string;
+  /** Link `otpauth://totp/...` (dla aplikacji obsługujących linki lub do wygenerowania QR). */
+  otpauthUri: string;
+}
+
+/** T13: tylko pseudonim (opcjonalny, widoczny dla innych graczy w przyszłym trybie sieciowym). */
 export interface UserUpdateRequest {
   /**
    * @minLength 1
-   * @maxLength 100
+   * @maxLength 32
    */
-  name: string;
+  nickname: string;
 }
 
 /** T12: eksport danych użytkownika (`GET /api/users/me/export`), RODO art. 15 i 20. */
@@ -42,19 +57,12 @@ export interface UserDataExport {
   exportedAt: string;
   profile: {
     id: number;
-    name: string;
-    email: string;
-    authProvider: string;
-    emailVerifiedAt: Date | null;
+    nickname: string | null;
+    totpEnabled: boolean;
     createdAt: Date;
     updatedAt: Date;
+    lastLoginAt: Date | null;
   };
-  authMethods: {
-    provider: string;
-    providerId: string | null;
-    verified: boolean;
-    createdAt: Date;
-  }[];
   groups: { name: string; description: string | null }[];
   maps: {
     id: number;
@@ -91,23 +99,6 @@ export interface CreateGroupRequest {
 
 export interface AddMemberRequest {
   userId: number;
-}
-
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-export interface ResetPasswordRequest {
-  token: string;
-  newPassword: string;
-}
-
-export interface VerifyEmailRequest {
-  token: string;
-}
-
-export interface ResendVerificationRequest {
-  email: string;
 }
 
 /**

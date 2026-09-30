@@ -1,32 +1,22 @@
 import { int, sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
+/**
+ * Konta graczy bez danych osobowych (T13, D17): brak e-maila, imienia i hasła.
+ * Logowanie numerem konta; w bazie tylko jego HMAC (`account_hash`). Opcjonalny TOTP (sekret zaszyfrowany).
+ */
 export const usersTable = sqliteTable("users", {
   id: int().primaryKey({ autoIncrement: true }),
-  name: text().notNull(),
-  email: text().notNull().unique(),
-  authProvider: text("auth_provider").notNull().default("local"),
-  providerId: text("provider_id"),
-  emailVerifiedAt: integer("email_verified_at", { mode: "timestamp" }),
-  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+  accountHash: text("account_hash").notNull().unique(),
+  nickname: text(),
+  totpSecret: text("totp_secret"),
+  totpEnabled: integer("totp_enabled", { mode: "boolean" }).notNull().default(false),
+  totpLastStep: integer("totp_last_step"),
+  lastLoginAt: integer("last_login_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
-
-export const userAuthMethodsTable = sqliteTable("user_auth_methods", {
-  id: int().primaryKey({ autoIncrement: true }),
-  userId: int("user_id")
-    .notNull()
-    .references(() => usersTable.id),
-  provider: text().notNull(),
-  providerId: text("provider_id"),
-  passwordHash: text("password_hash"),
-  verified: integer({ mode: "boolean" }).notNull().default(false),
-  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
 });
@@ -50,30 +40,6 @@ export const userGroupsTable = sqliteTable("user_groups", {
 }, (table) => [
   primaryKey({ columns: [table.userId, table.groupId] }),
 ]);
-
-export const passwordResetsTable = sqliteTable("password_resets", {
-  id: int().primaryKey({ autoIncrement: true }),
-  userId: int("user_id")
-    .notNull()
-    .references(() => usersTable.id),
-  token: text().notNull().unique(),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
-
-export const emailVerificationsTable = sqliteTable("email_verifications", {
-  id: int().primaryKey({ autoIncrement: true }),
-  userId: int("user_id")
-    .notNull()
-    .references(() => usersTable.id),
-  token: text().notNull().unique(),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
 
 export const coloniesTable = sqliteTable("colonies", {
   id: int().primaryKey({ autoIncrement: true }),

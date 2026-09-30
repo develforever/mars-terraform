@@ -46,9 +46,8 @@ describe("groupService", () => {
     const mockMembershipQuery = (rows: unknown[]) => {
       const limit = vi.fn().mockResolvedValue(rows);
       const where = vi.fn().mockReturnValue({ limit });
-      const join2 = vi.fn().mockReturnValue({ where });
-      const join1 = vi.fn().mockReturnValue({ innerJoin: join2 });
-      const from = vi.fn().mockReturnValue({ innerJoin: join1 });
+      const join = vi.fn().mockReturnValue({ where });
+      const from = vi.fn().mockReturnValue({ innerJoin: join });
       (db.select as ReturnType<typeof vi.fn>).mockReturnValue({ from });
       return { limit };
     };

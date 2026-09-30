@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const VALID_ACCOUNT_SECRET = "a".repeat(32);
+
 const loadConfig = async (corsOrigins: string | undefined): Promise<{ corsOrigins: readonly string[] }> => {
   vi.stubEnv("jwt_secret", "test-secret");
+  vi.stubEnv("account_secret", VALID_ACCOUNT_SECRET);
   vi.stubEnv("cors_origins", corsOrigins);
   const mod = await import("./config");
   return mod.config;
@@ -46,6 +49,7 @@ describe("config.corsOrigins", () => {
 
 const loadServeFrontend = async (value: string | undefined): Promise<boolean> => {
   vi.stubEnv("jwt_secret", "test-secret");
+  vi.stubEnv("account_secret", VALID_ACCOUNT_SECRET);
   vi.stubEnv("serve_frontend", value);
   const mod = await import("./config");
   return mod.config.serveFrontend;
@@ -96,8 +100,38 @@ describe("config.isProduction", () => {
     ["test", false],
   ])("NODE_ENV=%s -> %s", async (nodeEnv, expected) => {
     vi.stubEnv("jwt_secret", "test-secret");
+    vi.stubEnv("account_secret", VALID_ACCOUNT_SECRET);
     vi.stubEnv("NODE_ENV", nodeEnv);
     const mod = await import("./config");
     expect(mod.config.isProduction).toBe(expected);
+  });
+});
+
+describe("config.accountSecret (T13)", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("jest wymagany", async () => {
+    vi.stubEnv("jwt_secret", "test-secret");
+    vi.stubEnv("account_secret", "");
+    await expect(import("./config")).rejects.toThrow("Missing required env variable: account_secret");
+  });
+
+  it("odrzuca za krótki sekret", async () => {
+    vi.stubEnv("jwt_secret", "test-secret");
+    vi.stubEnv("account_secret", "a".repeat(31));
+    await expect(import("./config")).rejects.toThrow("account_secret: must be at least 32 characters");
+  });
+
+  it("przyjmuje sekret o długości co najmniej 32 znaków", async () => {
+    vi.stubEnv("jwt_secret", "test-secret");
+    vi.stubEnv("account_secret", VALID_ACCOUNT_SECRET);
+    const mod = await import("./config");
+    expect(mod.config.accountSecret).toBe(VALID_ACCOUNT_SECRET);
   });
 });
