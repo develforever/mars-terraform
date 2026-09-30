@@ -5,7 +5,7 @@ import { StartScene3D } from "../components/game/MarsStartScene";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useModalStore } from "../../ui/ModalManager/store";
 import { useGameStore } from "../../application/store/useGameStore";
-import { useAuthStore } from "../../application/store/useAuthStore";
+import { LocalDataNotice } from "../components/ui/LocalDataNotice";
 import { useUIStore } from "../../application/store/useUIStore";
 import { LocalSaveService } from "../../application/service/localSaveService";
 import type { DifficultyLevel } from "../../domain/services/TerraformingService";
@@ -23,7 +23,6 @@ export default function StartView() {
     const setDifficulty = useGameStore((s) => s.setDifficulty);
     const setGameMode = useGameStore((s) => s.setGameMode);
     const resumeLocalGame = useGameStore((s) => s.resumeLocalGame);
-    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const isLaunching = useUIStore((s) => s.isLaunching);
     const [selected, setSelected] = useState<DifficultyLevel>("normal");
     const [selectedMode, setSelectedMode] = useState<GameMode>("exploration");
@@ -110,13 +109,13 @@ export default function StartView() {
                     <button className="start-btn-secondary" onClick={handleScenarios} disabled={isLaunching}>
                         {t("scenarios.menuButton")}
                     </button>
-                    {isAuthenticated && (
-                        <button className="start-btn-secondary" onClick={handleLoad} disabled={isLaunching}>
-                            {t("start.load")}
-                        </button>
-                    )}
+                    <button className="start-btn-secondary" onClick={handleLoad} disabled={isLaunching}>
+                        {t("start.load")}
+                    </button>
                 </div>
             </div>
+
+            <LocalDataNotice />
 
             <StartScene3D onClick={handleStart} warpSpeed={isLaunching} />
 

@@ -1,7 +1,7 @@
 /**
- * Krótka informacja o prywatności (T13, RODO art. 13) dla modelu kont BEZ danych osobowych
- * (numer konta + opcjonalny authenticator). Pola [UZUPEŁNIJ] / [TO FILL IN] uzupełnia administrator.
- * Dokument prawny utrzymywany w całości per język (nie w plikach tłumaczeń).
+ * Informacja o prywatności (T14: gra BEZ kont). Aplikacja nie przetwarza danych osobowych na serwerze:
+ * zapisy gry i mapy są wyłącznie w przeglądarce gracza. Pola [UZUPEŁNIJ] / [TO FILL IN] uzupełnia administrator.
+ * Dokument utrzymywany w całości per język (nie w plikach tłumaczeń).
  */
 
 export interface PolicySection {
@@ -24,46 +24,34 @@ const PL: PolicyContent = {
     {
       heading: "1. W skrócie",
       paragraphs: [
-        "Nie zbieramy e-maila, imienia, nazwiska ani hasła i nie używamy plików cookies. Konto to losowy numer konta, który znasz tylko Ty.",
+        "Gra nie ma kont. Nie zbieramy e-maila, imienia, hasła ani innych danych osobowych i nie używamy plików cookies ani narzędzi analitycznych czy reklamowych.",
       ],
     },
     {
-      heading: "2. Administrator",
+      heading: "2. Gdzie są Twoje dane gry",
       paragraphs: [
-        "Administratorem danych jest [UZUPEŁNIJ: imię i nazwisko albo nazwa]. Kontakt: [UZUPEŁNIJ: adres e-mail].",
+        "Zapisy kolonii, autozapis i mapy z generatora są przechowywane wyłącznie w Twojej przeglądarce (IndexedDB / localStorage) i nie są wysyłane na nasz serwer.",
+        "Wyczyszczenie danych witryny w przeglądarce usuwa je bezpowrotnie. Kopię zapasową możesz pobrać jako plik (Wczytaj → ⬇) i wczytać na innym urządzeniu.",
+        "W pamięci przeglądarki zapisujemy też wybrany język i to, że zamknięto informację o grze bez konta. Są niezbędne do działania funkcji, z których korzystasz.",
       ],
     },
     {
-      heading: "3. Jakie dane przetwarzamy",
+      heading: "3. Hosting",
       paragraphs: [
-        "Przy koncie: skrót kryptograficzny numeru konta (samego numeru nie przechowujemy), opcjonalny pseudonim, zaszyfrowany klucz authenticatora (jeśli go włączysz), daty utworzenia i ostatniego logowania oraz zapisane kolonie i mapy.",
-        "Serwer gry nie zapisuje adresów IP. Techniczne logi dostawców hostingu mogą zawierać adres IP i czas żądania.",
-        "Grę i generator map można używać bez konta: wtedy dane gry zostają wyłącznie w Twojej przeglądarce.",
+        "Strona jest hostowana przez Vercel Inc. (USA). Jak każdy serwer WWW, dostawca hostingu może rejestrować w logach technicznych adres IP i czas żądania. Nie mamy dostępu do tych danych w celu identyfikacji graczy i nie łączymy ich z danymi gry.",
       ],
     },
     {
-      heading: "4. Cel, podstawa i odbiorcy",
+      heading: "4. Administrator i kontakt",
       paragraphs: [
-        "Prowadzenie konta i zapisów gry: art. 6 ust. 1 lit. b RODO. Bezpieczeństwo serwisu: art. 6 ust. 1 lit. f RODO.",
-        "Dane przechowują dostawcy infrastruktury działający na nasze polecenie: Vercel Inc. (strona), Render Services, Inc. (serwer gry, Frankfurt, UE) i Turso (baza danych, Irlandia, UE). Vercel i Render mają siedzibę w USA; podstawa przekazania: [UZUPEŁNIJ po sprawdzeniu umów powierzenia, np. standardowe klauzule umowne].",
+        "Administratorem serwisu jest [UZUPEŁNIJ: imię i nazwisko albo nazwa]. Kontakt: [UZUPEŁNIJ: adres e-mail].",
+        "Przysługuje Ci prawo wniesienia skargi do Prezesa UODO (ul. Stawki 2, 00-193 Warszawa, uodo.gov.pl).",
       ],
     },
     {
-      heading: "5. Jak długo",
+      heading: "5. Zmiany",
       paragraphs: [
-        "Do czasu usunięcia konta. Konta nieużywane przez 2 lata usuwamy automatycznie razem z zapisami gry.",
-      ],
-    },
-    {
-      heading: "6. Twoje prawa",
-      paragraphs: [
-        "W panelu „Konto” (kliknij swój pseudonim w menu) możesz w każdej chwili pobrać wszystkie dane w pliku JSON, zmienić pseudonim i trwale usunąć konto. Masz też prawo do ograniczenia przetwarzania i sprzeciwu oraz prawo wniesienia skargi do Prezesa UODO (ul. Stawki 2, 00-193 Warszawa, uodo.gov.pl).",
-      ],
-    },
-    {
-      heading: "7. Cookies i pamięć przeglądarki",
-      paragraphs: [
-        "Serwis nie używa plików cookies ani narzędzi analitycznych czy reklamowych. W pamięci przeglądarki zapisujemy tylko: token logowania (usuwany przy wylogowaniu), wybrany język i lokalny autozapis gry. Są niezbędne do działania funkcji, z których korzystasz.",
+        "Jeśli dodamy funkcje sieciowe (np. wspólną grę), zaktualizujemy tę informację przed ich uruchomieniem.",
       ],
     },
   ],
@@ -77,46 +65,34 @@ const EN: PolicyContent = {
     {
       heading: "1. In short",
       paragraphs: [
-        "We do not collect your e-mail, name or password and we do not use cookies. Your account is a random account number that only you know.",
+        "The game has no accounts. We do not collect your e-mail, name, password or any other personal data, and we do not use cookies, analytics or advertising tools.",
       ],
     },
     {
-      heading: "2. Controller",
+      heading: "2. Where your game data is",
       paragraphs: [
-        "The data controller is [TO FILL IN: full name or entity name]. Contact: [TO FILL IN: e-mail address].",
+        "Colony saves, the autosave and generator maps are stored only in your browser (IndexedDB / localStorage) and are not sent to our server.",
+        "Clearing site data in your browser deletes them permanently. You can download a backup file (Load → ⬇) and load it on another device.",
+        "Your browser also stores your chosen language and whether you dismissed the no-account notice. These are necessary for the features you use.",
       ],
     },
     {
-      heading: "3. What data we process",
+      heading: "3. Hosting",
       paragraphs: [
-        "For an account: a cryptographic hash of the account number (we never store the number itself), an optional nickname, an encrypted authenticator key (if you enable it), creation and last login dates, and your saved colonies and maps.",
-        "The game server does not store IP addresses. Technical logs of hosting providers may contain IP addresses and request times.",
-        "You can play and use the map generator without an account: game data then stays only in your browser.",
+        "The website is hosted by Vercel Inc. (USA). Like any web server, the hosting provider may record IP addresses and request times in technical logs. We do not use this data to identify players and do not link it to game data.",
       ],
     },
     {
-      heading: "4. Purpose, legal basis and recipients",
+      heading: "4. Controller and contact",
       paragraphs: [
-        "Running your account and game saves: Art. 6(1)(b) GDPR. Service security: Art. 6(1)(f) GDPR.",
-        "Data is stored by infrastructure providers acting on our instructions: Vercel Inc. (website), Render Services, Inc. (game server, Frankfurt, EU) and Turso (database, Ireland, EU). Vercel and Render are based in the USA; transfer basis: [TO FILL IN after reviewing the data processing agreements, e.g. standard contractual clauses].",
+        "The service is run by [TO FILL IN: full name or entity name]. Contact: [TO FILL IN: e-mail address].",
+        "You may lodge a complaint with the Polish supervisory authority (UODO, ul. Stawki 2, 00-193 Warsaw, uodo.gov.pl) or the authority in your country.",
       ],
     },
     {
-      heading: "5. Retention",
+      heading: "5. Changes",
       paragraphs: [
-        "Until you delete your account. Accounts unused for 2 years are deleted automatically together with game saves.",
-      ],
-    },
-    {
-      heading: "6. Your rights",
-      paragraphs: [
-        "In the “Account” panel (click your nickname in the menu) you can download all your data as a JSON file, change your nickname and permanently delete your account at any time. You may also restrict or object to processing and lodge a complaint with the Polish supervisory authority (UODO, ul. Stawki 2, 00-193 Warsaw, uodo.gov.pl) or the authority in your country.",
-      ],
-    },
-    {
-      heading: "7. Cookies and browser storage",
-      paragraphs: [
-        "The service does not use cookies, analytics or advertising tools. In your browser we store only: the sign-in token (removed on sign-out), your chosen language and a local game autosave. They are necessary for the features you use.",
+        "If we add online features (e.g. multiplayer), we will update this notice before launching them.",
       ],
     },
   ],

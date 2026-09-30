@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
-import { useAuthStore } from "../../../application/store/useAuthStore";
 
 interface ExitConfirmModalProps {
     onClose: () => void;
@@ -16,9 +15,8 @@ export function ExitConfirmModal({ onClose }: ExitConfirmModalProps) {
     const saveGame = useGameStore((s) => s.saveGame);
     const resetGame = useGameStore((s) => s.resetGame);
     const resetUI = useUIStore((s) => s.resetUI);
-    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const colonyName = useGameStore((s) => s.colonyName);
-    const canSave = isAuthenticated && !!colonyName;
+    const canSave = !!colonyName;
 
     const doExit = () => {
         resetGame();

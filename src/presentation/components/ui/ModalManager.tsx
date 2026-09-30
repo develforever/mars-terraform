@@ -4,9 +4,6 @@ import { ColonyNameModal } from "../game/ColonyNameModal";
 import { ScenarioSelectModal } from "../game/ScenarioSelectModal";
 import { ExitConfirmModal } from "../game/ExitConfirmModal";
 import { LoadGameModal } from "../game/LoadGameModal";
-import LoginModal from "../auth/LoginModal";
-import RegisterModal from "../auth/RegisterModal";
-import AccountModal from "../auth/AccountModal";
 
 export default function ModalManager() {
     const { isOpen, modalType, close } = useModalStore();
@@ -30,16 +27,10 @@ export default function ModalManager() {
                 return <ColonyNameModal onConfirm={close} onCancel={close} />;
             case "scenario-select":
                 return <ScenarioSelectModal onConfirm={close} onCancel={close} />;
-            case "login":
-                return <LoginModal />;
-            case "register":
-                return <RegisterModal />;
             case "exit-confirm":
                 return <ExitConfirmModal onClose={close} />;
             case "load-game":
                 return <LoadGameModal onClose={close} />;
-            case "account":
-                return <AccountModal />;
             default:
                 return null;
         }

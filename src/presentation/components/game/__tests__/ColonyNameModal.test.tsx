@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ColonyNameModal } from "../ColonyNameModal";
-import { mapApiService } from "../../../../application/service/mapApiService";
+import { mapLibraryService } from "../../../../application/service/mapLibraryService";
 import { useGameStore } from "../../../../application/store/useGameStore";
 import type { MapExportJSON } from "../../../../domain/mapEditorTypes";
 
@@ -15,19 +15,13 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
-vi.mock("../../../../application/service/mapApiService", () => ({
-  mapApiService: {
+vi.mock("../../../../application/service/mapLibraryService", () => ({
+  mapLibraryService: {
     listMaps: vi.fn(),
     getMap: vi.fn(),
   },
 }));
 
-vi.mock("../../../../application/service/authService", () => ({
-  authClient: {
-    getToken: vi.fn().mockReturnValue("mock-token"),
-    isAuthenticated: vi.fn().mockReturnValue(true),
-  },
-}));
 
 const mockMapData: MapExportJSON = {
   meta: {
@@ -63,74 +57,71 @@ describe("ColonyNameModal", () => {
       expect(screen.getByText("modal.colony.title")).toBeInTheDocument();
     });
     expect(screen.getByText("Procedural Mars")).toBeInTheDocument();
-    expect(screen.getByText("Cloud Maps")).toBeInTheDocument();
+    expect(screen.getByText("Moje mapy")).toBeInTheDocument();
   });
 
   it("fetches and renders cloud maps when Cloud Maps source is selected", async () => {
-    vi.mocked(mapApiService.listMaps).mockResolvedValue([
+    vi.mocked(mapLibraryService.listMaps).mockResolvedValue([
       {
         id: 101,
-        userId: 1,
         name: "Cloud Map One",
         description: "Description 1",
         players: 2,
         version: "2.0",
-        createdAt: null,
-        updatedAt: null,
+        createdAt: "2026-09-30T00:00:00Z",
+        updatedAt: "2026-09-30T00:00:00Z",
       },
     ]);
 
     render(<ColonyNameModal onConfirm={mockOnConfirm} onCancel={mockOnCancel} />);
 
-    const cloudBtn = screen.getByText("Cloud Maps");
+    const cloudBtn = screen.getByText("Moje mapy");
     fireEvent.click(cloudBtn);
 
     await waitFor(() => {
-      expect(mapApiService.listMaps).toHaveBeenCalledTimes(1);
+      expect(mapLibraryService.listMaps).toHaveBeenCalledTimes(1);
     });
 
-    expect(screen.getByRole("combobox", { name: /wybierz mapę z chmury/i })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /wybierz mapę z biblioteki/i })).toBeInTheDocument();
     expect(screen.getByText("Cloud Map One (2 graczy)")).toBeInTheDocument();
   });
 
   it("loads selected cloud map details and shows badge", async () => {
-    vi.mocked(mapApiService.listMaps).mockResolvedValue([
+    vi.mocked(mapLibraryService.listMaps).mockResolvedValue([
       {
         id: 101,
-        userId: 1,
         name: "Cloud Map One",
         description: "Description 1",
         players: 2,
         version: "2.0",
-        createdAt: null,
-        updatedAt: null,
+        createdAt: "2026-09-30T00:00:00Z",
+        updatedAt: "2026-09-30T00:00:00Z",
       },
     ]);
-    vi.mocked(mapApiService.getMap).mockResolvedValue({
+    vi.mocked(mapLibraryService.getMap).mockResolvedValue({
       id: 101,
-      userId: 1,
       name: "Cloud Map One",
       description: "Description 1",
       players: 2,
       version: "2.0",
-      createdAt: null,
-      updatedAt: null,
+      createdAt: "2026-09-30T00:00:00Z",
+      updatedAt: "2026-09-30T00:00:00Z",
       data: JSON.stringify(mockMapData),
     });
 
     render(<ColonyNameModal onConfirm={mockOnConfirm} onCancel={mockOnCancel} />);
 
-    fireEvent.click(screen.getByText("Cloud Maps"));
+    fireEvent.click(screen.getByText("Moje mapy"));
 
     await waitFor(() => {
-      expect(screen.getByRole("combobox", { name: /wybierz mapę z chmury/i })).toBeInTheDocument();
+      expect(screen.getByRole("combobox", { name: /wybierz mapę z biblioteki/i })).toBeInTheDocument();
     });
 
-    const select = screen.getByRole("combobox", { name: /wybierz mapę z chmury/i });
+    const select = screen.getByRole("combobox", { name: /wybierz mapę z biblioteki/i });
     fireEvent.change(select, { target: { value: "101" } });
 
     await waitFor(() => {
-      expect(mapApiService.getMap).toHaveBeenCalledWith(101);
+      expect(mapLibraryService.getMap).toHaveBeenCalledWith(101);
     });
 
     expect(screen.getByText("📍 Red Crater Beta")).toBeInTheDocument();

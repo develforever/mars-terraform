@@ -88,15 +88,12 @@ export const savedGameSchema = z.object({
 export type SavedGame = z.infer<typeof savedGameSchema>;
 
 export class LocalSaveService {
-  public static saveLocal(state: Partial<GameState>): boolean {
-    if (state.isDevFixture) {
-      return false;
-    }
-    if (!state.colonyName || !state.alive || state.won) {
-      return false;
-    }
-    try {
-      const dataToSave: SavedGame = {
+  /**
+   * Buduje zwalidowany zapis gry ze stanu (T14: wspólne dla autozapisu i zapisów w slotach).
+   * Rzuca błąd walidacji, gdy stan nie pasuje do schematu.
+   */
+  public static buildSavedGame(state: Partial<GameState> & { colonyName: string }): SavedGame {
+    const dataToSave: SavedGame = {
         version: 1,
         timestamp: Date.now(),
         colonyName: state.colonyName,
@@ -149,8 +146,18 @@ export class LocalSaveService {
         resourceNodes: state.resourceNodes,
         decorations: state.decorations ?? state.decor,
       };
+    return savedGameSchema.parse(dataToSave);
+  }
 
-      const parsed = savedGameSchema.parse(dataToSave);
+  public static saveLocal(state: Partial<GameState>): boolean {
+    if (state.isDevFixture) {
+      return false;
+    }
+    if (!state.colonyName || !state.alive || state.won) {
+      return false;
+    }
+    try {
+      const parsed = LocalSaveService.buildSavedGame({ ...state, colonyName: state.colonyName });
       if (typeof window !== "undefined" && window.localStorage) {
         window.localStorage.setItem(LOCAL_SAVE_STORAGE_KEY, JSON.stringify(parsed));
       }
