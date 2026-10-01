@@ -68,7 +68,7 @@ Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.
 - [x] **`HttpError` i błędy 4xx** zamiast 500 dla błędów klienta (logowanie, rejestracja, mapy).
 - [x] **Anty-enumeracja kont**: hasło sprawdzane przed „Email not verified”, stały czas (dummy bcrypt), `resend-verification` zawsze 200.
 - [x] **Obraz API `Dockerfile.api`** (node 24 alpine, multi-stage, `USER node`, tini, HEALTHCHECK) + **`render.yaml`** (Render Blueprint, plan Free, Frankfurt, deploy po zielonym CI, Turso bez dysku; D15 zastąpiło Fly.io).
-- [x] **Migracje produkcyjne** (`node dist_backend/migrate.js` przy starcie kontenera API, D15), naprawiony journal (`0001_maps_colonies`) i procedura baseline dla bazy z `push` (`MIGRATIONS_BASELINE.md`).
+- [x] **Migracje produkcyjne** (`node dist_backend/migrate.js` przy starcie kontenera API, D15), naprawiony journal (`0001_maps_colonies`) i procedura baseline dla bazy z `push` (historyczne: baza, migracje i `MIGRATIONS_BASELINE.md` usunięte w T15).
 - [x] **CI GitHub Actions**: lint, typy, testy, build, spójność tras TSOA i migracji + job `docker-api` (build obrazu i smoke test kontenera).
 - [x] **Odchudzone zależności produkcyjne**: paczki frontendowe w `devDependencies`, `@tsoa/runtime` zamiast `tsoa`, bez `@tursodatabase/database` (prod `node_modules` 437 → 54 MB).
 - [x] **Naprawa zapisu kolonii**: aktualne trasy TSOA (`minerals`), `state` jako otwarty obiekt JSON, limit body 2 MB (413 JSON).

@@ -6,7 +6,7 @@
 > Aktualne: sekcja 4 (Vercel), 3 (Render, tylko jeśli serwer ma działać, bez zmiennych tajnych), 7–8.
 
 > Dla człowieka, **Windows + PowerShell**, bez WSL i bez Turso CLI. Agent niczego nie wdraża.
-> Kontekst i decyzje: `PLAN.md` (§4 architektura, §5 T9), `QUEUE.md` (D1–D13), `MIGRATIONS_BASELINE.md`.
+> Kontekst i decyzje: `PLAN.md` (§4 architektura, §5 T9), `QUEUE.md` (D1–D13), `MIGRATIONS_BASELINE.md` (usunięty w T15; historia w gicie).
 >
 > Placeholdery (nie wpisuj prawdziwych wartości do repo):
 > `<app>` = nazwa usługi Render (domyślnie w `render.yaml`: `mars-terraform-api`, adres `https://<app>.onrender.com`),
@@ -158,7 +158,7 @@ bez przepisywania historii). Każdy, kto ma klon repo, ma stare sekrety. Jedyna 
 Migrator (`node dist_backend/migrate.js`, start kontenera API, D15) uzna ją za pustą, spróbuje wykonać `0000`
 i deploy padnie na `table ... already exists`. Baseline wpisuje do `__drizzle_migrations` migracje, które baza już ma.
 
-Pełny opis mechanizmu, checklista kolumn i SQL: **[`MIGRATIONS_BASELINE.md`](./MIGRATIONS_BASELINE.md)**. Skrót:
+Pełny opis mechanizmu, checklista kolumn i SQL: `MIGRATIONS_BASELINE.md` (usunięty w T15; historia w gicie). Skrót:
 
 - `hash` = sha256 pliku `drizzle/<tag>.sql`, `created_at` = `when` z `drizzle/meta/_journal.json`.
 - Migrator porównuje wyłącznie `created_at` ostatniego wiersza; hash nie jest sprawdzany.
