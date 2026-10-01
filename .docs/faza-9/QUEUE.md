@@ -19,7 +19,7 @@
 
 | ID | Zadanie | Zależy | Status |
 |----|---------|--------|--------|
-| F9-T1 | Deterministyczny RNG (`src/domain/random/Rng.ts`, mulberry32) wstrzyknięty do `WeatherService`, `AlienService` (domyślnie `Math.random`, solo bez zmian); id encji z `rng` | — | DONE (commit w dzienniku) |
+| F9-T1 | Deterministyczny RNG (`src/domain/random/Rng.ts`, mulberry32) wstrzyknięty do `WeatherService`, `AlienService` (domyślnie `Math.random`, solo bez zmian); id encji z `rng` | — | DONE(9cba849) |
 | F9-T2 | Wydzielenie `GameSimulation.step` z `applyEconomyTick` (store woła rdzeń; testy „złote” z ziarnem) | T1 | TODO |
 | F9-T3 | Model komend gracza + walidacja (zod) | T2 | TODO |
 | F9-T4 | Serwer: WebSocket (`ws`), pokoje w pamięci, pętla ticka, snapshoty, limity | T3 | TODO |
@@ -28,3 +28,6 @@
 | F9-T7 | Wdrożenie serwera + smoke test 2 przeglądarek | T5, T6 | TODO |
 
 ## Dziennik
+
+- 2026-10-01T15:13Z · nadzorca · — · Użytkownik: zgoda na rekomendacje planu (D1–D7). Start F9-T1. · —
+- 2026-10-01T15:13Z · nadzorca · F9-T1 · RNG z ziarnem w pogodzie i obcych; domyślnie `Math.random` (solo bez zmian). Gate: lint 0, tsc OK, front 640, build OK. · 9cba849
