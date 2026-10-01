@@ -33,3 +33,4 @@
 - 2026-10-01T15:13Z · nadzorca · F9-T1 · RNG z ziarnem w pogodzie i obcych; domyślnie `Math.random` (solo bez zmian). Gate: lint 0, tsc OK, front 640, build OK. · 9cba849
 - 2026-10-01T15:17Z · nadzorca · F9-T1 · Korekta wpisu: po F9-T1 front miał 642 testy (nie 640). · —
 - 2026-10-01T15:17Z · nadzorca · F9-T2 · Test złoty (300 ticków, exploration i survival z falą obcych, losowość z ziarnem, zamrożony czas) zacommitowany PRZED refaktorem (668fc10); po wydzieleniu `stepSimulation` snapshot identyczny. Store −164 linie. Gate: lint 0, tsc OK, front 648, back 79, build OK. Następne: F9-T3 (model komend) - wymaga decyzji o zakresie komend w kooperacji. · 2eade90
+- 2026-10-01T15:20Z · człowiek · F9-T1, F9-T2 · PR #15 scalony (`9616bc4`), CI 6/6. Czeka: decyzja o prawach graczy w kooperacji (rekomendacja: równe prawa) przed F9-T3. · 9616bc4
