@@ -45,6 +45,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T13 | Konta bez danych osobowych (D17): logowanie **numerem konta** (100 bitów, w bazie tylko HMAC), opcjonalny **TOTP** (authenticator) jako 2. krok, pseudonim opcjonalny; usunięcie e-maili, haseł, OAuth, wysyłki maili, weryfikacji; migracja `0002` (usuwa konta testowe); limity prób bez przetwarzania IP; krótka notka prywatności; brak cookies | T12 | D17 ✔ | nadzorca | backend auth/users/config/schema/migracje, frontend auth/UI/i18n, testy, `render.yaml`, CI, runbook | DONE(e70686d) |
 | T14 | Gra bez kont (D18): zapisy kolonii i mapy w przeglądarce (IndexedDB/localStorage), eksport/import pliku zapisu, lokalne nazwy kolonii, usunięcie kont z frontendu, informacja dla gracza (komunikat startowy, ostrzeżenia w oknach zapisów/map, `/privacy`) | T13 | D18 ✔ | nadzorca | frontend (store, serwisy, modale, locales, testy) | DONE(c2e9a87) (frontend); backend bez bazy = T15 |
 | T15 | Backend bez bazy: usunięte konta, mapy, kolonie, nazwy AI, Drizzle, migracje, TSOA, JWT, `account_secret`; minimalny serwer (`/api/health` z opcjonalnym `checkReadiness`, CORS, błędy, `registerRoutes`); zależności prod tylko `express`, `dotenv-flow`; CI, Docker, `render.yaml`, dokumentacja | T14 | zgoda ✔ | nadzorca | `src_backend/**`, `drizzle/**`, `package.json`, lock, CI, Docker, `render.yaml`, docs | DONE(01d0ccd) |
+| T16 | Bezpieczeństwo zapisów lokalnych: `navigator.storage.persist()`, przypomnienie o kopii w HUD (co 5 zapisów), CSP enforce (`connect-src 'self'`, `'wasm-unsafe-eval'`) | T15 | zgoda ✔ | nadzorca | `browserStore`, `backupReminder`, HUD, `LoadGameModal`, `vercel.json`, testy | DONE(354afb6) |
 
 ### Równoległość (macierz konfliktów)
 
@@ -168,6 +169,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-30T16:22Z · nadzorca · T14 · Decyzja użytkownika: notka prywatności bez danych osobowych autora (brak przetwarzania danych przez aplikację); kontakt przez e-mail projektu. Uwaga: polska ustawa o świadczeniu usług drogą elektroniczną (art. 5) formalnie może wymagać danych usługodawcy; ryzyko zaakceptowane przez użytkownika. · e12f18c
 - 2026-09-30T16:29Z · człowiek+nadzorca · T14 · PR #12 (`f73cafd`) i #13 (`98b62c9`) scalone, CI zielone. Produkcja (Vercel): frontend bez kont (komunikat „Grasz bez konta”, brak „Zaloguj się” w bundlu), `/privacy` z kontaktem `mars_terraform@proton.me`, bez pól [UZUPEŁNIJ]. Do zrobienia przez człowieka: wstrzymać API na Render, usunąć lokalne backupy baz. Następne: T15 (backend bez bazy) lub plan fazy logiki serwerowej. · 98b62c9
 - 2026-10-01T14:45Z · nadzorca · T15 · Zgoda użytkownika na rekomendacje (T15, T16, plan fazy sieciowej) i usunięcie zależności. Backend: 13 plików → minimalny serwer; usunięte `drizzle/`, `drizzle.config.ts`, `tsoa.json`, stare `test-hash*.ts` (bcrypt). `npm uninstall` 10 paczek (prod: zostają `express`, `dotenv-flow`; lock −3000 linii). CI bez kroków TSOA/drizzle/migracji; obraz bez migratora i katalogu `drizzle`. Gate: lint 0, tsc OK, front 626, back 79, build OK; smoke lokalny: health 200, stare `/api/auth/login` 404. · 01d0ccd
+- 2026-10-01T14:50Z · nadzorca · T16 · Gate: lint 0, tsc OK, front 633, back 79, build OK. Weryfikacja w przeglądarce (lokalny serwer `dist/` z nagłówkiem CSP z `vercel.json`): pierwsza wersja CSP blokowała WebAssembly (dekoder geometrii three.js), dodano `'wasm-unsafe-eval'`; potem `/`, `/generate`, `/mars` bez błędów w konsoli, zapis kolonii trafia do IndexedDB. `storage.persist()` w panelu testowym = false (heurystyka przeglądarki, best effort). · 354afb6
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -178,7 +180,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - Walidacja `VITE_API_URL` przy starcie aplikacji (dziś błędna wartość wychodzi dopiero przy pierwszym żądaniu).
 - `.dockerignore` monolitu nie wyklucza `.env` / `local.db*` (T4 obejmie obraz API).
 - `res.sendFile` w SPA fallbacku ignoruje dotfiles w ścieżce absolutnej (np. deploy w katalogu z `.` w nazwie → 404). Rozważyć `{ dotfiles: "allow" }` albo `root` w opcjach.
-- CSP: dodać `report-to` przed trybem enforce; zawęzić `connect-src https:` do domeny API po jej ustaleniu; uwzględnić `vercel.live` na preview.
+- ~~CSP Report-Only~~: T16 włączył enforce. Przy fazie sieciowej dopisać domenę serwera gry do `connect-src` (i `wss:`). Preview Vercel (`vercel.live`) może zgłaszać naruszenia CSP.
 - HSTS `includeSubDomains`: potwierdzić przed podpięciem domeny własnej.
 - Graceful shutdown: handler SIGTERM/SIGINT w `src_backend/index.ts` (`server.close()`, zamknięcie klienta libsql).
 - Odchudzenie obrazu API: paczki tylko frontendowe z `dependencies` do `devDependencies` (wymaga zgody, bo zmienia `package.json`).
@@ -201,5 +203,5 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - T13: zgubiony numer konta = utracone konto (świadomie, brak danych do odzyskania). Rozważyć opcjonalne kody zapasowe.
 - T13: `account_secret` musi być stały i zarchiwizowany (menedżer haseł); rotacja wymagałaby nowego mechanizmu (np. wersjonowanych kluczy HMAC).
 - DPA: Vercel Hobby i Turso free nie mają umowy powierzenia (Render ma dla wszystkich planów). Do rozstrzygnięcia: Render Static Site albo plany płatne.
-- T14: zapisy tylko w przeglądarce: brak synchronizacji między urządzeniami (plik zapisu), ryzyko utraty przy czyszczeniu danych przeglądarki (komunikaty w UI). Rozważyć `navigator.storage.persist()`.
+- T14: zapisy tylko w przeglądarce: brak synchronizacji między urządzeniami (plik zapisu), ryzyko utraty przy czyszczeniu danych przeglądarki (komunikaty w UI, T16: `storage.persist()` + przypomnienie o kopii).
 - T14: `apiConfig.ts` / `VITE_API_URL` nieużywane przez frontend do czasu fazy logiki serwerowej.
