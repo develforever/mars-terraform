@@ -1,11 +1,10 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import type { PlacedBuilding } from "../../domain/entities/Building";
-import type { Resources, ResourceCapacity, ResourceDelta, ResourceKey } from "../../domain/entities/Resources";
+import type { Resources, ResourceCapacity, ResourceDelta } from "../../domain/entities/Resources";
 import { INITIAL_COLONY_STATE } from "../../domain/entities/Colony";
 import { BUILDING_DEFINITIONS } from "../../domain/config/buildings";
-import { BuildingService } from "../../domain/services/BuildingService";
-import { EconomyService, EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS, type EmergencyLifeSupportState } from "../../domain/services/EconomyService";
+import { EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS, type EmergencyLifeSupportState } from "../../domain/services/EconomyService";
 import { WeatherService } from "../../domain/services/WeatherService";
 import type { WeatherState } from "../../domain/services/WeatherService";
 import { TerraformingService } from "../../domain/services/TerraformingService";
@@ -21,7 +20,6 @@ import { applyProceduralTerrain } from "../../presentation/generator/terrain/Pro
 import { generateResources, generateDecor, generateSpawns } from "../../presentation/generator/terrain/ProceduralPlacement";
 import { hexToWorld } from "../../presentation/generator/hex/HexMath";
 import type { MapExportJSON, ResourceNode, DecorItem } from "../../domain/mapEditorTypes";
-import { ResearchService } from "../../domain/services/ResearchService";
 import { TECH_IDS } from "../../domain/config/technologies";
 import type { QuestState } from "../../domain/entities/Quest";
 import { QuestService } from "../../domain/services/QuestService";
@@ -34,8 +32,9 @@ import { INITIAL_POPULATION, INITIAL_MORALE } from "../../domain/entities/Coloni
 import { ColonistService } from "../../domain/services/ColonistService";
 import type { PlacedUnit } from "../../domain/entities/Unit";
 import { UNIT_IDS } from "../../domain/config/units";
-import { RTSCommandService, type RTSOrder } from "../../domain/services/RTSCommandService";
+import type { RTSOrder } from "../../domain/services/RTSCommandService";
 import { stepSimulation } from "../../domain/simulation/GameSimulation";
+import { applyCommand, type PlayerCommand } from "../../domain/simulation/PlayerCommands";
 import { LocalSaveService, type SavedGame } from "../service/localSaveService";
 
 export interface GameState {
@@ -316,32 +315,19 @@ function getInitialGameState(
   };
 }
 
-function applyResourceDelta(
-  resources: Resources,
-  delta: ResourceDelta,
-): Resources {
-  const result = { ...resources };
-  for (const [key, value] of Object.entries(delta)) {
-    result[key as ResourceKey] += value ?? 0;
-  }
-  return result;
-}
-
-function applyCapacityDelta(
-  current: ResourceCapacity,
-  delta: Partial<ResourceCapacity>,
-): ResourceCapacity {
-  return {
-    power:   current.power   + (delta.power   ?? 0),
-    water:   current.water   + (delta.water   ?? 0),
-    biomass: current.biomass + (delta.biomass ?? 0),
-    minerals: current.minerals + (delta.minerals ?? 0),
-  };
-}
 
 export const useGameStore = create<GameState>()(
   devtools(
-    (set, get) => ({
+    (set, get) => {
+      /** Wykonuje komendę gracza na bieżącym stanie; `true` = wykonana i zapisana. */
+      const runCommand = (command: PlayerCommand): boolean => {
+        const result = applyCommand(get(), command);
+        if (!result.ok) return false;
+        set(result.update);
+        return true;
+      };
+
+      return {
       ...getInitialGameState(),
 
       setSun: (factor) => {
@@ -420,163 +406,18 @@ export const useGameStore = create<GameState>()(
         });
       },
 
-      placeBuilding: (cell, heightY, definitionId) => {
-        const state = get();
-        const definition = BUILDING_DEFINITIONS[definitionId];
-        
-        if (!definition) return false;
+      // F9-T3: akcje gracza = komendy (`applyCommand`), wspólne z przyszłym serwerem gry sieciowej.
+      placeBuilding: (cell, heightY, definitionId) =>
+        runCommand({ type: "place_building", cell: { x: cell.x, z: cell.z }, heightY, definitionId }),
 
-        const result = BuildingService.placeBuilding(
-          definition,
-          cell,
-          heightY,
-          state.resources,
-          state.occupied,
-          state.placed,
-          state.waterLevel,
-        );
+      demolishBuilding: (cell) => runCommand({ type: "demolish_building", cell: { x: cell.x, z: cell.z } }),
 
-        if (!result.success || !result.building) return false;
+      upgradeBuilding: (buildingId) => runCommand({ type: "upgrade_building", buildingId }),
 
-        // Apply cost
-        const newResources = result.costDelta
-          ? applyResourceDelta(state.resources, result.costDelta)
-          : { ...state.resources };
-
-        // Apply capacity
-        const newCapacity = applyCapacityDelta(
-          state.capacity,
-          EconomyService.calculateCapacityDelta(definition, true),
-        );
-
-        // Add building
-        const key = `${Math.round(cell.x)},${Math.round(cell.z)}`;
-        const newPlaced = [...state.placed, result.building];
-        const habCapacity = ColonistService.calculateCapacity(newPlaced, BUILDING_DEFINITIONS);
-        const newPopulation = { ...state.population, capacity: habCapacity || state.population.capacity };
-
-        set({
-          resources: newResources,
-          placed: newPlaced,
-          occupied: { ...state.occupied, [key]: result.building.id },
-          capacity: newCapacity,
-          population: newPopulation,
-        });
-
-        return true;
-      },
-
-      demolishBuilding: (cell) => {
-        const state = get();
-        
-        const building = BuildingService.findBuildingAtCell(
-          cell,
-          state.placed,
-          state.occupied
-        );
-
-        if (!building) return false;
-
-        const definition = BUILDING_DEFINITIONS[building.definitionId];
-        if (!definition) return false;
-
-        const result = BuildingService.demolishBuilding(definition);
-        if (!result.success) return false;
-
-        // Apply refund
-        const newResources = result.refundDelta
-          ? applyResourceDelta(state.resources, result.refundDelta)
-          : { ...state.resources };
-
-        // Remove capacity
-        const newCapacity = applyCapacityDelta(
-          state.capacity,
-          EconomyService.calculateCapacityDelta(definition, false),
-        );
-
-        // Remove building
-        const key = `${Math.round(building.position.x)},${Math.round(building.position.z)}`;
-        const newOccupied = { ...state.occupied };
-        delete newOccupied[key];
-        const newPlaced = state.placed.filter(b => b.id !== building.id);
-        const habCapacity = ColonistService.calculateCapacity(newPlaced, BUILDING_DEFINITIONS);
-        const newPopulation = { ...state.population, capacity: habCapacity };
-
-        set({
-          resources: newResources,
-          placed: newPlaced,
-          occupied: newOccupied,
-          capacity: newCapacity,
-          population: newPopulation,
-        });
-
-        return true;
-      },
-
-      upgradeBuilding: (buildingId) => {
-        const state = get();
-        const building = state.placed.find((b) => b.id === buildingId);
-        if (!building) return false;
-
-        const definition = BUILDING_DEFINITIONS[building.definitionId];
-        if (!definition) return false;
-
-        const result = BuildingService.upgradeBuilding(
-          building,
-          definition,
-          state.resources
-        );
-
-        if (!result.success || !result.building) return false;
-
-        const newResources = result.costDelta
-          ? applyResourceDelta(state.resources, result.costDelta)
-          : { ...state.resources };
-
-        const newPlaced = state.placed.map((b) => (b.id === buildingId ? result.building! : b));
-        const habCapacity = ColonistService.calculateCapacity(newPlaced, BUILDING_DEFINITIONS);
-        const newPopulation = { ...state.population, capacity: habCapacity || state.population.capacity };
-
-        set({
-          resources: newResources,
-          placed: newPlaced,
-          population: newPopulation,
-        });
-
-        return true;
-      },
-
-      toggleBuildingPower: (buildingId) => {
-        const state = get();
-        const building = state.placed.find((b) => b.id === buildingId);
-        if (!building) return false;
-
-        const newPlaced = state.placed.map((b) =>
-          b.id === buildingId ? { ...b, disabled: !b.disabled } : b
-        );
-
-        set({ placed: newPlaced });
-        return true;
-      },
+      toggleBuildingPower: (buildingId) => runCommand({ type: "toggle_building_power", buildingId }),
 
       issueOrderToUnits: (unitIds: string[], order: RTSOrder) => {
-        const state = get();
-        const hexGrid = state.hexGrid;
-        const waterLevel = state.waterLevel;
-        const aliens = state.alienState;
-        const buildings = state.placed;
-
-        const updatedUnits = state.units.map((unit) => {
-          if (!unitIds.includes(unit.id)) return unit;
-          return RTSCommandService.applyOrder(unit, order, {
-            hexGrid,
-            waterLevel,
-            aliens,
-            buildings,
-          });
-        });
-
-        set({ units: updatedUnits });
+        if (unitIds.length > 0) runCommand({ type: "issue_order", unitIds, order });
       },
 
       updateUnits: (units: PlacedUnit[]) => {
@@ -592,9 +433,7 @@ export const useGameStore = create<GameState>()(
       },
 
       assignColonistRole: (role: ColonistRole, delta: number) => {
-        const state = get();
-        const newPop = ColonistService.assignRole(state.population, role, delta);
-        set({ population: newPop });
+        runCommand({ type: "assign_colonist_role", role, delta });
       },
 
       /** F9-T2: tick liczy czysty rdzeń symulacji (`stepSimulation`); store tylko podaje stan i zapisuje wynik. */
@@ -605,32 +444,7 @@ export const useGameStore = create<GameState>()(
         set(stepSimulation(state, { forcedWeather }));
       },
 
-      purchaseTech: (techId: string): boolean => {
-        const state = get();
-        const result = ResearchService.startResearch(techId, state.researchPoints, state.unlockedTechs);
-        if (!result.success) return false;
-
-        // Re-evaluate quests on tech purchase
-        const evaluatedQuests = QuestService.evaluateQuests(
-          {
-            placed: state.placed,
-            resources: state.resources,
-            unlockedTechs: result.newUnlockedTechs,
-            terraforming: state.terraforming,
-            o2Accumulated: state.o2Accumulated,
-            waterLevel: state.waterLevel,
-            alienWave: state.alienState.wave,
-          },
-          state.activeQuests
-        );
-
-        set({
-          researchPoints: result.newResearchPoints,
-          unlockedTechs: result.newUnlockedTechs,
-          activeQuests: evaluatedQuests,
-        });
-        return true;
-      },
+      purchaseTech: (techId: string): boolean => runCommand({ type: "purchase_tech", techId }),
 
       unlockTech: (techId: string): void => {
         const state = get();
@@ -651,37 +465,7 @@ export const useGameStore = create<GameState>()(
         set({ unlockedTechs: newTechs, activeQuests: evaluatedQuests });
       },
 
-      claimQuestReward: (questId: string): boolean => {
-        const state = get();
-        const result = QuestService.claimQuestReward(
-          questId,
-          state.activeQuests,
-          state.resources,
-          state.researchPoints
-        );
-        if (!result.success) return false;
-
-        // Re-evaluate to unlock newly available quests immediately
-        const evaluatedQuests = QuestService.evaluateQuests(
-          {
-            placed: state.placed,
-            resources: result.newResources,
-            unlockedTechs: state.unlockedTechs,
-            terraforming: state.terraforming,
-            o2Accumulated: state.o2Accumulated,
-            waterLevel: state.waterLevel,
-            alienWave: state.alienState.wave,
-          },
-          result.newQuests
-        );
-
-        set({
-          activeQuests: evaluatedQuests,
-          resources: result.newResources,
-          researchPoints: result.newRP,
-        });
-        return true;
-      },
+      claimQuestReward: (questId: string): boolean => runCommand({ type: "claim_quest_reward", questId }),
 
       continueEndless: () => {
         set({ isEndless: true, victoryModalDismissed: true });
@@ -947,7 +731,8 @@ export const useGameStore = create<GameState>()(
         await colonySaveService.save(saved);
         get().hydrateSavedState(saved);
       },
-    }),
+      };
+    },
     { name: "GameStore", enabled: true }
   )
 );
