@@ -20,7 +20,7 @@
 | ID | Zadanie | Zależy | Status |
 |----|---------|--------|--------|
 | F9-T1 | Deterministyczny RNG (`src/domain/random/Rng.ts`, mulberry32) wstrzyknięty do `WeatherService`, `AlienService` (domyślnie `Math.random`, solo bez zmian); id encji z `rng` | — | DONE(9cba849) |
-| F9-T2 | Wydzielenie `GameSimulation.step` z `applyEconomyTick` (store woła rdzeń; testy „złote” z ziarnem) | T1 | TODO |
+| F9-T2 | Wydzielenie `stepSimulation` (`src/domain/simulation/GameSimulation.ts`) z `applyEconomyTick`; store woła rdzeń; test złoty z ziarnem | T1 | DONE(2eade90) |
 | F9-T3 | Model komend gracza + walidacja (zod) | T2 | TODO |
 | F9-T4 | Serwer: WebSocket (`ws`), pokoje w pamięci, pętla ticka, snapshoty, limity | T3 | TODO |
 | F9-T5 | Klient: tryb sieciowy (utwórz/dołącz kod, lobby, snapshoty, komendy, reconnect) | T4 | TODO |
@@ -31,3 +31,5 @@
 
 - 2026-10-01T15:13Z · nadzorca · — · Użytkownik: zgoda na rekomendacje planu (D1–D7). Start F9-T1. · —
 - 2026-10-01T15:13Z · nadzorca · F9-T1 · RNG z ziarnem w pogodzie i obcych; domyślnie `Math.random` (solo bez zmian). Gate: lint 0, tsc OK, front 640, build OK. · 9cba849
+- 2026-10-01T15:17Z · nadzorca · F9-T1 · Korekta wpisu: po F9-T1 front miał 642 testy (nie 640). · —
+- 2026-10-01T15:17Z · nadzorca · F9-T2 · Test złoty (300 ticków, exploration i survival z falą obcych, losowość z ziarnem, zamrożony czas) zacommitowany PRZED refaktorem (668fc10); po wydzieleniu `stepSimulation` snapshot identyczny. Store −164 linie. Gate: lint 0, tsc OK, front 648, back 79, build OK. Następne: F9-T3 (model komend) - wymaga decyzji o zakresie komend w kooperacji. · 2eade90
