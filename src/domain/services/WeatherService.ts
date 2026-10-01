@@ -1,3 +1,4 @@
+import { randomId, type Rng } from "../random/Rng";
 export type WeatherType =
   | "clear"
   | "warning"
@@ -81,6 +82,7 @@ export class WeatherService {
     meteorMult    = 1,
     hazardsOn     = true,
     terraformingProgress = 0,
+    rng: Rng = Math.random,
   ): WeatherState {
     // Phase: Sandstorm / Dust storm warning → dust_storm
     if (currentWeather.type === "warning") {
@@ -88,9 +90,9 @@ export class WeatherService {
       if (remainingTicks <= 0) {
         return {
           type: "dust_storm",
-          intensity: 0.5 + Math.random() * 0.5,
+          intensity: 0.5 + rng() * 0.5,
           remainingTicks: Math.floor(
-            this.MIN_STORM_DURATION + Math.random() * (this.MAX_STORM_DURATION - this.MIN_STORM_DURATION)
+            this.MIN_STORM_DURATION + rng() * (this.MAX_STORM_DURATION - this.MIN_STORM_DURATION)
           ),
           cooldownTicks: 0,
         };
@@ -111,8 +113,8 @@ export class WeatherService {
     if (currentWeather.type === "meteor_warning") {
       const remainingTicks = currentWeather.remainingTicks - 1;
       if (remainingTicks <= 0) {
-        const impactZones = currentWeather.impactZones ?? this.generateImpactZones();
-        const trajectories = currentWeather.trajectories ?? this.generateTrajectories(impactZones);
+        const impactZones = currentWeather.impactZones ?? this.generateImpactZones(undefined, rng);
+        const trajectories = currentWeather.trajectories ?? this.generateTrajectories(impactZones, 100, rng);
         return {
           type: "meteor_shower",
           intensity: 1,
@@ -148,12 +150,12 @@ export class WeatherService {
       return { ...currentWeather, cooldownTicks: (currentWeather.cooldownTicks ?? 0) - 1 };
     }
 
-    if (hazardsOn && Math.random() < this.SANDSTORM_CHANCE * sandstormMult) {
+    if (hazardsOn && rng() < this.SANDSTORM_CHANCE * sandstormMult) {
       return { type: "warning", intensity: 0, remainingTicks: this.WARNING_DURATION, cooldownTicks: 0 };
     }
-    if (hazardsOn && Math.random() < this.METEOR_CHANCE * meteorMult) {
-      const impactZones = this.generateImpactZones();
-      const trajectories = this.generateTrajectories(impactZones);
+    if (hazardsOn && rng() < this.METEOR_CHANCE * meteorMult) {
+      const impactZones = this.generateImpactZones(undefined, rng);
+      const trajectories = this.generateTrajectories(impactZones, 100, rng);
       return {
         type: "meteor_warning",
         intensity: 0,
@@ -163,12 +165,12 @@ export class WeatherService {
         cooldownTicks: 0,
       };
     }
-    if (hazardsOn && terraformingProgress >= 40 && Math.random() < this.AURORA_CHANCE) {
+    if (hazardsOn && terraformingProgress >= 40 && rng() < this.AURORA_CHANCE) {
       return {
         type: "polar_aurora",
-        intensity: 0.6 + Math.random() * 0.4,
+        intensity: 0.6 + rng() * 0.4,
         remainingTicks: Math.floor(
-          this.MIN_AURORA_DURATION + Math.random() * (this.MAX_AURORA_DURATION - this.MIN_AURORA_DURATION)
+          this.MIN_AURORA_DURATION + rng() * (this.MAX_AURORA_DURATION - this.MIN_AURORA_DURATION)
         ),
         cooldownTicks: 0,
       };
@@ -177,34 +179,34 @@ export class WeatherService {
     return currentWeather;
   }
 
-  static generateImpactZones(count?: number): ImpactZone[] {
-    const zoneCount = count ?? (this.MIN_IMPACTS + Math.floor(Math.random() * (this.MAX_IMPACTS - this.MIN_IMPACTS + 1)));
+  static generateImpactZones(count?: number, rng: Rng = Math.random): ImpactZone[] {
+    const zoneCount = count ?? (this.MIN_IMPACTS + Math.floor(rng() * (this.MAX_IMPACTS - this.MIN_IMPACTS + 1)));
     const zones: ImpactZone[] = [];
     for (let i = 0; i < zoneCount; i++) {
       zones.push({
-        x: Math.round((Math.random() * 2 - 1) * this.HALF_X),
-        z: Math.round((Math.random() * 2 - 1) * this.HALF_Z),
+        x: Math.round((rng() * 2 - 1) * this.HALF_X),
+        z: Math.round((rng() * 2 - 1) * this.HALF_Z),
       });
     }
     return zones;
   }
 
-  static generateTrajectories(impactZones: ImpactZone[], startElevation = 100): MeteorTrajectory[] {
+  static generateTrajectories(impactZones: ImpactZone[], startElevation = 100, rng: Rng = Math.random): MeteorTrajectory[] {
     return impactZones.map((zone, index) => {
-      const angle = (Math.PI / 4) + (Math.random() * 0.4 - 0.2); // ~45 deg descent
-      const azimuth = Math.random() * Math.PI * 2;
+      const angle = (Math.PI / 4) + (rng() * 0.4 - 0.2); // ~45 deg descent
+      const azimuth = rng() * Math.PI * 2;
       const distance = startElevation / Math.tan(angle);
 
       return {
-        id: `meteor-traj-${Date.now()}-${index}`,
+        id: `${randomId("meteor-traj", rng)}-${index}`,
         startX: zone.x + Math.cos(azimuth) * distance,
         startY: startElevation,
         startZ: zone.z + Math.sin(azimuth) * distance,
         targetX: zone.x,
         targetY: 0,
         targetZ: zone.z,
-        speed: 1.2 + Math.random() * 0.6,
-        radius: 0.8 + Math.random() * 0.6,
+        speed: 1.2 + rng() * 0.6,
+        radius: 0.8 + rng() * 0.6,
       };
     });
   }

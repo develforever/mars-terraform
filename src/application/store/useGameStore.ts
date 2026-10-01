@@ -9,12 +9,10 @@ import { EconomyService, EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS, type EmergencyL
 import { WeatherService } from "../../domain/services/WeatherService";
 import type { WeatherState } from "../../domain/services/WeatherService";
 import { TerraformingService } from "../../domain/services/TerraformingService";
-import { MeteorService } from "../../domain/services/MeteorService";
 import type { DifficultyLevel } from "../../domain/services/TerraformingService";
 import { useDebugStore } from "./useDebugStore";
 import { useUIStore } from "./useUIStore";
 import type { GameMode } from "../../domain/services/GameModeService";
-import { GAME_MODE_CONFIGS } from "../../domain/services/GameModeService";
 import { AlienService, INITIAL_ALIEN_STATE } from "../../domain/services/AlienService";
 import type { AlienState, AlienShip, AlienGroundUnit } from "../../domain/entities/Alien";
 import { colonySaveService } from "../service/colonySaveService";
@@ -37,6 +35,7 @@ import { ColonistService } from "../../domain/services/ColonistService";
 import type { PlacedUnit } from "../../domain/entities/Unit";
 import { UNIT_IDS } from "../../domain/config/units";
 import { RTSCommandService, type RTSOrder } from "../../domain/services/RTSCommandService";
+import { stepSimulation } from "../../domain/simulation/GameSimulation";
 import { LocalSaveService, type SavedGame } from "../service/localSaveService";
 
 export interface GameState {
@@ -598,172 +597,12 @@ export const useGameStore = create<GameState>()(
         set({ population: newPop });
       },
 
+      /** F9-T2: tick liczy czysty rdzeń symulacji (`stepSimulation`); store tylko podaje stan i zapisuje wynik. */
       applyEconomyTick: () => {
         const state = get();
         if (state.isPaused || !state.alive) return;
-
-        // Game mode config
-        const modeCfg = GAME_MODE_CONFIGS[state.gameMode];
-
-        // Tick Weather (debug override takes priority; adventure has no hazards)
         const { forcedWeather } = useDebugStore.getState();
-        const newWeather = forcedWeather
-          ? { ...state.weather, type: forcedWeather }
-          : WeatherService.tick(state.weather, modeCfg.sandstormChanceMultiplier, modeCfg.meteorChanceMultiplier, modeCfg.hazardsEnabled, state.terraforming);
-        const productionModifier = WeatherService.getProductionModifier(newWeather);
-
-        // Degrade buildings during sandstorm or dust storm (scaled by game mode)
-        let degradedPlaced = WeatherService.isDustStorm(newWeather.type)
-          ? BuildingService.degradeBuildings(state.placed, newWeather.intensity * modeCfg.conditionDamageMultiplier)
-          : state.placed;
-
-        // Apply meteor impacts on the first tick of meteor_shower
-        if (
-          newWeather.type === "meteor_shower" &&
-          newWeather.remainingTicks === 5 &&
-          newWeather.impactZones?.length
-        ) {
-          degradedPlaced = MeteorService.applyImpacts(degradedPlaced, newWeather.impactZones);
-        }
-
-        const currentTick = state.tick + 1;
-        const currentSol = GameAnalyticsService.tickToSol(currentTick);
-
-        // Immigration shuttle arrival
-        const shuttleResult = ColonistService.processShuttleArrival(state.population, currentTick);
-        const currentPopulation = shuttleResult.population;
-
-        // Morale and profession role bonuses
-        const currentMorale = ColonistService.calculateMorale(
-          state.resources,
-          state.capacity,
-          currentPopulation
-        );
-        const roleBonuses = ColonistService.calculateRoleBonuses(currentPopulation.roles);
-        const totalProductionModifier = productionModifier * currentMorale.productivityMultiplier;
-
-        const tickResult = EconomyService.tick(
-          {
-            resources: state.resources,
-            capacity: state.capacity,
-            sun: state.sun,
-            alive: state.alive,
-          },
-          degradedPlaced,
-          BUILDING_DEFINITIONS,
-          totalProductionModifier,
-          state.resourceNodes,
-          modeCfg.depositDepletionRate,
-          newWeather.type,
-          currentPopulation,
-          roleBonuses,
-          state.emergencyLifeSupport
-        );
-
-        const newO2Accumulated = TerraformingService.accumulateO2(state.o2Accumulated, tickResult.delta);
-        const newResources = {
-          o2:      state.resources.o2      + (tickResult.delta.o2      ?? 0),
-          power:   state.resources.power   + (tickResult.delta.power   ?? 0),
-          water:   state.resources.water   + (tickResult.delta.water   ?? 0),
-          biomass: state.resources.biomass + (tickResult.delta.biomass ?? 0),
-          minerals: state.resources.minerals + (tickResult.delta.minerals ?? 0),
-        };
-        const newTerraforming = modeCfg.hasWinCondition
-          ? TerraformingService.calculateProgress(newO2Accumulated, newResources, state.difficulty)
-          : 0;
-        const newWaterLevel = TerraformingService.calculateWaterLevel(
-          newResources.water,
-          newTerraforming,
-          state.difficulty
-        );
-
-        // Apply alien invasion tick in survival mode or when wave is active (debug)
-        let finalPlaced = degradedPlaced;
-        let newAlienState = state.alienState;
-        let newAliensDefeated = state.aliensDefeated;
-        if (state.gameMode === "survival" || state.alienState.wave > 0) {
-          const alienResult = AlienService.tick(state.alienState, degradedPlaced, newTerraforming, state.hexGrid, newWaterLevel);
-          finalPlaced   = alienResult.damagedBuildings;
-          newAlienState = alienResult.alienState;
-          newAliensDefeated += alienResult.eliminatedUnits ?? 0;
-        }
-
-        // Apply RTS player unit combat, repairs and movement simulation
-        const rtsResult = RTSCommandService.tickUnits(
-          state.units,
-          newAlienState,
-          finalPlaced,
-          state.hexGrid,
-          newWaterLevel,
-          1.0
-        );
-        const finalUnits = rtsResult.units;
-        finalPlaced = rtsResult.buildings;
-        newAlienState = {
-          ...newAlienState,
-          ships: rtsResult.aliens.ships,
-          groundUnits: rtsResult.aliens.groundUnits,
-        };
-        newAliensDefeated += rtsResult.eliminatedAliens;
-
-        const newRP = state.researchPoints + tickResult.researchPointsDelta;
-
-        const evaluatedQuests = QuestService.evaluateQuests(
-          {
-            placed: finalPlaced,
-            resources: newResources,
-            unlockedTechs: state.unlockedTechs,
-            terraforming: newTerraforming,
-            o2Accumulated: newO2Accumulated,
-            waterLevel: newWaterLevel,
-            alienWave: newAlienState.wave,
-          },
-          state.activeQuests
-        );
-
-        // Record analytics snapshot every 10 ticks (sliding buffer up to 500)
-        let updatedSnapshots = state.analyticsSnapshots;
-        if (currentTick % 10 === 0) {
-          const remainingMinerals = (tickResult.resourceNodes ?? state.resourceNodes).filter((n) => n.type === "minerals").length;
-          const newSnapshot = GameAnalyticsService.createSnapshot({
-            tick: currentTick,
-            resources: newResources,
-            mineralsCount: remainingMinerals,
-            terraforming: newTerraforming,
-            o2Accumulated: newO2Accumulated,
-            waterLevel: newWaterLevel,
-            buildingsCount: finalPlaced.length,
-            aliensDefeated: newAliensDefeated,
-          });
-          updatedSnapshots = GameAnalyticsService.recordSnapshot(state.analyticsSnapshots, newSnapshot);
-        }
-
-        const isWin = modeCfg.hasWinCondition ? TerraformingService.isComplete(newTerraforming) : false;
-        const won = state.won || (!state.isEndless && isWin);
-
-        set({
-          weather: newWeather,
-          placed: finalPlaced,
-          units: finalUnits,
-          lastDelta: tickResult.delta,
-          resources: newResources,
-          resourceNodes: tickResult.resourceNodes ?? state.resourceNodes,
-          alive: !tickResult.gameOver,
-          emergencyLifeSupport: tickResult.emergencyLifeSupport,
-          tick: currentTick,
-          sol: currentSol,
-          aliensDefeated: newAliensDefeated,
-          analyticsSnapshots: updatedSnapshots,
-          o2Accumulated: newO2Accumulated,
-          terraforming: newTerraforming,
-          waterLevel: newWaterLevel,
-          alienState: newAlienState,
-          won,
-          researchPoints: newRP,
-          activeQuests: evaluatedQuests,
-          population: currentPopulation,
-          morale: currentMorale,
-        });
+        set(stepSimulation(state, { forcedWeather }));
       },
 
       purchaseTech: (techId: string): boolean => {

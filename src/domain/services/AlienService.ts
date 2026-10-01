@@ -3,6 +3,7 @@ import type { PlacedBuilding } from "../entities/Building";
 import type { HexGrid } from "../../presentation/generator/hex/HexGrid";
 import { worldToHex, hexToWorld, hexRing } from "../../presentation/generator/hex/HexMath";
 import { HexPathfindingService } from "./HexPathfindingService";
+import { randomId, type Rng } from "../random/Rng";
 
 const SHIP_DAMAGE   = 50;
 const GROUND_DAMAGE = 15;
@@ -43,6 +44,7 @@ export class AlienService {
     terraforming: number,
     hexGrid?: HexGrid,
     waterLevel?: number,
+    rng: Rng = Math.random,
   ): { alienState: AlienState; damagedBuildings: PlacedBuilding[]; eliminatedUnits?: number } {
     // Wave can only increase organically; never downgrade a debug-forced wave
     const wave = Math.max(this.resolveWave(terraforming), state.wave) as 0 | 1 | 2;
@@ -60,7 +62,7 @@ export class AlienService {
     if (wave >= 1) {
       nextShipSpawnIn--;
       if (nextShipSpawnIn <= 0 && buildings.length > 0) {
-        ships = [...ships, this.spawnShip(buildings)];
+        ships = [...ships, this.spawnShip(buildings, rng)];
         nextShipSpawnIn = SHIP_SPAWN_INTERVAL;
       }
 
@@ -90,7 +92,7 @@ export class AlienService {
     if (wave >= 2) {
       nextGroundSpawnIn--;
       if (nextGroundSpawnIn <= 0 && buildings.length > 0) {
-        groundUnits = [...groundUnits, this.spawnGroundUnit(hexGrid)];
+        groundUnits = [...groundUnits, this.spawnGroundUnit(hexGrid, rng)];
         nextGroundSpawnIn = GROUND_SPAWN_INTERVAL;
       }
 
@@ -270,14 +272,14 @@ export class AlienService {
     };
   }
 
-  static spawnShip(buildings: PlacedBuilding[]): AlienShip {
-    const target = buildings[Math.floor(Math.random() * buildings.length)];
-    const angle = Math.random() * Math.PI * 2;
+  static spawnShip(buildings: PlacedBuilding[], rng: Rng = Math.random): AlienShip {
+    const target = buildings[Math.floor(rng() * buildings.length)];
+    const angle = rng() * Math.PI * 2;
     return {
-      id: `ship-${crypto.randomUUID()}`,
+      id: randomId("ship", rng),
       position: {
         x: Math.cos(angle) * SHIP_ORBIT_X,
-        y: SHIP_SPAWN_HEIGHT + Math.random() * SHIP_SPAWN_HEIGHT_VAR,
+        y: SHIP_SPAWN_HEIGHT + rng() * SHIP_SPAWN_HEIGHT_VAR,
         z: Math.sin(angle) * SHIP_ORBIT_Z,
       },
       targetBuildingId: target?.id ?? null,
@@ -287,7 +289,7 @@ export class AlienService {
     };
   }
 
-  static spawnGroundUnit(hexGrid?: HexGrid): AlienGroundUnit {
+  static spawnGroundUnit(hexGrid?: HexGrid, rng: Rng = Math.random): AlienGroundUnit {
     if (hexGrid) {
       const radius = Math.max(1, hexGrid.radius);
       const ring = hexRing(0, 0, radius);
@@ -296,10 +298,10 @@ export class AlienService {
         .filter((cell): cell is NonNullable<typeof cell> => cell !== undefined);
 
       if (validCells.length > 0) {
-        const chosen = validCells[Math.floor(Math.random() * validCells.length)];
+        const chosen = validCells[Math.floor(rng() * validCells.length)];
         const [x, z] = hexToWorld(chosen.q, chosen.r);
         return {
-          id: `ground-${crypto.randomUUID()}`,
+          id: randomId("ground", rng),
           position: { x, y: chosen.worldY, z },
           targetBuildingId: null,
           attackCooldown: 0,
@@ -308,12 +310,12 @@ export class AlienService {
       }
     }
 
-    const side = Math.floor(Math.random() * 4);
+    const side = Math.floor(rng() * 4);
     let x = 0, z = 0;
-    if (side === 0) { x = -TERRAIN_HALF_X; z = (Math.random() * 2 - 1) * TERRAIN_HALF_Z; }
-    if (side === 1) { x =  TERRAIN_HALF_X; z = (Math.random() * 2 - 1) * TERRAIN_HALF_Z; }
-    if (side === 2) { x = (Math.random() * 2 - 1) * TERRAIN_HALF_X; z = -TERRAIN_HALF_Z; }
-    if (side === 3) { x = (Math.random() * 2 - 1) * TERRAIN_HALF_X; z =  TERRAIN_HALF_Z; }
+    if (side === 0) { x = -TERRAIN_HALF_X; z = (rng() * 2 - 1) * TERRAIN_HALF_Z; }
+    if (side === 1) { x =  TERRAIN_HALF_X; z = (rng() * 2 - 1) * TERRAIN_HALF_Z; }
+    if (side === 2) { x = (rng() * 2 - 1) * TERRAIN_HALF_X; z = -TERRAIN_HALF_Z; }
+    if (side === 3) { x = (rng() * 2 - 1) * TERRAIN_HALF_X; z =  TERRAIN_HALF_Z; }
 
     let y = 0;
     if (hexGrid) {
@@ -323,7 +325,7 @@ export class AlienService {
     }
 
     return {
-      id: `ground-${crypto.randomUUID()}`,
+      id: randomId("ground", rng),
       position: { x, y, z },
       targetBuildingId: null,
       attackCooldown: 0,
