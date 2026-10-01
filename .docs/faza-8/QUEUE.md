@@ -3,7 +3,7 @@
 > Jedyne źródło prawdy o postępie. Nadzorca aktualizuje ten plik i commituje go
 > **po każdej zmianie statusu** (commit + push), żeby przerwana sesja nie gubiła stanu.
 
-**STATUS KOLEJKI: AKTYWNA** (wznowiona 2026-09-26T12:53Z; zadania agentowe zakończone, trwa wdrożenie przez człowieka wg DEPLOYMENT.md)
+**STATUS KOLEJKI: FAZA 8 ZAKOŃCZONA** (2026-10-01; dalej: Faza 9, `.docs/faza-9/PLAN.md`). Poprzednio: **AKTYWNA** (wznowiona 2026-09-26T12:53Z; zadania agentowe zakończone, trwa wdrożenie przez człowieka wg DEPLOYMENT.md)
 
 Branch roboczy: `claude/compassionate-hawking-nc14kk` (bazuje na `main` @ `f119afb`)
 Baseline (zmierzony 2026-09-24T16:46Z, HEAD `0b7499c`, Node v22.22.2): **573 front / 33 back / 606 razem**, lint 0, tsc 0, build OK.
@@ -173,6 +173,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-10-01T14:52Z · nadzorca · — · Plan Fazy 9 (gra sieciowa bez kont): `.docs/faza-9/PLAN.md` (propozycja; decyzje D1–D7 dla użytkownika; pierwszy kamień milowy: deterministyczny RNG + wydzielenie `GameSimulation.step` ze store). · —
 - 2026-10-01T14:55Z · nadzorca · T15 · CI na PR #14 czerwone: brak `@types/express` (był pośrednio z `tsoa`, lokalnie maskowany przez stare `node_modules`). Dodany jawnie (5.0.6). Lekcja: po zmianie zależności Gate na czystym `npm ci`. · —
 - 2026-10-01T15:02Z · nadzorca · T15, T16 · PR #14 scalony (`49ece9f`), CI 6/6. Produkcja (Vercel) od 15:02Z serwuje wymuszone `Content-Security-Policy` (`script-src 'self' 'wasm-unsafe-eval'`, `connect-src 'self' blob: data:`). Weryfikacja gry w przeglądarce na produkcji niemożliwa z sesji (domena zablokowana w uprawnieniach panelu); zweryfikowane lokalnie z identycznym nagłówkiem. Do sprawdzenia przez użytkownika: konsola na `/`, `/generate`, `/mars`. · 49ece9f
+- 2026-10-01T15:10Z · człowiek · T16 · Produkcja z wymuszonym CSP sprawdzona przez użytkownika: `/`, `/generate`, `/mars` działają, brak błędów w konsoli. T15/T16 zamknięte. · —
 
 ## Follow-upy (poza zakresem Fazy 8)
 
