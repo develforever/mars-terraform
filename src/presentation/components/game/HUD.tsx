@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { backupReminder } from "../../../application/service/backupReminder";
 import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { useMapConfigStore } from "../../../application/store/useMapConfigStore";
@@ -74,6 +75,7 @@ export const HUD = () => {
     const openModal             = useModalStore((state) => state.open);
 
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
+    const [showBackupHint, setShowBackupHint] = useState(false);
     const [activePanel, setActivePanel] = useState<ResourceKey | "terraforming" | null>(null);
     const [showDepTree, setShowDepTree] = useState(false);
     const [showResearchTree, setShowResearchTree] = useState(false);
@@ -110,6 +112,7 @@ export const HUD = () => {
         setSaveStatus("saving");
         const ok = await saveGame();
         setSaveStatus(ok ? "ok" : "err");
+        if (ok && backupReminder.recordSave()) setShowBackupHint(true);
         setTimeout(() => setSaveStatus("idle"), 2000);
     };
 
@@ -347,6 +350,23 @@ export const HUD = () => {
                             </button>
                         </>
                 </div>
+
+                {showBackupHint && (
+
+                    <div role="status" className="fixed top-20 right-4 z-40 max-w-xs bg-gray-900/95 border border-amber-400/50 text-amber-200 text-xs rounded-lg p-3 shadow-lg">
+
+                        <p className="mb-2">{t("hud.backupHint")}</p>
+
+                        <button type="button" onClick={() => setShowBackupHint(false)} className="text-amber-300 hover:text-white underline">
+
+                            {t("hud.backupHintDismiss")}
+
+                        </button>
+
+                    </div>
+
+                )}
+
 
                 <BuildingPalette
                     resources={resources}

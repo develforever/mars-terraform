@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getBrowserStore } from "./browserStore";
+import { getBrowserStore, requestPersistentStorage } from "./browserStore";
 import { savedGameSchema, type SavedGame } from "./localSaveService";
 
 /**
@@ -29,6 +29,7 @@ export const colonySaveService = {
   save: async (save: SavedGame): Promise<void> => {
     const validated = savedGameSchema.parse(save);
     await getBrowserStore().put(STORE, validated.colonyName, validated);
+    void requestPersistentStorage();
   },
 
   /** Zapis po nazwie; uszkodzony zapis (niezgodny ze schematem) zwraca `null`. */

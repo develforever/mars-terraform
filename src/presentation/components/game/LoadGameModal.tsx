@@ -5,6 +5,7 @@ import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { colonySaveService, type ColonySaveSummary } from "../../../application/service/colonySaveService";
 import { downloadBlob } from "../ui/downloadFile";
+import { backupReminder } from "../../../application/service/backupReminder";
 
 interface LoadGameModalProps {
     onClose: () => void;
@@ -67,6 +68,7 @@ export function LoadGameModal({ onClose }: LoadGameModalProps) {
         }
         const safeName = name.replace(/[^\p{L}\p{N}_-]+/gu, "_");
         downloadBlob(new Blob([colonySaveService.toFile(saved)], { type: "application/json" }), `mars-terraform-${safeName}.json`);
+        backupReminder.recordBackup();
     };
 
     const handleImport = async (file: File) => {

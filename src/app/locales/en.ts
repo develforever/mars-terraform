@@ -91,6 +91,8 @@ const en = {
             saving:   "Saving...",
             saved:    "✓ Saved",
             saveErr:  "✗ Error",
+            backupHint: "💾 Saves live only in this browser. Make a backup: Load → ⬇ next to your colony.",
+            backupHintDismiss: "Got it",
             load:     "Load",
             hidePanel: "Hide panel",
             showPanel: "Show panel",
