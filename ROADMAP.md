@@ -17,7 +17,7 @@ Ten dokument stanowi centralny rejestr zrealizowanych kamieni milowych oraz plan
 - [x] **Edytor Map Heksagonalnych**: Malowanie biomów, kładzenie punktów startowych, węzłów budowy, złóż i obiektów dekoracyjnych.
 - [x] **Asystent AI NLP (`AIMapGeneratorService.ts`)**: Przetwarzanie poleceń w języku naturalnym (PL/EN) na kontrakt `MapExportJSON v2.0` (archetypy, modyfikatory wysokościowe, złoża i POI).
 - [x] **Generator Proceduralny**: 4-oktawowy szum fBm ze stałym seedem dla łańcuchów górskich i kraterów.
-- [x] **Persystencja Chmurowa**: Endpointy REST `/api/maps` oparte o TSOA + Drizzle ORM z walidacją schematów Zod.
+- [x] **Persystencja map**: od T14 biblioteka map w przeglądarce + eksport/import JSON (dawne `/api/maps` usunięte w T15).
 
 ### Faza 3: Pętla Gry, Ekonomia i Drzewo Badań (`/mars`)
 - [x] **Graf Infrastruktury Przesyłowej (`BuildingConnectionService.ts`)**: Algorytm Minimum Spanning Forest (MSF / DSU) dla sieci energetycznej i rurociągów wodnych o zasięgu R <= 4.
@@ -58,7 +58,7 @@ Ten dokument stanowi centralny rejestr zrealizowanych kamieni milowych oraz plan
 - [x] **Krok 4: System Sterowania RTS (`feat/rts-unit-control-and-combat`)**: Selekcja ramką (Drag Box), rozkazy PPM (Ruch, Atak, Naprawa), grupy bojowe `Ctrl + 1..9`, paski HP i panel dowodzenia jednostkami (`UnitCommandCard.tsx`).
 - [x] **Krok 5: Taktyczna Mini-mapa i Radar Zagrożeń (`feat/tactical-minimap-and-radar`)**: Interaktywna mini-mapa 2D Canvas z podglądem bazy, wrogów i stożka kamery, radar zagrożeń poza ekranem (Offscreen Radar ze skokiem kamery).
 
-### Faza 8: Infrastruktura Produkcyjna i Hosting (Vercel + Render + Turso)
+### Faza 8: Infrastruktura Produkcyjna i Hosting (Vercel; gra bez kont, D18)
 Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.docs/faza-8/DEPLOYMENT.md`](.docs/faza-8/DEPLOYMENT.md). Plan i decyzje: `.docs/faza-8/PLAN.md`, `.docs/faza-8/QUEUE.md`.
 - [x] **Frontend na Vercel (`vercel.json`)**: build tylko frontendu (`tsc -b && vite build`), SPA rewrite, cache `immutable` dla `/assets/*`, `max-age` + `stale-while-revalidate` dla `/models`, `/textures`, `/icons`, nagłówki bezpieczeństwa i CSP Report-Only; test konfiguracji.
 - [x] **Resolver `VITE_API_URL`** (`apiConfig.ts`): wszystkie wywołania `/api` przez jeden bazowy URL.
@@ -68,7 +68,7 @@ Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.
 - [x] **`HttpError` i błędy 4xx** zamiast 500 dla błędów klienta (logowanie, rejestracja, mapy).
 - [x] **Anty-enumeracja kont**: hasło sprawdzane przed „Email not verified”, stały czas (dummy bcrypt), `resend-verification` zawsze 200.
 - [x] **Obraz API `Dockerfile.api`** (node 24 alpine, multi-stage, `USER node`, tini, HEALTHCHECK) + **`render.yaml`** (Render Blueprint, plan Free, Frankfurt, deploy po zielonym CI, Turso bez dysku; D15 zastąpiło Fly.io).
-- [x] **Migracje produkcyjne** (`node dist_backend/migrate.js` przy starcie kontenera API, D15), naprawiony journal (`0001_maps_colonies`) i procedura baseline dla bazy z `push` (`MIGRATIONS_BASELINE.md`).
+- [x] **Migracje produkcyjne** (`node dist_backend/migrate.js` przy starcie kontenera API, D15), naprawiony journal (`0001_maps_colonies`) i procedura baseline dla bazy z `push` (historyczne: baza, migracje i `MIGRATIONS_BASELINE.md` usunięte w T15).
 - [x] **CI GitHub Actions**: lint, typy, testy, build, spójność tras TSOA i migracji + job `docker-api` (build obrazu i smoke test kontenera).
 - [x] **Odchudzone zależności produkcyjne**: paczki frontendowe w `devDependencies`, `@tsoa/runtime` zamiast `tsoa`, bez `@tursodatabase/database` (prod `node_modules` 437 → 54 MB).
 - [x] **Naprawa zapisu kolonii**: aktualne trasy TSOA (`minerals`), `state` jako otwarty obiekt JSON, limit body 2 MB (413 JSON).
@@ -81,7 +81,8 @@ Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.
 
 ### Faza 8: wdrożenie produkcyjne (człowiek)
 - [x] Rotacja sekretów i baseline migracji produkcyjnej bazy (naprawa stanu C + wariant A, 2026-09-26).
-- [ ] Pierwszy deploy API (Render) i frontendu (Vercel), smoke test: [`.docs/faza-8/DEPLOYMENT.md`](.docs/faza-8/DEPLOYMENT.md).
+- [x] Wdrożenie frontendu (Vercel) i API (Render), smoke test (2026-09-27).
+- [x] T11–T13: kontrola dostępu, RODO, konta bez danych osobowych; **T14: gra bez kont** (zapisy w przeglądarce, informacja dla gracza); **T15: backend bez bazy** (minimalny serwer).
 - [ ] Follow-upy po wdrożeniu (CSP `connect-src` / `report-to`, HSTS przed domeną własną i inne): `.docs/faza-8/QUEUE.md` → „Follow-upy”.
 
 ---

@@ -5,52 +5,17 @@ dotenv.config();
 const TRUE_VALUES: ReadonlySet<string> = new Set(["true", "1", "yes"]);
 const FALSE_VALUES: ReadonlySet<string> = new Set(["false", "0", "no"]);
 
-/** Minimalna długość `account_secret` (np. 48 losowych bajtów hex = 96 znaków). */
-export const ACCOUNT_SECRET_MIN_LENGTH = 32;
-
 class Config {
-  readonly tursoUrl: string;
-  readonly tursoToken: string | undefined;
   readonly port: number;
-  readonly jwtSecret: string;
-  readonly jwtExpiresIn: string;
-  /**
-   * T13: klucz HMAC numerów kont i szyfrowania sekretów TOTP. NIGDY nie zmieniaj po starcie produkcji:
-   * zmiana unieważnia wszystkie numery kont (nie da się ich przeliczyć, bo w bazie jest tylko hash).
-   */
-  readonly accountSecret: string;
-  readonly openRouterApiKey: string;
   readonly corsOrigins: readonly string[];
   readonly serveFrontend: boolean;
   readonly isProduction: boolean;
 
   constructor() {
-    this.tursoUrl = this.getOptional("turso_url", "file:./local.db");
-    this.tursoToken = process.env.turso_token || undefined;
     this.port = parseInt(process.env.PORT || process.env.port || "3000", 10);
-    this.jwtSecret = this.getRequired("jwt_secret");
-    this.jwtExpiresIn = this.getOptional("jwt_expires_in", "1h");
-    this.accountSecret = this.getSecret("account_secret", ACCOUNT_SECRET_MIN_LENGTH);
-    this.openRouterApiKey = this.getOptional("openrouter_api_key", "");
     this.corsOrigins = this.getOriginList("cors_origins");
     this.serveFrontend = this.getBoolean("serve_frontend", true);
     this.isProduction = process.env.NODE_ENV === "production";
-  }
-
-  private getRequired(key: string): string {
-    const value = process.env[key];
-    if (!value) {
-      throw new Error(`Missing required env variable: ${key}`);
-    }
-    return value;
-  }
-
-  private getSecret(key: string, minLength: number): string {
-    const value = this.getRequired(key);
-    if (value.length < minLength) {
-      throw new Error(`Invalid env variable ${key}: must be at least ${minLength} characters`);
-    }
-    return value;
   }
 
   private getOptional(key: string, fallback: string): string {

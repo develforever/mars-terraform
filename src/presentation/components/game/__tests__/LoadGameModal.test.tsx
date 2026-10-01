@@ -7,6 +7,7 @@ import { LocalDataNotice, LOCAL_DATA_NOTICE_KEY } from "../../ui/LocalDataNotice
 import { createLocalStorageStore, setBrowserStoreForTests } from "../../../../application/service/browserStore";
 import { colonySaveService } from "../../../../application/service/colonySaveService";
 import { LocalSaveService } from "../../../../application/service/localSaveService";
+import { backupReminder } from "../../../../application/service/backupReminder";
 import { useGameStore } from "../../../../application/store/useGameStore";
 
 const navigate = vi.fn();
@@ -60,6 +61,8 @@ describe("LoadGameModal (T14: zapisy w przeglądarce)", () => {
     await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1));
     const text = await (createObjectURL.mock.calls[0][0] as Blob).text();
     expect(colonySaveService.fromFile(text).colonyName).toBe("Ares");
+    expect(backupReminder.getState().savesSinceBackup).toBe(0);
+    expect(backupReminder.getState().lastBackupAt).not.toBeNull();
   });
 
   it("wczytuje zapis z pliku i przechodzi do gry", async () => {

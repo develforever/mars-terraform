@@ -137,10 +137,10 @@ describe('vercel.json', () => {
     })
   })
 
-  it('ships CSP in Report-Only mode only, allowing cross-origin API calls', () => {
+  it('T16: wymusza CSP (enforce) i nie pozwala na połączenia z innymi domenami (gra bez API)', () => {
     const headers = effectiveHeaders('/')
-    expect(headers.has('content-security-policy')).toBe(false)
-    const csp = headers.get('content-security-policy-report-only') ?? ''
+    expect(headers.has('content-security-policy-report-only')).toBe(false)
+    const csp = headers.get('content-security-policy') ?? ''
     const directives = new Map(
       csp
         .split(';')
@@ -152,8 +152,9 @@ describe('vercel.json', () => {
         }),
     )
     expect(directives.get('default-src')).toEqual(["'self'"])
-    expect(directives.get('script-src')).toEqual(["'self'"])
-    expect(directives.get('connect-src')).toEqual(expect.arrayContaining(["'self'", 'https:']))
+    // 'wasm-unsafe-eval': tylko kompilacja WebAssembly (dekoder geometrii three.js), bez eval() w JS.
+    expect(directives.get('script-src')).toEqual(["'self'", "'wasm-unsafe-eval'"])
+    expect(directives.get('connect-src')).toEqual(["'self'", 'blob:', 'data:'])
     expect(directives.get('worker-src')).toEqual(expect.arrayContaining(['blob:']))
     expect(directives.get('object-src')).toEqual(["'none'"])
     expect(directives.get('frame-ancestors')).toEqual(["'none'"])

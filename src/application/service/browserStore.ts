@@ -84,6 +84,34 @@ export const createLocalStorageStore = (storage: Storage): KeyValueStore => {
   };
 };
 
+let persistRequest: Promise<boolean> | null = null;
+
+/**
+ * T16: prośba o trwałe przechowywanie (`navigator.storage.persist()`), żeby przeglądarka nie usunęła
+ * zapisów przy braku miejsca. Wołane przy pierwszym zapisie w sesji (akcja gracza); raz na sesję.
+ * Zwraca `true`, gdy magazyn jest trwały. Brak API albo błąd = `false` (gra działa dalej).
+ */
+export const requestPersistentStorage = (): Promise<boolean> => {
+  if (!persistRequest) {
+    persistRequest = (async () => {
+      const storage = typeof navigator !== "undefined" ? navigator.storage : undefined;
+      if (!storage || typeof storage.persist !== "function") return false;
+      try {
+        if (typeof storage.persisted === "function" && (await storage.persisted())) return true;
+        return await storage.persist();
+      } catch {
+        return false;
+      }
+    })();
+  }
+  return persistRequest;
+};
+
+/** Tylko do testów: ponowne pozwolenie na prośbę o trwałe przechowywanie. */
+export const resetPersistRequestForTests = (): void => {
+  persistRequest = null;
+};
+
 let defaultStore: KeyValueStore | null = null;
 
 /** Magazyn domyślny: IndexedDB, jeśli jest, w przeciwnym razie `localStorage`. */

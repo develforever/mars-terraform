@@ -1,8 +1,7 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import path from "path";
-import { RegisterRoutes } from "./routes/routes";
 import { createCorsMiddleware } from "./middleware/corsMiddleware";
-import { createHealthHandler, DATABASE_CHECK_TIMEOUT_MS } from "./health";
+import { createHealthHandler, READINESS_CHECK_TIMEOUT_MS } from "./health";
 
 export interface CreateAppOptions {
   /** Dozwolone originy CORS (dokładne dopasowanie). Pusta lista = CORS wyłączony. */
@@ -11,14 +10,19 @@ export interface CreateAppOptions {
   readonly distPath: string;
   /** `false` = tryb API-only: bez static i SPA fallbacku, nieznane ścieżki → 404 JSON. */
   readonly serveFrontend: boolean;
-  /** Sprawdzenie dostępności bazy dla `/api/health`. */
-  readonly checkDatabase: () => Promise<void>;
+  /** Opcjonalne sprawdzenie gotowości dla `/api/health` (T15: brak bazy, domyślnie brak). */
+  readonly checkReadiness?: () => Promise<void>;
   /** Wersja aplikacji zwracana przez `/api/health`. */
   readonly version: string;
   /** Produkcja: odpowiedzi 5xx bez szczegółów błędu (pełny błąd tylko w logu). */
   readonly isProduction: boolean;
-  /** Limit czasu sprawdzenia bazy w ms (domyślnie {@link DATABASE_CHECK_TIMEOUT_MS}). */
-  readonly databaseCheckTimeoutMs?: number;
+  /** Limit czasu sprawdzenia gotowości w ms (domyślnie {@link READINESS_CHECK_TIMEOUT_MS}). */
+  readonly readinessTimeoutMs?: number;
+  /**
+   * Rejestracja tras API (po `/api/health`, przed 404 i obsługą błędów). T15: serwer nie ma jeszcze
+   * własnych tras; punkt rozszerzenia dla przyszłej logiki gry na serwerze.
+   */
+  readonly registerRoutes?: (app: Express) => void;
 }
 
 interface ErrorBody {
@@ -30,12 +34,10 @@ const NOT_FOUND_BODY: ErrorBody = { error: "Not Found" };
 const PAYLOAD_TOO_LARGE_BODY: ErrorBody = { error: "Payload Too Large" };
 
 /**
- * Limit ciała JSON (`express.json`). Domyślne 100 kB body-parsera nie mieści zapisu kolonii:
- * typowa gra (mapa hexRadius 20 = 1261 heksów, 30 budynków, 200 snapshotów analityki) to ~146 kB,
- * a najgorszy przypadek (mapa hexRadius 60 = 10981 heksów, 500 snapshotów) to ~0,9 MB.
- * 2 MB daje ponad 2x zapasu dla najgorszego przypadku. Przekroczenie → 413 `{ error: "Payload Too Large" }`.
+ * Limit ciała JSON (`express.json`). T15: serwer nie przyjmuje zapisów gry ani map (są w przeglądarce),
+ * więc wystarcza mały limit. Przekroczenie → 413 `{ error: "Payload Too Large" }`.
  */
-export const JSON_BODY_LIMIT_BYTES = 2 * 1024 * 1024;
+export const JSON_BODY_LIMIT_BYTES = 64 * 1024;
 const INTERNAL_ERROR_MESSAGE = "Internal Server Error";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -44,7 +46,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isHttpStatus = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= 400 && value <= 599;
 
-/** Status z `status`/`statusCode` błędu (TSOA auth → 401, `ValidateError` → 400, body-parser → 400/413). */
+/** Status z `status`/`statusCode` błędu (`HttpError`, body-parser → 400/413). */
 const resolveStatus = (err: unknown): number => {
   if (!isRecord(err)) {
     return 500;
@@ -69,8 +71,7 @@ const resolveMessage = (err: unknown): string => {
 };
 
 /**
- * Treść odpowiedzi błędu. 4xx: komunikat jak dotąd + `fields` z TSOA `ValidateError`
- * (wcześniej gubione — `ValidateError` ma zwykle pusty `message`). 5xx w produkcji: ogólny komunikat.
+ * Treść odpowiedzi błędu. 4xx: komunikat (+ `fields`, jeśli błąd walidacji je ma). 5xx w produkcji: ogólny komunikat.
  */
 const buildErrorBody = (err: unknown, status: number, isProduction: boolean): ErrorBody => {
   if (status >= 500 && isProduction) {
@@ -91,19 +92,20 @@ export const createApp = (options: CreateAppOptions): Express => {
     corsOrigins,
     distPath,
     serveFrontend,
-    checkDatabase,
+    checkReadiness,
     version,
     isProduction,
-    databaseCheckTimeoutMs = DATABASE_CHECK_TIMEOUT_MS,
+    readinessTimeoutMs = READINESS_CHECK_TIMEOUT_MS,
+    registerRoutes,
   } = options;
 
   const app = express();
   app.use(createCorsMiddleware(corsOrigins));
   app.use(express.json({ limit: JSON_BODY_LIMIT_BYTES }));
 
-  app.get("/api/health", createHealthHandler({ checkDatabase, version, timeoutMs: databaseCheckTimeoutMs }));
+  app.get("/api/health", createHealthHandler({ checkReadiness, version, timeoutMs: readinessTimeoutMs }));
 
-  RegisterRoutes(app);
+  registerRoutes?.(app);
 
   if (serveFrontend) {
     app.use(express.static(distPath));

@@ -91,6 +91,8 @@ const pl = {
             saving:   "Zapisywanie...",
             saved:    "✓ Zapisano",
             saveErr:  "✗ Błąd",
+            backupHint: "💾 Zapisy są tylko w tej przeglądarce. Zrób kopię zapasową: Wczytaj → ⬇ przy kolonii.",
+            backupHintDismiss: "Rozumiem",
             load:     "Wczytaj",
             hidePanel: "Ukryj panel",
             showPanel: "Pokaż panel",

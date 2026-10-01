@@ -1,5 +1,5 @@
 import type { MapExportJSON } from "../../domain/mapEditorTypes";
-import { getBrowserStore } from "./browserStore";
+import { getBrowserStore, requestPersistentStorage } from "./browserStore";
 
 /**
  * Biblioteka map w przeglądarce (T14: gra bez kont). Zastępuje zapis map na serwerze (`/api/maps`).
@@ -70,6 +70,7 @@ export const mapLibraryService = {
       updatedAt: now,
     };
     await store.put(STORE, String(id), map);
+    void requestPersistentStorage();
     return map;
   },
 

@@ -1,7 +1,12 @@
-# Runbook wdrożenia produkcyjnego — Faza 8 (Render + Vercel + Turso)
+# Runbook wdrożenia produkcyjnego — Faza 8
+
+> **STAN AKTUALNY (T14/T15, D18, 2026-10-01):** gra działa **bez kont i bez API**. Frontend na Vercel, zapisy i mapy
+> w przeglądarce. Bazy Turso usunięte, backend to minimalny serwer bez bazy i sekretów (Render, można wstrzymać).
+> Sekcje 1, 2 i 3a (sekrety, baza Turso, baseline, konta T13) są **historyczne**: nie wykonuj ich.
+> Aktualne: sekcja 4 (Vercel), 3 (Render, tylko jeśli serwer ma działać, bez zmiennych tajnych), 7–8.
 
 > Dla człowieka, **Windows + PowerShell**, bez WSL i bez Turso CLI. Agent niczego nie wdraża.
-> Kontekst i decyzje: `PLAN.md` (§4 architektura, §5 T9), `QUEUE.md` (D1–D13), `MIGRATIONS_BASELINE.md`.
+> Kontekst i decyzje: `PLAN.md` (§4 architektura, §5 T9), `QUEUE.md` (D1–D13), `MIGRATIONS_BASELINE.md` (usunięty w T15; historia w gicie).
 >
 > Placeholdery (nie wpisuj prawdziwych wartości do repo):
 > `<app>` = nazwa usługi Render (domyślnie w `render.yaml`: `mars-terraform-api`, adres `https://<app>.onrender.com`),
@@ -153,7 +158,7 @@ bez przepisywania historii). Każdy, kto ma klon repo, ma stare sekrety. Jedyna 
 Migrator (`node dist_backend/migrate.js`, start kontenera API, D15) uzna ją za pustą, spróbuje wykonać `0000`
 i deploy padnie na `table ... already exists`. Baseline wpisuje do `__drizzle_migrations` migracje, które baza już ma.
 
-Pełny opis mechanizmu, checklista kolumn i SQL: **[`MIGRATIONS_BASELINE.md`](./MIGRATIONS_BASELINE.md)**. Skrót:
+Pełny opis mechanizmu, checklista kolumn i SQL: `MIGRATIONS_BASELINE.md` (usunięty w T15; historia w gicie). Skrót:
 
 - `hash` = sha256 pliku `drizzle/<tag>.sql`, `created_at` = `when` z `drizzle/meta/_journal.json`.
 - Migrator porównuje wyłącznie `created_at` ostatniego wiersza; hash nie jest sprawdzany.

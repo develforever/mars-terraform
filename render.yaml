@@ -1,21 +1,14 @@
 # render.yaml: API Mars Terraform na Render (Blueprint). Faza 8, D15 (zastępuje Fly.io z D1/D8).
 #
 # Obraz: `Dockerfile.api` (sam backend, serve_frontend=false). Frontend jest na Vercel.
-# Baza: Turso (zdalny libsql), bez dysku: kontener jest bezstanowy.
-# Migracje: przy STARCIE kontenera (CMD w `Dockerfile.api`: migrate.js && index.js), bo darmowy plan
-# nie ma pre-deploy command. Błąd migracji = kontener nie startuje, a Render zostawia poprzednią wersję.
+# Bez bazy i bez dysku: kontener jest bezstanowy.
+# T15/D18: serwer bez bazy, kont i sekretów; gra działa w przeglądarce. Usługę można wstrzymać do fazy gry sieciowej.
 #
 # Wdrożenie (wykonuje człowiek, agent niczego nie wdraża): dashboard.render.com → New → Blueprint →
 # repo `develforever/mars-terraform`, gałąź `main`. Render czyta ten plik i pyta o wartości `sync: false`.
 # Runbook: `.docs/faza-8/DEPLOYMENT.md`, sekcja 3.
 #
-# Zmienne `sync: false` (wartości wpisuje człowiek w panelu, NIGDY w repo), nazwy z `src_backend/config.ts`:
-#   wymagane:  jwt_secret, account_secret (min. 32 znaki; NIGDY nie zmieniaj po starcie produkcji),
-#              turso_url, turso_token
-# Dodawane w panelu → Environment:
-#   po Vercel: cors_origins (sekcja 5 runbooka)
-#   AI:        openrouter_api_key (opcjonalnie)
-# T13: brak e-maili, OAuth i adresów frontend/backend w konfiguracji (konta = numer konta + TOTP).
+# Zmienne dodawane w panelu → Environment (opcjonalnie): cors_origins (domena frontendu).
 
 services:
   - type: web
@@ -38,14 +31,5 @@ services:
       # Render kieruje ruch na PORT; ustawiamy jawnie zgodnie z EXPOSE w `Dockerfile.api`.
       - key: PORT
         value: "8080"
-      - key: jwt_secret
-        sync: false
-      # T13: klucz HMAC numerów kont i szyfrowania TOTP. Zmiana = utrata dostępu do WSZYSTKICH kont.
-      - key: account_secret
-        sync: false
-      - key: turso_url
-        sync: false
-      - key: turso_token
-        sync: false
       # `cors_origins` celowo NIE jest tu zadeklarowany: dodaje się go w panelu PO poznaniu domeny Vercel
       # (sekcja 5). Brak `cors_origins` = CORS wyłączony, co jest zamierzone do czasu ustawienia.

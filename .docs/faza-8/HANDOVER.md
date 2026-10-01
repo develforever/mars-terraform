@@ -28,7 +28,7 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - T12 (RODO) na produkcji od 2026-09-27 (PR #9, `54148ae`), zweryfikowane z zewnątrz.
 - T13 (konta na numer) wdrożony i ZASTĄPIONY przez D18 (gra bez kont). Bazy Turso usunięte przez użytkownika.
 - T14 (frontend bez kont, zapisy w przeglądarce, informacja dla gracza) DONE `c2e9a87`, PR do `main`. Po scaleniu Vercel wdroży frontend, który nie woła API.
-- Następne: T15 backend bez bazy albo wstrzymanie usługi Render (API obecnie bez bazy = niedziałające, ale nieużywane).
+- T15 (backend bez bazy, minimalny serwer, zależności) DONE `01d0ccd`. T16 (trwałość zapisów, przypomnienie o kopii, CSP enforce) DONE `354afb6`. Plan Fazy 9: `.docs/faza-9/PLAN.md` (czeka na decyzje D1–D7).
 - DEPLOYMENT.md §3 (Render): Blueprint z `render.yaml`, zmienne `jwt_secret` (nowy, 48 bajtów), `turso_url`, `turso_token`, deploy.
 - Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups\test-repair` do usunięcia po wdrożeniu.
 - Opcjonalnie: `fly apps destroy mars-terraform-api` (i ewentualnie usunięcie karty z Fly).
@@ -37,7 +37,7 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - **Worktree subagentów startują z `main`, nie z HEAD brancha.** W prompcie subagenta zawsze KROK 0: `git fetch origin <branch> && git reset --hard FETCH_HEAD`. Wymaga wcześniejszego push stanu.
 - **Hook sesji blokuje edycję głównego checkoutu** (`C:\Users\robert\code\mars-terraform`), gdzie jest wyciągnięty branch roboczy. Pracuj w worktree sesji (branch zresetowany do `origin/claude/compassionate-hawking-nc14kk`), push `git push origin HEAD:claude/compassionate-hawking-nc14kk`. Główny checkout potem `git pull`.
 - **Cherry-pick commita, który robi `git rm --cached .env`, kasuje `.env` z dysku.** Przed takim scaleniem zrób kopię.
-- **Po zmianie `package-lock.json` zrób `npm ci` przed Gate.** Worktree sesji ma własne `node_modules`.
+- **Po zmianie `package-lock.json` zrób CZYSTE `npm ci` (usuń `node_modules`) przed Gate.** Inaczej stare paczki maskują brakujące zależności (T15: `@types/express`). Worktree sesji ma własne `node_modules`.
 - **Odrzucenie wywołania narzędzia nie zawsze cofa efekt.** Po przerwaniu sprawdź `git log origin/<branch>..HEAD` i `git status`.
 - **Raport subagenta może nie dotrzeć.** Źródło prawdy to commit w worktree.
 - **Brak Dockera lokalnie.** Obraz API weryfikuje CI (D9). CMD obrazu można zasymulować: `sh -c "node dist_backend/migrate.js && exec node dist_backend/index.js"` z `turso_url=file:...` w worktree bez plików `.env*`.
