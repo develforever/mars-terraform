@@ -1,6 +1,6 @@
 # CI — Faza 8, T8 (decyzja D5 = tak).
-# verify:     lint + typy (front i backend) + testy (front i backend) + build + spójność migracji.
-# docker-api: build obrazu `Dockerfile.api` (bez push) + smoke test kontenera (D15: migracje przy starcie).
+# verify:     lint + typy (front i backend) + testy (front i backend) + build.
+# docker-api: build obrazu `Dockerfile.api` (bez push) + smoke test kontenera (T15: bez bazy).
 #             D9: to JEDYNA weryfikacja obrazu API (sesje agentów nie mogą go zbudować).
 # Bez sekretów repo: wszystkie wartości env są jawnymi, testowymi atrapami.
 name: CI
@@ -29,13 +29,6 @@ jobs:
     name: Lint, typecheck, tests, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      # `src_backend/config.ts` wymaga `jwt_secret` przy imporcie. Testy backendu mockują
-      # `config` / `data-source` albo stubują env, ale ta wartość chroni przed testem bez stubów.
-      # Bez `turso_url`: testy go nie potrzebują, a `drizzle.config.ts` wtedy używa
-      # dialektu `sqlite` z `file:./local.db` (nic zdalnego; `drizzle-kit check` i tak nie łączy się z bazą).
-      jwt_secret: ci-test-secret-not-used-in-prod
-      account_secret: ci-account-secret-not-used-in-production
     steps:
       - uses: actions/checkout@v4
 
@@ -65,17 +58,9 @@ jobs:
       - name: Test (backend)
         run: npm run test:back
 
-      # T4d: `routes.ts`/`swagger.json` są generowane z `model/types.ts` i commitowane. Przy
-      # `throw-on-extras` nieaktualne trasy odrzucają poprawne żądania z 400 (np. brak `minerals`).
-      - name: TSOA routes up to date
-        run: npm run tsoa:gen && git diff --exit-code -- src_backend/routes/routes.ts src_backend/api/swagger.json
-
       - name: Build
         run: npm run build
 
-      # Spójność `drizzle/` (snapshoty + journal) bez połączenia z bazą.
-      - name: Migrations consistency (drizzle-kit check)
-        run: npx drizzle-kit check
 
   docker-api:
     name: API image build and smoke test
@@ -98,47 +83,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Samodzielne uruchomienie migratora (T7, `npm run db:migrate:prod` w obrazie): exit 0 + log „Applied”.
-      - name: Smoke - migrations (dist_backend/migrate.js)
-        run: |
-          out=$(docker run --rm -e jwt_secret=ci -e account_secret=ci-account-secret-not-used-in-production -e turso_url=file:/tmp/ci.db mars-api:ci \
-            node dist_backend/migrate.js 2>&1)
-          echo "${out}"
-          if ! grep -q "Applied" <<<"${out}"; then
-            echo "::error::migrate.js did not log 'Applied'"
-            exit 1
-          fi
-
-      # D15: błąd migracji przy starcie = kontener kończy się kodem != 0 i API NIE startuje.
-      # Katalog bazy nie istnieje, więc libsql nie może otworzyć pliku.
-      - name: Smoke - failed migration stops the container
-        run: |
-          set +e
-          out=$(docker run --rm -e jwt_secret=ci -e account_secret=ci-account-secret-not-used-in-production -e turso_url=file:/nonexistent/dir/ci.db mars-api:ci 2>&1)
-          code=$?
-          set -e
-          echo "${out}"
-          echo "exit code: ${code}"
-          if [ "${code}" = "0" ]; then
-            echo "::error::container exited 0 despite failed migration"
-            exit 1
-          fi
-          if ! grep -q "\[migrate\] Failed" <<<"${out}"; then
-            echo "::error::expected '[migrate] Failed' in output"
-            exit 1
-          fi
-          if grep -q "Backend running" <<<"${out}"; then
-            echo "::error::API started despite failed migration"
-            exit 1
-          fi
-
-      # D15: domyślny CMD = migracje przy starcie (pusta baza w /tmp kontenera), potem API.
+      # T15: serwer bez bazy i bez sekretów.
       - name: Smoke - start container
         run: |
           docker run -d -p 8080:8080 \
-            -e jwt_secret=ci \
-            -e account_secret=ci-account-secret-not-used-in-production \
-            -e turso_url=file:/tmp/ci.db \
             --name api mars-api:ci
 
       - name: Smoke - wait for /api/health (max 30 s)
@@ -154,14 +102,6 @@ jobs:
           echo "::error::/api/health did not respond within 30 s"
           exit 1
 
-      - name: Smoke - migrations ran on container start
-        run: |
-          logs=$(docker logs api 2>&1)
-          echo "${logs}"
-          if ! grep -q "\[migrate\] Applied" <<<"${logs}"; then
-            echo "::error::container start did not run migrations"
-            exit 1
-          fi
 
       - name: Smoke - /generate is a 404 JSON (API-only image)
         run: |

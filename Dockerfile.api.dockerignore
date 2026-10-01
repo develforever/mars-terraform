@@ -6,7 +6,6 @@
 !package-lock.json
 !vite.config.backend.ts
 !src_backend
-!drizzle
 
 # Testy backendu nie są potrzebne do builda.
 src_backend/**/*.test.ts

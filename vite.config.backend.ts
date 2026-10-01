@@ -7,10 +7,9 @@ export default defineConfig({
     outDir: 'dist_backend',
     ssr: true,
     lib: {
-      // Dwa entry (T7): serwer API i skrypt migracji. Wspólne moduły trafiają do chunków obok.
+      // T15: tylko serwer (bez bazy i migracji).
       entry: {
-        index: 'src_backend/index.ts',
-        migrate: 'src_backend/migrate.ts'
+        index: 'src_backend/index.ts'
       },
       formats: ['es'],
       fileName: (_format, name) => `${name}.js`

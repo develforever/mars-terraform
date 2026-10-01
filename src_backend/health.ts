@@ -2,11 +2,14 @@ import { readFileSync } from "fs";
 import type { Request, RequestHandler, Response } from "express";
 
 export interface HealthHandlerOptions {
-  /** Sprawdzenie bazy (np. `select 1`); odrzucenie = baza niedostępna. */
-  readonly checkDatabase: () => Promise<void>;
+  /**
+   * Opcjonalne sprawdzenie zależności (np. przyszły magazyn stanu gry); odrzucenie = 503.
+   * T15: serwer nie ma bazy, więc domyślnie brak sprawdzenia i zawsze 200.
+   */
+  readonly checkReadiness?: () => Promise<void>;
   /** Wersja aplikacji zwracana w odpowiedzi OK. */
   readonly version: string;
-  /** Limit czasu sprawdzenia bazy w ms. */
+  /** Limit czasu sprawdzenia gotowości w ms. */
   readonly timeoutMs: number;
 }
 
@@ -17,15 +20,14 @@ export interface HealthOkBody {
 
 export interface HealthDegradedBody {
   readonly status: "degraded";
-  readonly database: "unavailable";
 }
 
-export const DATABASE_CHECK_TIMEOUT_MS = 2000;
+export const READINESS_CHECK_TIMEOUT_MS = 2000;
 export const UNKNOWN_VERSION = "unknown";
 
 /**
  * Wyścig `promise` z timerem; timer jest zawsze czyszczony (brak wiszących uchwytów
- * po szybkiej odpowiedzi bazy).
+ * po szybkiej odpowiedzi).
  */
 export const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -42,20 +44,20 @@ export const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number): Pr
 };
 
 /**
- * `GET /api/health`: 200 `{ status: "ok", version }` gdy baza odpowiada w limicie czasu,
- * w przeciwnym razie 503 `{ status: "degraded", database: "unavailable" }`. Szczegóły błędu
- * wyłącznie w logu serwera. Odpowiedź nigdy nie jest cache'owana.
+ * `GET /api/health`: 200 `{ status: "ok", version }`; gdy podano `checkReadiness` i nie powiedzie się
+ * w limicie czasu, 503 `{ status: "degraded" }`. Szczegóły błędu wyłącznie w logu serwera.
+ * Odpowiedź nigdy nie jest cache'owana.
  */
 export const createHealthHandler = (options: HealthHandlerOptions): RequestHandler => {
-  const { checkDatabase, version, timeoutMs } = options;
+  const { checkReadiness, version, timeoutMs } = options;
 
   return async (_req: Request, res: Response): Promise<void> => {
     res.setHeader("Cache-Control", "no-store");
     try {
-      await withTimeout(checkDatabase(), timeoutMs);
+      if (checkReadiness) await withTimeout(checkReadiness(), timeoutMs);
     } catch (error: unknown) {
-      console.error("[health] database check failed:", error);
-      const body: HealthDegradedBody = { status: "degraded", database: "unavailable" };
+      console.error("[health] readiness check failed:", error);
+      const body: HealthDegradedBody = { status: "degraded" };
       res.status(503).json(body);
       return;
     }

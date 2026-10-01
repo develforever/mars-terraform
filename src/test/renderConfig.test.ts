@@ -80,7 +80,7 @@ describe('render.yaml (API na Render)', () => {
     expect(serviceFields.get('healthCheckPath')).toBe('/api/health')
   })
 
-  it('nie używa preDeployCommand ani dockerCommand (migracje są w CMD obrazu)', () => {
+  it('nie używa preDeployCommand ani dockerCommand (start w CMD obrazu)', () => {
     expect(serviceFields.has('preDeployCommand')).toBe(false)
     expect(serviceFields.has('dockerCommand')).toBe(false)
   })
@@ -92,17 +92,13 @@ describe('render.yaml (API na Render)', () => {
     expect(envVars.has('backend_url')).toBe(false)
   })
 
-  it('wymagane sekrety są zadeklarowane wyłącznie jako sync: false (bez wartości)', () => {
-    for (const key of ['jwt_secret', 'account_secret', 'turso_url', 'turso_token']) {
-      expect(envVars.get(key), key).toEqual({ sync: 'false' })
-    }
+  it('T15: nie deklaruje żadnych sekretów ani bazy (serwer bez kont i bazy)', () => {
     for (const key of SECRET_KEYS) {
-      const entry = envVars.get(key)
-      if (entry) expect(entry.value, `sekret "${key}" z wartością`).toBeUndefined()
+      expect(envVars.has(key), `zbędny sekret "${key}"`).toBe(false)
     }
   })
 
-  it('nie deklaruje frontend_url / cors_origins (T13: frontend_url zbędny, CORS po poznaniu domeny Vercel)', () => {
+  it('nie deklaruje frontend_url / cors_origins (CORS ustawiany w panelu po poznaniu domeny)', () => {
     expect(envVars.has('frontend_url')).toBe(false)
     expect(envVars.has('cors_origins')).toBe(false)
   })
@@ -112,19 +108,17 @@ describe('render.yaml (API na Render)', () => {
     expect(raw).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}/)
   })
 
-  it('wymienia w komentarzu nazwy opcjonalnych zmiennych', () => {
-    for (const key of ['account_secret', 'cors_origins', 'openrouter_api_key']) {
-      expect(raw).toContain(key)
-    }
+  it('wymienia w komentarzu opcjonalne cors_origins', () => {
+    expect(raw).toContain('cors_origins')
   })
 })
 
-describe('Dockerfile.api (start = migracje, potem API)', () => {
-  it('CMD uruchamia migrate.js, a API tylko po sukcesie, przez exec pod tini', () => {
+describe('Dockerfile.api (T15: sam serwer, bez migracji)', () => {
+  it('CMD uruchamia serwer pod tini, bez migratora i bez katalogu drizzle', () => {
     expect(dockerfile).toContain('ENTRYPOINT ["/sbin/tini", "--"]')
-    expect(dockerfile).toContain(
-      'CMD ["sh", "-c", "node dist_backend/migrate.js && exec node dist_backend/index.js"]',
-    )
+    expect(dockerfile).toContain('CMD ["node", "dist_backend/index.js"]')
+    expect(dockerfile).not.toContain('migrate.js')
+    expect(dockerfile).not.toContain('COPY drizzle')
   })
 
   it('port z EXPOSE zgadza się z PORT w render.yaml', () => {

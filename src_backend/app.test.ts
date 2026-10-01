@@ -4,34 +4,14 @@ import type { AddressInfo } from "net";
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
-import { signTestToken } from "./test/testToken";
-
-vi.mock("./data-source", () => ({
-  db: {
-    select: vi.fn(),
-    insert: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    transaction: vi.fn(),
-  },
-}));
-
-vi.mock("./config", () => ({
-  config: {
-    jwtSecret: "test-secret",
-    jwtExpiresIn: "1h",
-    accountSecret: "test-account-secret-at-least-32-chars",
-    corsOrigins: [],
-  },
-}));
-
-import { createApp, type CreateAppOptions } from "./app";
-import { db } from "./data-source";
+import type { Express } from "express";
+import { createApp, JSON_BODY_LIMIT_BYTES, type CreateAppOptions } from "./app";
+import { HttpError } from "./errors/HttpError";
 
 const ALLOWED = "https://mars-terraform.vercel.app";
 const INDEX_HTML = "<!doctype html><title>spa</title>";
 const VERSION = "9.9.9-test";
-const SECRET_DETAIL = "libsql://secret-host.turso.io password=hunter2";
+const SECRET_DETAIL = "internal-host:5432 password=hunter2";
 
 interface Running {
   readonly baseUrl: string;
@@ -49,7 +29,6 @@ const start = async (options: Partial<CreateAppOptions> = {}): Promise<Running> 
     corsOrigins: [],
     distPath,
     serveFrontend: true,
-    checkDatabase: async (): Promise<void> => {},
     version: VERSION,
     isProduction: false,
     ...options,
@@ -125,11 +104,18 @@ describe("createApp", () => {
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 
-  it("adds CORS headers to TSOA routes, including auth errors", async () => {
-    const { baseUrl } = await start({ corsOrigins: [ALLOWED] });
+  it("adds CORS headers to registered API routes, including their errors", async () => {
+    const { baseUrl } = await start({
+      corsOrigins: [ALLOWED],
+      registerRoutes: (app: Express) => {
+        app.get("/api/test/forbidden", () => {
+          throw new HttpError(403, "Forbidden");
+        });
+      },
+    });
 
-    const res = await fetch(`${baseUrl}/api/maps`, { headers: { Origin: ALLOWED } });
-    expect(res.status).toBeGreaterThanOrEqual(400);
+    const res = await fetch(`${baseUrl}/api/test/forbidden`, { headers: { Origin: ALLOWED } });
+    expect(res.status).toBe(403);
     expect(res.headers.get("access-control-allow-origin")).toBe(ALLOWED);
   });
 
@@ -193,20 +179,27 @@ describe("createApp serveFrontend=false (API-only)", () => {
 });
 
 describe("GET /api/health", () => {
-  it("returns 200 with the version and Cache-Control: no-store when the database answers", async () => {
-    const checkDatabase = vi.fn(async (): Promise<void> => {});
-    const { baseUrl } = await start({ checkDatabase });
+  it("returns 200 with the version and Cache-Control: no-store without any readiness check (T15)", async () => {
+    const { baseUrl } = await start();
 
     const res = await fetch(`${baseUrl}/api/health`);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "ok", version: VERSION });
     expect(res.headers.get("cache-control")).toBe("no-store");
-    expect(checkDatabase).toHaveBeenCalledTimes(1);
   });
 
-  it("returns 503 without error details when the database check fails", async () => {
+  it("calls the optional readiness check", async () => {
+    const checkReadiness = vi.fn(async (): Promise<void> => {});
+    const { baseUrl } = await start({ checkReadiness });
+
+    const res = await fetch(`${baseUrl}/api/health`);
+    expect(res.status).toBe(200);
+    expect(checkReadiness).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 503 without error details when the readiness check fails", async () => {
     const { baseUrl } = await start({
-      checkDatabase: async (): Promise<void> => {
+      checkReadiness: async (): Promise<void> => {
         throw new Error(SECRET_DETAIL);
       },
     });
@@ -214,45 +207,43 @@ describe("GET /api/health", () => {
     const res = await fetch(`${baseUrl}/api/health`);
     expect(res.status).toBe(503);
     const text = await res.text();
-    expect(JSON.parse(text)).toEqual({ status: "degraded", database: "unavailable" });
+    expect(JSON.parse(text)).toEqual({ status: "degraded" });
     expect(text).not.toContain("hunter2");
     expect(res.headers.get("cache-control")).toBe("no-store");
     expect(console.error).toHaveBeenCalled();
   });
 
-  it("returns 503 when the database check exceeds the timeout", async () => {
+  it("returns 503 when the readiness check exceeds the timeout", async () => {
     const { baseUrl } = await start({
-      databaseCheckTimeoutMs: 50,
-      checkDatabase: (): Promise<void> => new Promise<void>(() => {}),
+      readinessTimeoutMs: 50,
+      checkReadiness: (): Promise<void> => new Promise<void>(() => {}),
     });
 
     const startedAt = Date.now();
     const res = await fetch(`${baseUrl}/api/health`);
     expect(res.status).toBe(503);
-    expect(await res.json()).toEqual({ status: "degraded", database: "unavailable" });
+    expect(await res.json()).toEqual({ status: "degraded" });
     expect(Date.now() - startedAt).toBeLessThan(1500);
   });
 });
 
 describe("error handler", () => {
-  const login = (baseUrl: string, body: unknown): Promise<Response> =>
-    fetch(`${baseUrl}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-  const failDatabase = (): void => {
-    vi.mocked(db.select).mockImplementation(() => {
+  const withRoutes = (app: Express): void => {
+    app.get("/api/test/boom", () => {
       throw new Error(SECRET_DETAIL);
+    });
+    app.get("/api/test/client-error", () => {
+      throw new HttpError(409, "Conflict detail");
+    });
+    app.post("/api/test/echo", (req, res) => {
+      res.json(req.body);
     });
   };
 
   it("hides 5xx details in production and logs the full error", async () => {
-    failDatabase();
-    const { baseUrl } = await start({ isProduction: true });
+    const { baseUrl } = await start({ isProduction: true, registerRoutes: withRoutes });
 
-    const res = await login(baseUrl, { accountNumber: "7KQ2-M9XA-4TRE-01ZC-8HNP" });
+    const res = await fetch(`${baseUrl}/api/test/boom`);
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: "Internal Server Error" });
     expect(console.error).toHaveBeenCalledWith(
@@ -262,36 +253,25 @@ describe("error handler", () => {
   });
 
   it("keeps the 5xx message outside production", async () => {
-    failDatabase();
-    const { baseUrl } = await start({ isProduction: false });
+    const { baseUrl } = await start({ isProduction: false, registerRoutes: withRoutes });
 
-    const res = await login(baseUrl, { accountNumber: "7KQ2-M9XA-4TRE-01ZC-8HNP" });
+    const res = await fetch(`${baseUrl}/api/test/boom`);
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: SECRET_DETAIL });
   });
 
-  it.each([true, false])("keeps 401 auth messages (isProduction=%s)", async (isProduction) => {
-    const { baseUrl } = await start({ isProduction });
+  it.each([true, false])("keeps HttpError 4xx messages (isProduction=%s)", async (isProduction) => {
+    const { baseUrl } = await start({ isProduction, registerRoutes: withRoutes });
 
-    const res = await fetch(`${baseUrl}/api/maps`);
-    expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: "Missing or invalid Authorization header" });
-  });
-
-  it.each([true, false])("keeps TSOA validation fields for 400 (isProduction=%s)", async (isProduction) => {
-    const { baseUrl } = await start({ isProduction });
-
-    const res = await login(baseUrl, { accountNumber: 1 });
-    expect(res.status).toBe(400);
-    const body: unknown = await res.json();
-    expect(body).toMatchObject({ error: expect.any(String), fields: expect.any(Object) });
-    expect(JSON.stringify(body)).toContain("accountNumber");
+    const res = await fetch(`${baseUrl}/api/test/client-error`);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "Conflict detail" });
   });
 
   it("keeps the JSON parse error message for 400 in production", async () => {
-    const { baseUrl } = await start({ isProduction: true });
+    const { baseUrl } = await start({ isProduction: true, registerRoutes: withRoutes });
 
-    const res = await fetch(`${baseUrl}/api/auth/login`, {
+    const res = await fetch(`${baseUrl}/api/test/echo`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{bad",
@@ -301,92 +281,16 @@ describe("error handler", () => {
     expect(body.error).not.toBe("Internal Server Error");
     expect(body.error.length).toBeGreaterThan(0);
   });
-});
 
-describe("client errors (HttpError) in production", () => {
-  /** Kolejne wywołania `db.select()` zwracają podane wiersze (`where()` jest awaitable i ma `limit()`). */
-  const selectReturning = (...results: unknown[][]): void => {
-    for (const rows of results) {
-      const where = vi.fn().mockReturnValue(
-        Object.assign(Promise.resolve(rows), { limit: vi.fn().mockResolvedValue(rows) }),
-      );
-      vi.mocked(db.select).mockReturnValueOnce({
-        from: vi.fn().mockReturnValue({ where }),
-      } as unknown as ReturnType<typeof db.select>);
-    }
-  };
+  it("answers a body over the limit with 413 JSON", async () => {
+    const { baseUrl } = await start({ isProduction: true, registerRoutes: withRoutes });
 
-  const post = (url: string, body: unknown, token?: string): Promise<Response> =>
-    fetch(url, {
+    const res = await fetch(`${baseUrl}/api/test/echo`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ x: "a".repeat(JSON_BODY_LIMIT_BYTES) }),
     });
-
-  const bearer = (): string => signTestToken(7);
-
-  it("answers a malformed account number with 401 without touching the database", async () => {
-    const { baseUrl } = await start({ isProduction: true });
-    vi.mocked(db.select).mockClear();
-
-    const res = await post(`${baseUrl}/api/auth/login`, { accountNumber: "not-a-number" });
-    expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: "Invalid account number or code" });
-    expect(db.select).not.toHaveBeenCalled();
-  });
-
-  it("answers an unknown account number with the same 401", async () => {
-    const { baseUrl } = await start({ isProduction: true });
-    selectReturning([]);
-
-    const res = await post(`${baseUrl}/api/auth/login`, { accountNumber: "7KQ2-M9XA-4TRE-01ZC-8HNP" });
-    expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: "Invalid account number or code" });
-    expect(console.error).not.toHaveBeenCalled();
-  });
-
-  it("rejects extra fields on login (e.g. the old email/password body) with 400", async () => {
-    const { baseUrl } = await start({ isProduction: true });
-
-    const res = await post(`${baseUrl}/api/auth/login`, { email: "u@mars.test", password: "x" });
-    expect(res.status).toBe(400);
-  });
-
-  it("answers a missing user in a controller with 404 instead of 500", async () => {
-    const { baseUrl } = await start({ isProduction: true });
-    // T11/T12: konto z tokenu już usunięte -> `update` (update ... returning) nie zwraca wiersza.
-    vi.mocked(db.update).mockReturnValueOnce({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([]) }),
-      }),
-    } as unknown as ReturnType<typeof db.update>);
-
-    const res = await fetch(`${baseUrl}/api/users/me`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${bearer()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ nickname: "Nowy pseudonim" }),
-    });
-    expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: "User not found" });
-  });
-
-  it("answers updating a map the user does not own with 404", async () => {
-    const { baseUrl } = await start({ isProduction: true });
-    selectReturning([]);
-
-    const res = await post(`${baseUrl}/api/maps`, { id: 42, name: "Tharsis", data: "{}" }, bearer());
-    expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: "Map not found or unauthorized" });
-  });
-
-  it("answers an invalid bearer token with 401", async () => {
-    const { baseUrl } = await start({ isProduction: true });
-
-    const res = await fetch(`${baseUrl}/api/maps`, { headers: { Authorization: "Bearer garbage" } });
-    expect(res.status).toBe(401);
-    expect(await res.json()).toEqual({ error: "Invalid or expired token" });
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ error: "Payload Too Large" });
   });
 });
