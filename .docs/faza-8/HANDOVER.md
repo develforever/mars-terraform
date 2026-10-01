@@ -28,7 +28,7 @@ Branch: `claude/compassionate-hawking-nc14kk` (sesja lokalna na Windows pracuje 
 - T12 (RODO) na produkcji od 2026-09-27 (PR #9, `54148ae`), zweryfikowane z zewnątrz.
 - T13 (konta na numer) wdrożony i ZASTĄPIONY przez D18 (gra bez kont). Bazy Turso usunięte przez użytkownika.
 - T14 (frontend bez kont, zapisy w przeglądarce, informacja dla gracza) DONE `c2e9a87`, PR do `main`. Po scaleniu Vercel wdroży frontend, który nie woła API.
-- Następne: T15 backend bez bazy albo wstrzymanie usługi Render (API obecnie bez bazy = niedziałające, ale nieużywane).
+- T15 (backend bez bazy, minimalny serwer, zależności) DONE `01d0ccd`. Następne: T16 (trwałe przechowywanie zapisów + przypomnienie o kopii + CSP enforce), potem plan fazy gry sieciowej.
 - DEPLOYMENT.md §3 (Render): Blueprint z `render.yaml`, zmienne `jwt_secret` (nowy, 48 bajtów), `turso_url`, `turso_token`, deploy.
 - Kopie testowe z danymi użytkowników w `$HOME\mars-terraform-backups\test-repair` do usunięcia po wdrożeniu.
 - Opcjonalnie: `fly apps destroy mars-terraform-api` (i ewentualnie usunięcie karty z Fly).

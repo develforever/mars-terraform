@@ -17,7 +17,7 @@ Ten dokument stanowi centralny rejestr zrealizowanych kamieni milowych oraz plan
 - [x] **Edytor Map Heksagonalnych**: Malowanie biomów, kładzenie punktów startowych, węzłów budowy, złóż i obiektów dekoracyjnych.
 - [x] **Asystent AI NLP (`AIMapGeneratorService.ts`)**: Przetwarzanie poleceń w języku naturalnym (PL/EN) na kontrakt `MapExportJSON v2.0` (archetypy, modyfikatory wysokościowe, złoża i POI).
 - [x] **Generator Proceduralny**: 4-oktawowy szum fBm ze stałym seedem dla łańcuchów górskich i kraterów.
-- [x] **Persystencja Chmurowa**: Endpointy REST `/api/maps` oparte o TSOA + Drizzle ORM z walidacją schematów Zod.
+- [x] **Persystencja map**: od T14 biblioteka map w przeglądarce + eksport/import JSON (dawne `/api/maps` usunięte w T15).
 
 ### Faza 3: Pętla Gry, Ekonomia i Drzewo Badań (`/mars`)
 - [x] **Graf Infrastruktury Przesyłowej (`BuildingConnectionService.ts`)**: Algorytm Minimum Spanning Forest (MSF / DSU) dla sieci energetycznej i rurociągów wodnych o zasięgu R <= 4.
@@ -58,7 +58,7 @@ Ten dokument stanowi centralny rejestr zrealizowanych kamieni milowych oraz plan
 - [x] **Krok 4: System Sterowania RTS (`feat/rts-unit-control-and-combat`)**: Selekcja ramką (Drag Box), rozkazy PPM (Ruch, Atak, Naprawa), grupy bojowe `Ctrl + 1..9`, paski HP i panel dowodzenia jednostkami (`UnitCommandCard.tsx`).
 - [x] **Krok 5: Taktyczna Mini-mapa i Radar Zagrożeń (`feat/tactical-minimap-and-radar`)**: Interaktywna mini-mapa 2D Canvas z podglądem bazy, wrogów i stożka kamery, radar zagrożeń poza ekranem (Offscreen Radar ze skokiem kamery).
 
-### Faza 8: Infrastruktura Produkcyjna i Hosting (Vercel + Render + Turso)
+### Faza 8: Infrastruktura Produkcyjna i Hosting (Vercel; gra bez kont, D18)
 Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.docs/faza-8/DEPLOYMENT.md`](.docs/faza-8/DEPLOYMENT.md). Plan i decyzje: `.docs/faza-8/PLAN.md`, `.docs/faza-8/QUEUE.md`.
 - [x] **Frontend na Vercel (`vercel.json`)**: build tylko frontendu (`tsc -b && vite build`), SPA rewrite, cache `immutable` dla `/assets/*`, `max-age` + `stale-while-revalidate` dla `/models`, `/textures`, `/icons`, nagłówki bezpieczeństwa i CSP Report-Only; test konfiguracji.
 - [x] **Resolver `VITE_API_URL`** (`apiConfig.ts`): wszystkie wywołania `/api` przez jeden bazowy URL.
@@ -81,7 +81,8 @@ Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.
 
 ### Faza 8: wdrożenie produkcyjne (człowiek)
 - [x] Rotacja sekretów i baseline migracji produkcyjnej bazy (naprawa stanu C + wariant A, 2026-09-26).
-- [ ] Pierwszy deploy API (Render) i frontendu (Vercel), smoke test: [`.docs/faza-8/DEPLOYMENT.md`](.docs/faza-8/DEPLOYMENT.md).
+- [x] Wdrożenie frontendu (Vercel) i API (Render), smoke test (2026-09-27).
+- [x] T11–T13: kontrola dostępu, RODO, konta bez danych osobowych; **T14: gra bez kont** (zapisy w przeglądarce, informacja dla gracza); **T15: backend bez bazy** (minimalny serwer).
 - [ ] Follow-upy po wdrożeniu (CSP `connect-src` / `report-to`, HSTS przed domeną własną i inne): `.docs/faza-8/QUEUE.md` → „Follow-upy”.
 
 ---

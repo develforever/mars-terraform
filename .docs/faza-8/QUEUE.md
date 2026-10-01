@@ -44,6 +44,7 @@ zapisuje ustalenia w dzienniku i ustawia z powrotem `READY` (albo `REVIEW`, jeś
 | T12 | RODO: usunięcie konta przez użytkownika (twarde, z koloniami, mapami, metodami auth, tokenami) + eksport danych (art. 15/20), strona „Polityka prywatności” (art. 13) z linkiem przy rejestracji, sprzątanie wygasłych tokenów / niezweryfikowanych kont | T11 | zgoda | general-purpose | backend auth/users, front (strona + link), testy | DONE(fe28886); treść polityki (pola [UZUPEŁNIJ]) = administrator |
 | T13 | Konta bez danych osobowych (D17): logowanie **numerem konta** (100 bitów, w bazie tylko HMAC), opcjonalny **TOTP** (authenticator) jako 2. krok, pseudonim opcjonalny; usunięcie e-maili, haseł, OAuth, wysyłki maili, weryfikacji; migracja `0002` (usuwa konta testowe); limity prób bez przetwarzania IP; krótka notka prywatności; brak cookies | T12 | D17 ✔ | nadzorca | backend auth/users/config/schema/migracje, frontend auth/UI/i18n, testy, `render.yaml`, CI, runbook | DONE(e70686d) |
 | T14 | Gra bez kont (D18): zapisy kolonii i mapy w przeglądarce (IndexedDB/localStorage), eksport/import pliku zapisu, lokalne nazwy kolonii, usunięcie kont z frontendu, informacja dla gracza (komunikat startowy, ostrzeżenia w oknach zapisów/map, `/privacy`) | T13 | D18 ✔ | nadzorca | frontend (store, serwisy, modale, locales, testy) | DONE(c2e9a87) (frontend); backend bez bazy = T15 |
+| T15 | Backend bez bazy: usunięte konta, mapy, kolonie, nazwy AI, Drizzle, migracje, TSOA, JWT, `account_secret`; minimalny serwer (`/api/health` z opcjonalnym `checkReadiness`, CORS, błędy, `registerRoutes`); zależności prod tylko `express`, `dotenv-flow`; CI, Docker, `render.yaml`, dokumentacja | T14 | zgoda ✔ | nadzorca | `src_backend/**`, `drizzle/**`, `package.json`, lock, CI, Docker, `render.yaml`, docs | DONE(01d0ccd) |
 
 ### Równoległość (macierz konfliktów)
 
@@ -166,6 +167,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-09-30T16:15Z · nadzorca · T14 · Frontend bez kont i bez wywołań API (zapisy/mapy lokalnie, eksport/import pliku, komunikaty dla gracza). Gate: lint 0, tsc OK, front 627, back 191, build OK. Następnie: T15 backend bez bazy (usunąć auth/users/groups/maps/colony/colony-names, Drizzle, migracje, `account_secret`, health bez DB) albo wstrzymać usługę Render do fazy logiki serwerowej. · c2e9a87
 - 2026-09-30T16:22Z · nadzorca · T14 · Decyzja użytkownika: notka prywatności bez danych osobowych autora (brak przetwarzania danych przez aplikację); kontakt przez e-mail projektu. Uwaga: polska ustawa o świadczeniu usług drogą elektroniczną (art. 5) formalnie może wymagać danych usługodawcy; ryzyko zaakceptowane przez użytkownika. · e12f18c
 - 2026-09-30T16:29Z · człowiek+nadzorca · T14 · PR #12 (`f73cafd`) i #13 (`98b62c9`) scalone, CI zielone. Produkcja (Vercel): frontend bez kont (komunikat „Grasz bez konta”, brak „Zaloguj się” w bundlu), `/privacy` z kontaktem `mars_terraform@proton.me`, bez pól [UZUPEŁNIJ]. Do zrobienia przez człowieka: wstrzymać API na Render, usunąć lokalne backupy baz. Następne: T15 (backend bez bazy) lub plan fazy logiki serwerowej. · 98b62c9
+- 2026-10-01T14:45Z · nadzorca · T15 · Zgoda użytkownika na rekomendacje (T15, T16, plan fazy sieciowej) i usunięcie zależności. Backend: 13 plików → minimalny serwer; usunięte `drizzle/`, `drizzle.config.ts`, `tsoa.json`, stare `test-hash*.ts` (bcrypt). `npm uninstall` 10 paczek (prod: zostają `express`, `dotenv-flow`; lock −3000 linii). CI bez kroków TSOA/drizzle/migracji; obraz bez migratora i katalogu `drizzle`. Gate: lint 0, tsc OK, front 626, back 79, build OK; smoke lokalny: health 200, stare `/api/auth/login` 404. · 01d0ccd
 
 ## Follow-upy (poza zakresem Fazy 8)
 
@@ -195,7 +197,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - JWT w `localStorage` (ryzyko XSS): CSP z Report-Only na enforce po zebraniu raportów.
 - Szum w logach: `dotenv-flow` przy braku plików `.env*` w obrazie wypisuje ostrzeżenie przy każdym starcie (wyciszyć w produkcji).
 - Migrator przy każdym starcie kontenera (D15): przy >1 instancji równoległe starty mogą ścigać się o tę samą migrację.
-- T13: `bcrypt` (i `@types/bcrypt`) nie jest już używany; usunięcie z `package.json` wymaga zgody (zmiana zależności).
+- ~~T13: nieużywany `bcrypt`~~: usunięty w T15.
 - T13: zgubiony numer konta = utracone konto (świadomie, brak danych do odzyskania). Rozważyć opcjonalne kody zapasowe.
 - T13: `account_secret` musi być stały i zarchiwizowany (menedżer haseł); rotacja wymagałaby nowego mechanizmu (np. wersjonowanych kluczy HMAC).
 - DPA: Vercel Hobby i Turso free nie mają umowy powierzenia (Render ma dla wszystkich planów). Do rozstrzygnięcia: Render Static Site albo plany płatne.

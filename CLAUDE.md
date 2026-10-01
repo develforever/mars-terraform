@@ -11,7 +11,7 @@
 
 Stack:
 - Frontend: React 19, TypeScript, Vite, react-three-fiber (r3f), @react-three/drei, Zustand, TailwindCSS 4
-- Backend: Node.js, TypeScript, Express, tsoa, Drizzle ORM, JWT
+- Backend: Node.js, TypeScript, Express (minimalny serwer bez bazy i kont: `/api/health`, CORS, obsługa błędów; T15)
 - Testy: Vitest (`npm run build`, testy w `*.test.ts`)
 - Zależności istotne dla generatora: `three`, `@react-three/fiber`, `@react-three/drei`,
   `@react-three/postprocessing`, `postprocessing`, `simplex-noise`, `zustand`, `zod`
@@ -167,7 +167,7 @@ spawn na zablokowanym heksie, zbyt bliskie spawny, balans złóż).
 Zrobione:
 - Siatka heksów, edycja terenu, build/resource/spawn/decor + inspektory modeli 3D (z footprintem).
 - Szczelny schodkowy mesh z fazowaniem (`TerrainMeshBuilder` + `CliffBuilder`), materiał triplanar + slope + szron.
-- Backend Persistence (`/api/maps` w TSOA + Drizzle ORM) + `CloudMapsModal` w generatorze i `ColonyNameModal` w grze.
+- Zapis map i kolonii: od T14 w przeglądarce (`mapLibraryService`, `colonySaveService`, IndexedDB/localStorage) + plik zapisu; dawne `/api/maps` (TSOA + Drizzle) usunięte w T15.
 - Deterministyczna generacja proceduralna z Seed (4-oktawowe fBm, pasma górskie, kratery uderzeniowe i złoża).
 - Algorytm ścieżek `HexPathfindingService` (A* z detekcją i omijaniem klifów) + płynny ruch 3D jednostek inwazji obcych.
 - Kinowe słońce proceduralne (analityczny billboard korony `exp(-dist * k)` z ditherem) + kierunkowy rim light atmosfery (Mie scattering) + kalibracja Bloom HDR.
@@ -192,22 +192,22 @@ Zrobione:
 - Mieszkańcy Kolonii, Zawody i Morale (`ColonistService.ts`, `ColonistManagerModal.tsx`, dynamiczne zużycie O₂/wody/żywności, przylot promów, wpływ morale na produkcję).
 - Zaawansowane Struktury Przemysłowe i Megastruktury (`buildings.ts`, `technologies.ts`, `TerraformingService.ts`, megastruktury `biosphere_dome`, `atmosphere_factory`, `fusion_reactor`).
 - System Grywalności, Niezawodności i RTS Overhaul (`ResearchService.ts` z pasywnym RP, stabilny raycasting `BuildingInspectionPopover.tsx`, pauza taktyczna i kontrola prędkości `TimeControls.tsx`, bufor awaryjny $O_2$ `EmergencyLifeSupportAlert.tsx`, aktywne rozkazy RTS i ramka selekcji `RTSCommandService.ts`, `TacticalMinimap.tsx` z radarem zagrożeń `OffscreenThreatRadar.tsx`).
-- Faza 8, Infrastruktura produkcyjna (konfiguracja w kodzie; wdrożenie = człowiek wg runbooka): `vercel.json` (SPA rewrite, cache, nagłówki, CSP Report-Only), resolver `VITE_API_URL`, CORS z allowlistą `cors_origins`, tryb API-only (`serve_frontend=false`), `/api/health` z kontrolą DB, `HttpError`/4xx, anty-enumeracja kont, `Dockerfile.api` + `render.yaml` (Render Free, Frankfurt, Turso; D15 zamiast Fly.io), migracje produkcyjne (`dist_backend/migrate.js` przy starcie kontenera) + baseline bazy z `push`, CI GitHub Actions z testem obrazu API, odchudzone zależności prod, naprawa zapisu kolonii (limit 2 MB), lekka lista kolonii bez `state`; po wdrożeniu: kontrola dostępu `/api/users`, `/api/groups` (T11), RODO (T12: usunięcie konta, eksport danych, retencja, `/privacy`) a następnie **gra bez kont** (T14, D18: zapisy kolonii i mapy wyłącznie w przeglądarce IndexedDB/localStorage, eksport/import pliku zapisu, komunikaty dla gracza, brak cookies; bazy Turso usunięte). Testy: 627 front + 191 back.
+- Faza 8, Infrastruktura produkcyjna (konfiguracja w kodzie; wdrożenie = człowiek wg runbooka): `vercel.json` (SPA rewrite, cache, nagłówki, CSP Report-Only), resolver `VITE_API_URL`, CORS z allowlistą `cors_origins`, tryb API-only (`serve_frontend=false`), `/api/health` z kontrolą DB, `HttpError`/4xx, anty-enumeracja kont, `Dockerfile.api` + `render.yaml` (Render Free, Frankfurt, Turso; D15 zamiast Fly.io), migracje produkcyjne (`dist_backend/migrate.js` przy starcie kontenera) + baseline bazy z `push`, CI GitHub Actions z testem obrazu API, odchudzone zależności prod, naprawa zapisu kolonii (limit 2 MB), lekka lista kolonii bez `state`; po wdrożeniu: kontrola dostępu `/api/users`, `/api/groups` (T11), RODO (T12: usunięcie konta, eksport danych, retencja, `/privacy`) a następnie **gra bez kont** (T14, D18: zapisy kolonii i mapy wyłącznie w przeglądarce IndexedDB/localStorage, eksport/import pliku zapisu, komunikaty dla gracza, brak cookies; bazy Turso usunięte), T15: backend odchudzony do minimalnego serwera (bez bazy, TSOA, JWT, migracji; zależności prod: `express`, `dotenv-flow`). Testy: 626 front + 79 back.
 
 ---
 
-## Deployment (Faza 8)
+## Deployment (Faza 8, stan po T15)
 
-- Frontend: Vercel (`vercel.json`, zmienna builda `VITE_API_URL`). API: Render (`render.yaml`, `Dockerfile.api`, migracje przy starcie kontenera), baza Turso.
-- Runbook dla człowieka (Windows/PowerShell, bez Turso CLI): [`.docs/faza-8/DEPLOYMENT.md`](.docs/faza-8/DEPLOYMENT.md).
-  Baseline migracji: `.docs/faza-8/MIGRATIONS_BASELINE.md`. Plan, decyzje, follow-upy: `.docs/faza-8/PLAN.md`, `.docs/faza-8/QUEUE.md`.
-- Agent nie wdraża i nie łączy się z produkcyjną bazą. Bez `drizzle-kit push` na produkcji (tylko `generate` → commit → `migrate.js`).
+- Frontend: Vercel (`vercel.json`). Gra działa bez kont i bez API: zapisy i mapy w przeglądarce (D18).
+- API: minimalny serwer (`Dockerfile.api`, `render.yaml`, Render Free) bez bazy i sekretów; obecnie nieużywany
+  przez frontend (usługę można wstrzymać do fazy gry sieciowej). Bazy Turso usunięte.
+- Runbook i historia decyzji: [`.docs/faza-8/DEPLOYMENT.md`](.docs/faza-8/DEPLOYMENT.md), `.docs/faza-8/QUEUE.md`.
+- Prywatność: `/privacy` (brak danych osobowych i cookies), kontakt projektu `mars_terraform@proton.me`.
 
 ---
 
 ## Nowa Roadmapa Projektu (Next-Gen Milestones)
 
-### Faza 8: Infrastruktura Produkcyjna i Hosting — ZREALIZOWANA W KODZIE
-Konfiguracja gotowa (lista w „Status / roadmapa” wyżej i w `ROADMAP.md`). Do zrobienia przez człowieka:
-pierwsze wdrożenie wg `.docs/faza-8/DEPLOYMENT.md` (rotacja sekretów i baseline: zrobione; dalej Render, Vercel, CORS, smoke test)
-oraz follow-upy z `.docs/faza-8/QUEUE.md`.
+### Faza 8: Infrastruktura Produkcyjna i Hosting — ZAKOŃCZONA (gra bez kont, D18)
+Frontend na Vercel bez kont i bez API. Następna duża faza: gra sieciowa bez kont (podpisany stan gry, pokoje z kodem) - plan w `.docs/`.
+Follow-upy: `.docs/faza-8/QUEUE.md`.

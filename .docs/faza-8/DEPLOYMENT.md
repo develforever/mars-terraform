@@ -1,4 +1,9 @@
-# Runbook wdrożenia produkcyjnego — Faza 8 (Render + Vercel + Turso)
+# Runbook wdrożenia produkcyjnego — Faza 8
+
+> **STAN AKTUALNY (T14/T15, D18, 2026-10-01):** gra działa **bez kont i bez API**. Frontend na Vercel, zapisy i mapy
+> w przeglądarce. Bazy Turso usunięte, backend to minimalny serwer bez bazy i sekretów (Render, można wstrzymać).
+> Sekcje 1, 2 i 3a (sekrety, baza Turso, baseline, konta T13) są **historyczne**: nie wykonuj ich.
+> Aktualne: sekcja 4 (Vercel), 3 (Render, tylko jeśli serwer ma działać, bez zmiennych tajnych), 7–8.
 
 > Dla człowieka, **Windows + PowerShell**, bez WSL i bez Turso CLI. Agent niczego nie wdraża.
 > Kontekst i decyzje: `PLAN.md` (§4 architektura, §5 T9), `QUEUE.md` (D1–D13), `MIGRATIONS_BASELINE.md`.
