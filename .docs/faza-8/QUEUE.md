@@ -172,6 +172,7 @@ Format: `YYYY-MM-DD HH:MM UTC · <session/agent> · <ID> · <zdarzenie> · <sha/
 - 2026-10-01T14:50Z · nadzorca · T16 · Gate: lint 0, tsc OK, front 633, back 79, build OK. Weryfikacja w przeglądarce (lokalny serwer `dist/` z nagłówkiem CSP z `vercel.json`): pierwsza wersja CSP blokowała WebAssembly (dekoder geometrii three.js), dodano `'wasm-unsafe-eval'`; potem `/`, `/generate`, `/mars` bez błędów w konsoli, zapis kolonii trafia do IndexedDB. `storage.persist()` w panelu testowym = false (heurystyka przeglądarki, best effort). · 354afb6
 - 2026-10-01T14:52Z · nadzorca · — · Plan Fazy 9 (gra sieciowa bez kont): `.docs/faza-9/PLAN.md` (propozycja; decyzje D1–D7 dla użytkownika; pierwszy kamień milowy: deterministyczny RNG + wydzielenie `GameSimulation.step` ze store). · —
 - 2026-10-01T14:55Z · nadzorca · T15 · CI na PR #14 czerwone: brak `@types/express` (był pośrednio z `tsoa`, lokalnie maskowany przez stare `node_modules`). Dodany jawnie (5.0.6). Lekcja: po zmianie zależności Gate na czystym `npm ci`. · —
+- 2026-10-01T15:02Z · nadzorca · T15, T16 · PR #14 scalony (`49ece9f`), CI 6/6. Produkcja (Vercel) od 15:02Z serwuje wymuszone `Content-Security-Policy` (`script-src 'self' 'wasm-unsafe-eval'`, `connect-src 'self' blob: data:`). Weryfikacja gry w przeglądarce na produkcji niemożliwa z sesji (domena zablokowana w uprawnieniach panelu); zweryfikowane lokalnie z identycznym nagłówkiem. Do sprawdzenia przez użytkownika: konsola na `/`, `/generate`, `/mars`. · 49ece9f
 
 ## Follow-upy (poza zakresem Fazy 8)
 
