@@ -82,6 +82,7 @@ a nadzorca scala ich commity na branch roboczy po kolei i po każdym scaleniu ur
 | D16 | Retencja (T12, decyzja nadzorcy w ramach zgody na T12, do zmiany przez użytkownika): niepotwierdzone konta usuwane po **30 dniach**, wygasłe tokeny od razu, stare soft-delete trwale; przebieg przy starcie API i co 24 h. Usunięcie konta = trwałe (hard delete), zmiana e-maila wyłączona | 2026-09-27 | nadzorca |
 | D17 | Konta bez e-maila/imienia/hasła: numer konta (jak Mullvad) + opcjonalny TOTP; bez OAuth i wysyłki maili; bez cookies (token w `localStorage` = niezbędny). Obecne konta (testowe) usuwane migracją. Kontakt do administratora w notce prywatności nadal wymagany (logika gry na serwerze = identyfikatory i IP) | 2026-09-27 | użytkownik |
 | D18 | **Gra bez kont** (zastępuje D17): brak kont i danych osobowych po stronie aplikacji; zapisy i mapy wyłącznie w przeglądarce, kopie przez plik. Przyszła logika na serwerze: podpisany stan gry (HMAC) i pokoje z kodem w pamięci, bez bazy. Gracz jest informowany w UI. Bazy Turso usunięte przez użytkownika | 2026-09-30 | użytkownik |
+| D19 | Vercel i Render wyłączone. Produkcja = **sam frontend w przeglądarce** (dowolny hosting statyczny), serwer Node tylko lokalnie (dev). Przyszłość: każdy może uruchomić serwer u siebie i wybrać w grze połączenie z serwerem Mars Terraform. Usunięte `vercel.json`, `render.yaml`, `Dockerfile*`, job CI `docker-api`, testy konfiguracji; notka prywatności bez nazwy dostawcy | 2026-10-03 | użytkownik |
 
 ## Dziennik
 

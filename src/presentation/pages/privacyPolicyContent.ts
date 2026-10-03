@@ -39,7 +39,7 @@ const PL: PolicyContent = {
     {
       heading: "3. Hosting",
       paragraphs: [
-        "Strona jest hostowana przez Vercel Inc. (USA). Jak każdy serwer WWW, dostawca hostingu może rejestrować w logach technicznych adres IP i czas żądania. Nie mamy dostępu do tych danych w celu identyfikacji graczy i nie łączymy ich z danymi gry.",
+        "Strona to statyczne pliki gry, a cała rozgrywka działa w Twojej przeglądarce. Jak każdy serwer WWW, serwer udostępniający te pliki może rejestrować w logach technicznych adres IP i czas żądania. Nie mamy dostępu do tych danych w celu identyfikacji graczy i nie łączymy ich z danymi gry.",
       ],
     },
     {
@@ -78,7 +78,7 @@ const EN: PolicyContent = {
     {
       heading: "3. Hosting",
       paragraphs: [
-        "The website is hosted by Vercel Inc. (USA). Like any web server, the hosting provider may record IP addresses and request times in technical logs. We do not use this data to identify players and do not link it to game data.",
+        "The website consists of static game files and all gameplay runs in your browser. Like any web server, the server delivering these files may record IP addresses and request times in technical logs. We do not use this data to identify players and do not link it to game data.",
       ],
     },
     {

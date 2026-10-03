@@ -8,7 +8,7 @@ import type { Express } from "express";
 import { createApp, JSON_BODY_LIMIT_BYTES, type CreateAppOptions } from "./app";
 import { HttpError } from "./errors/HttpError";
 
-const ALLOWED = "https://mars-terraform.vercel.app";
+const ALLOWED = "https://mars.example.org";
 const INDEX_HTML = "<!doctype html><title>spa</title>";
 const VERSION = "9.9.9-test";
 const SECRET_DETAIL = "internal-host:5432 password=hunter2";

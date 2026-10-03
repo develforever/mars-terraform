@@ -1,5 +1,9 @@
 # Runbook wdrożenia produkcyjnego — Faza 8
 
+> **HISTORYCZNE (D19, 2026-10-03):** Vercel i Render wyłączone przez użytkownika, a `vercel.json`, `render.yaml`
+> i `Dockerfile*` usunięte z repo. Produkcja = sam frontend w przeglądarce, serwer Node tylko lokalnie (dev).
+> Ten runbook nie ma zastosowania; zostaje jako zapis decyzji.
+
 > **STAN AKTUALNY (T14/T15, D18, 2026-10-01):** gra działa **bez kont i bez API**. Frontend na Vercel, zapisy i mapy
 > w przeglądarce. Bazy Turso usunięte, backend to minimalny serwer bez bazy i sekretów (Render, można wstrzymać).
 > Sekcje 1, 2 i 3a (sekrety, baza Turso, baseline, konta T13) są **historyczne**: nie wykonuj ich.
