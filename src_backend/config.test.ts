@@ -22,10 +22,10 @@ describe("config.corsOrigins", () => {
 
   it("parses a CSV list, trimming entries and skipping empty ones", async () => {
     const config = await loadConfig(
-      " https://mars-terraform.vercel.app , ,https://mars.example.com:8443,, http://localhost:5173 ",
+      " https://mars.example.org , ,https://mars.example.com:8443,, http://localhost:5173 ",
     );
     expect(config.corsOrigins).toEqual([
-      "https://mars-terraform.vercel.app",
+      "https://mars.example.org",
       "https://mars.example.com:8443",
       "http://localhost:5173",
     ]);
