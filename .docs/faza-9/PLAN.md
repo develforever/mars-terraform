@@ -75,6 +75,26 @@ Zgodnie z D19 autor nie utrzymuje żadnego serwera. Grę sieciową uruchamia **g
 - Koszt dla autora: 0. Autor nie przetwarza IP graczy; danymi połączenia (IP) dysponuje gospodarz.
 - Bezpieczeństwo: przy upgrade WebSocket serwer sprawdza nagłówek `Origin` (tylko własny origin, ochrona przed
   cross-site WebSocket hijacking), limity D7 obowiązują bez zmian.
+- Gra przez internet: **tunel u gospodarza**. Domyślnie Cloudflare quick tunnel
+  (`cloudflared tunnel --url http://localhost:PORT`, bez konta, adres `*.trycloudflare.com`, obsługuje WebSocket);
+  alternatywy: ngrok (wymaga konta, darmowy plan pokazuje stronę ostrzegawczą), Tailscale Funnel, playit.gg.
+  Tunel daje https, więc `wss` działa bez zmian w kodzie i CSP. Gospodarz udostępnia link: adres tunelu + kod pokoju.
+  IP graczy widzi wtedy dostawca tunelu wybrany przez gospodarza (informacja w instrukcji i w `/privacy`).
+
+### D9 (odłożone): katalog serwerów
+
+Opcjonalny, osobny projekt (np. `mars-terraform-directory`): serwery gospodarzy zgłaszają się heartbeatem,
+gra pokazuje listę otwartych pokoi. **Decyzja dopiero po F9-T7** (gdy będzie wiadomo, czy jest popyt i kto go utrzymuje).
+Założenia, jeśli powstanie:
+
+- Bez kont; stan tylko w pamięci, bez logów; wpis wygasa po ok. 60 s bez heartbeatu.
+- Nazwy pokoi generowane (bez wolnego tekstu = bez moderacji).
+- Weryfikacja zgłoszenia: katalog sprawdza `/api/health` (z wersją gry) pod zgłoszonym adresem; limity zgłoszeń (ochrona przed
+  publikowaniem dowolnych URL, np. phishing).
+- Ostrzeżenie przy dołączaniu do obcego serwera: frontend pochodzi od gospodarza i może być zmodyfikowany.
+- Katalog przetwarza IP gospodarzy i przeglądających, więc wymaga administratora i notki prywatności.
+  Jeśli utrzymuje go autor, to świadome odejście od D19.
+- Poza zakresem: własny relay / tunel (koszt ruchu, nadużycia, odpowiedzialność operatora).
 
 ## 6. Zadania (kolejność, każde z testami)
 
@@ -86,7 +106,7 @@ Zgodnie z D19 autor nie utrzymuje żadnego serwera. Grę sieciową uruchamia **g
 | F9-T4 | Serwer: WebSocket (D2) na tym samym serwerze HTTP co frontend (D3), kontrola `Origin`, pokoje w pamięci, pętla ticka, rozsyłanie snapshotów, limity (D7) | T3 | średnie |
 | F9-T5 | Klient: tryb sieciowy (same-origin `/ws`, widoczny tylko na serwerze gry; utwórz/dołącz kod, lobby, render ze snapshotów, wysyłka komend, reconnect) | T4 | średnie |
 | F9-T6 | Prywatność i bezpieczeństwo: notka `/privacy` (gra sieciowa = serwer gospodarza, autor nie przetwarza IP), nagłówki i CSP `connect-src 'self'` z serwera gry, logi bez danych, testy obciążeniowe pokoju | T4 | niskie |
-| F9-T7 | Instrukcja dla gospodarza (skrypt startowy, port, LAN / przekierowanie / tunel) + smoke test 2 przeglądarek w LAN | T5, T6 | niskie |
+| F9-T7 | Instrukcja dla gospodarza (skrypt startowy, port, LAN / przekierowanie, tunel: Cloudflare quick tunnel domyślnie, ngrok jako alternatywa, link adres + kod pokoju) + smoke test 2 przeglądarek w LAN i przez tunel | T5, T6 | niskie |
 
 Proponowany pierwszy kamień milowy: **T1 + T2** (bez żadnych zmian widocznych dla gracza; czysty zysk
 architektoniczny i testowalność), potem decyzja, czy iść dalej z siecią.
@@ -96,7 +116,7 @@ architektoniczny i testowalność), potem decyzja, czy iść dalej z siecią.
 - **Refaktor store (T2)**: logika ticka jest spleciona z UI-stanem Zustand; ryzyko regresji w trybie solo.
   Ograniczenie: testy „złote” (zapis stanu po N tickach przed i po refaktorze, ten sam seed).
 - **Dostępność przez internet (D3)**: gospodarz za NAT musi otworzyć port albo użyć tunelu; to bariera dla
-  mniej technicznych graczy. Ograniczenie: czytelna instrukcja (F9-T7); oficjalny serwer autora = osobna decyzja w przyszłości.
+  mniej technicznych graczy. Ograniczenie: tunel bez konta i czytelna instrukcja (F9-T7); katalog serwerów = D9 (odłożone).
 - **Wydajność**: symulacja wielu pokoi w jednym procesie Node; limity D7 i pomiar przed startem.
 - **Prawo**: przetwarzanie IP w trakcie gry = formalnie dane osobowe; minimalizacja (bez logów, bez zapisu),
   aktualizacja notki, ewentualnie ponowne rozważenie danych usługodawcy (ustawa o świadczeniu usług drogą elektroniczną, art. 5).

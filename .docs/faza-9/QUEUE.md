@@ -15,6 +15,7 @@
 | D6 | Pseudonimy per pokój, bez zapisu, bez czatu | 2026-10-01 | użytkownik |
 | D7 | Limity: max 4 graczy/pokój, limit pokoi/proces, TTL 30 min bezczynności, limit komend/s | 2026-10-01 | użytkownik |
 | D8 | Kooperacja: wszyscy gracze mają RÓWNE prawa do wszystkich komend (bez ról) | 2026-10-01 | użytkownik |
+| D9 | Katalog serwerów (osobny projekt, bez kont, w pamięci, weryfikacja `/api/health`, nazwy generowane): **odłożone** do decyzji po F9-T7. Gra przez internet na start = tunel u gospodarza (Cloudflare quick tunnel domyślnie, ngrok alternatywnie). Własny relay poza zakresem. Szczegóły: PLAN.md §5 | 2026-10-31 | użytkownik |
 
 ## Zadania
 
@@ -26,7 +27,7 @@
 | F9-T4 | Serwer: WebSocket (`ws`) na serwerze HTTP frontendu, kontrola `Origin`, pokoje w pamięci, pętla ticka, snapshoty, limity | T3 | TODO |
 | F9-T5 | Klient: tryb sieciowy (same-origin `/ws`, tylko na serwerze gry; utwórz/dołącz kod, lobby, snapshoty, komendy, reconnect) | T4 | TODO |
 | F9-T6 | Prywatność i bezpieczeństwo: `/privacy` (serwer gospodarza), nagłówki i CSP `connect-src 'self'` z serwera gry, logi bez danych, test obciążenia | T4 | TODO |
-| F9-T7 | Instrukcja dla gospodarza (start, port, LAN / przekierowanie / tunel) + smoke test 2 przeglądarek w LAN | T5, T6 | TODO |
+| F9-T7 | Instrukcja dla gospodarza (start, port, LAN / przekierowanie, tunel: Cloudflare quick tunnel / ngrok, link adres + kod) + smoke test 2 przeglądarek w LAN i przez tunel | T5, T6 | TODO |
 
 ## Dziennik
 
@@ -37,3 +38,4 @@
 - 2026-10-01T15:20Z · człowiek · F9-T1, F9-T2 · PR #15 scalony (`9616bc4`), CI 6/6. Czeka: decyzja o prawach graczy w kooperacji (rekomendacja: równe prawa) przed F9-T3. · 9616bc4
 - 2026-10-01T15:26Z · nadzorca · F9-T3 · D8 = równe prawa. 8 komend + schemat zod (limity współrzędnych, długości id, liczby jednostek). Akcje store delegują do `applyCommand`; dotychczasowe testy bez zmian. Gate: lint 0, tsc OK, front 662, back 79, build OK. Następne: F9-T4 (serwer WebSocket) - wymaga instalacji `ws` (zgoda D2) i `zod` jako zależności produkcyjnej serwera. · ab5b575
 - 2026-10-31 · nadzorca · D3 · Stare D3 (Render Free) sprzeczne z D19 (Render usunięty, produkcja = statyczny frontend). Użytkownik wybrał self-host u gospodarza: frontend + WebSocket z jednego procesu Node, same-origin, CSP `connect-src 'self'` ustawiane przez serwer gry. Zaktualizowane opisy F9-T4..T7. Branch zsynchronizowany z `main` (D19). Następne: F9-T4. · —
+- 2026-10-31 · nadzorca · D9, F9-T7 · Gra przez internet = tunel u gospodarza (Cloudflare quick tunnel bez konta domyślnie, ngrok alternatywnie), dopisane do D3 i F9-T7. Katalog serwerów jako osobny projekt zapisany jako D9, odłożony do decyzji po F9-T7. · —
