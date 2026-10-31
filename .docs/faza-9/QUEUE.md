@@ -9,7 +9,7 @@
 |----|-----------|------|-----|
 | D1 | Kooperacja 2 graczy (wspólna kolonia) w pierwszej wersji | 2026-10-01 | użytkownik (zgoda na rekomendacje) |
 | D2 | Transport: biblioteka `ws` (zgoda na paczkę npm przy F9-T4) | 2026-10-01 | użytkownik |
-| D3 | Hosting: Render Free na prototyp; płatny plan przed publicznym startem | 2026-10-01 | użytkownik |
+| D3 | **Self-host u gospodarza** (zastępuje Render Free z 2026-10-01, sprzeczne z D19): jeden proces Node serwuje frontend i WebSocket pod jednym originem; reszta graczy wchodzi na adres gospodarza (LAN / przekierowanie portu / tunel); statyczny frontend z hostingu = tylko solo; autor nie utrzymuje serwera i nie przetwarza IP. Szczegóły: PLAN.md §5 | 2026-10-31 | użytkownik |
 | D4 | Synchronizacja: snapshot stanu co tick (bez lockstepu) na start | 2026-10-01 | użytkownik |
 | D5 | Brak trwałego zapisu gry sieciowej na serwerze; gospodarz może pobrać plik zapisu | 2026-10-01 | użytkownik |
 | D6 | Pseudonimy per pokój, bez zapisu, bez czatu | 2026-10-01 | użytkownik |
@@ -23,10 +23,10 @@
 | F9-T1 | Deterministyczny RNG (`src/domain/random/Rng.ts`, mulberry32) wstrzyknięty do `WeatherService`, `AlienService` (domyślnie `Math.random`, solo bez zmian); id encji z `rng` | — | DONE(9cba849) |
 | F9-T2 | Wydzielenie `stepSimulation` (`src/domain/simulation/GameSimulation.ts`) z `applyEconomyTick`; store woła rdzeń; test złoty z ziarnem | T1 | DONE(2eade90) |
 | F9-T3 | Model komend gracza + walidacja (zod): `src/domain/simulation/PlayerCommands.ts`, store deleguje | T2 | DONE(ab5b575) |
-| F9-T4 | Serwer: WebSocket (`ws`), pokoje w pamięci, pętla ticka, snapshoty, limity | T3 | TODO |
-| F9-T5 | Klient: tryb sieciowy (utwórz/dołącz kod, lobby, snapshoty, komendy, reconnect) | T4 | TODO |
-| F9-T6 | Prywatność i bezpieczeństwo: `/privacy`, CSP `connect-src wss://...`, logi bez danych, test obciążenia | T4 | TODO |
-| F9-T7 | Wdrożenie serwera + smoke test 2 przeglądarek | T5, T6 | TODO |
+| F9-T4 | Serwer: WebSocket (`ws`) na serwerze HTTP frontendu, kontrola `Origin`, pokoje w pamięci, pętla ticka, snapshoty, limity | T3 | TODO |
+| F9-T5 | Klient: tryb sieciowy (same-origin `/ws`, tylko na serwerze gry; utwórz/dołącz kod, lobby, snapshoty, komendy, reconnect) | T4 | TODO |
+| F9-T6 | Prywatność i bezpieczeństwo: `/privacy` (serwer gospodarza), nagłówki i CSP `connect-src 'self'` z serwera gry, logi bez danych, test obciążenia | T4 | TODO |
+| F9-T7 | Instrukcja dla gospodarza (start, port, LAN / przekierowanie / tunel) + smoke test 2 przeglądarek w LAN | T5, T6 | TODO |
 
 ## Dziennik
 
@@ -36,3 +36,4 @@
 - 2026-10-01T15:17Z · nadzorca · F9-T2 · Test złoty (300 ticków, exploration i survival z falą obcych, losowość z ziarnem, zamrożony czas) zacommitowany PRZED refaktorem (668fc10); po wydzieleniu `stepSimulation` snapshot identyczny. Store −164 linie. Gate: lint 0, tsc OK, front 648, back 79, build OK. Następne: F9-T3 (model komend) - wymaga decyzji o zakresie komend w kooperacji. · 2eade90
 - 2026-10-01T15:20Z · człowiek · F9-T1, F9-T2 · PR #15 scalony (`9616bc4`), CI 6/6. Czeka: decyzja o prawach graczy w kooperacji (rekomendacja: równe prawa) przed F9-T3. · 9616bc4
 - 2026-10-01T15:26Z · nadzorca · F9-T3 · D8 = równe prawa. 8 komend + schemat zod (limity współrzędnych, długości id, liczby jednostek). Akcje store delegują do `applyCommand`; dotychczasowe testy bez zmian. Gate: lint 0, tsc OK, front 662, back 79, build OK. Następne: F9-T4 (serwer WebSocket) - wymaga instalacji `ws` (zgoda D2) i `zod` jako zależności produkcyjnej serwera. · ab5b575
+- 2026-10-31 · nadzorca · D3 · Stare D3 (Render Free) sprzeczne z D19 (Render usunięty, produkcja = statyczny frontend). Użytkownik wybrał self-host u gospodarza: frontend + WebSocket z jednego procesu Node, same-origin, CSP `connect-src 'self'` ustawiane przez serwer gry. Zaktualizowane opisy F9-T4..T7. Branch zsynchronizowany z `main` (D19). Następne: F9-T4. · —
