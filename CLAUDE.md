@@ -11,7 +11,8 @@
 
 Stack:
 - Frontend: React 19, TypeScript, Vite, react-three-fiber (r3f), @react-three/drei, Zustand, TailwindCSS 4
-- Backend: Node.js, TypeScript, Express (minimalny serwer bez bazy i kont: `/api/health`, CORS, obsługa błędów; T15)
+- Backend: Node.js, TypeScript, Express (minimalny serwer bez bazy i kont: `/api/health`, CORS, obsługa błędów; T15).
+  Tylko lokalnie (dev, `npm run dev`); produkcja to sam frontend w przeglądarce (D19).
 - Testy: Vitest (`npm run build`, testy w `*.test.ts`)
 - Zależności istotne dla generatora: `three`, `@react-three/fiber`, `@react-three/drei`,
   `@react-three/postprocessing`, `postprocessing`, `simplex-noise`, `zustand`, `zod`
@@ -192,16 +193,18 @@ Zrobione:
 - Mieszkańcy Kolonii, Zawody i Morale (`ColonistService.ts`, `ColonistManagerModal.tsx`, dynamiczne zużycie O₂/wody/żywności, przylot promów, wpływ morale na produkcję).
 - Zaawansowane Struktury Przemysłowe i Megastruktury (`buildings.ts`, `technologies.ts`, `TerraformingService.ts`, megastruktury `biosphere_dome`, `atmosphere_factory`, `fusion_reactor`).
 - System Grywalności, Niezawodności i RTS Overhaul (`ResearchService.ts` z pasywnym RP, stabilny raycasting `BuildingInspectionPopover.tsx`, pauza taktyczna i kontrola prędkości `TimeControls.tsx`, bufor awaryjny $O_2$ `EmergencyLifeSupportAlert.tsx`, aktywne rozkazy RTS i ramka selekcji `RTSCommandService.ts`, `TacticalMinimap.tsx` z radarem zagrożeń `OffscreenThreatRadar.tsx`).
-- Faza 8, Infrastruktura produkcyjna (konfiguracja w kodzie; wdrożenie = człowiek wg runbooka): `vercel.json` (SPA rewrite, cache, nagłówki, CSP Report-Only), resolver `VITE_API_URL`, CORS z allowlistą `cors_origins`, tryb API-only (`serve_frontend=false`), `/api/health` z kontrolą DB, `HttpError`/4xx, anty-enumeracja kont, `Dockerfile.api` + `render.yaml` (Render Free, Frankfurt, Turso; D15 zamiast Fly.io), migracje produkcyjne (`dist_backend/migrate.js` przy starcie kontenera) + baseline bazy z `push`, CI GitHub Actions z testem obrazu API, odchudzone zależności prod, naprawa zapisu kolonii (limit 2 MB), lekka lista kolonii bez `state`; po wdrożeniu: kontrola dostępu `/api/users`, `/api/groups` (T11), RODO (T12: usunięcie konta, eksport danych, retencja, `/privacy`) a następnie **gra bez kont** (T14, D18: zapisy kolonii i mapy wyłącznie w przeglądarce IndexedDB/localStorage, eksport/import pliku zapisu, komunikaty dla gracza, brak cookies; bazy Turso usunięte), T15: backend odchudzony do minimalnego serwera (bez bazy, TSOA, JWT, migracji; zależności prod: `express`, `dotenv-flow`), T16: `storage.persist()`, przypomnienie o kopii zapasowej, CSP wymuszane (`connect-src 'self'`, `'wasm-unsafe-eval'` dla dekodera three.js). Testy: 633 front + 79 back.
+- Faza 8, Infrastruktura produkcyjna (konfiguracja w kodzie; wdrożenie = człowiek wg runbooka): `vercel.json` (SPA rewrite, cache, nagłówki, CSP Report-Only), resolver `VITE_API_URL`, CORS z allowlistą `cors_origins`, tryb API-only (`serve_frontend=false`), `/api/health` z kontrolą DB, `HttpError`/4xx, anty-enumeracja kont, `Dockerfile.api` + `render.yaml` (Render Free, Frankfurt, Turso; D15 zamiast Fly.io), migracje produkcyjne (`dist_backend/migrate.js` przy starcie kontenera) + baseline bazy z `push`, CI GitHub Actions z testem obrazu API, odchudzone zależności prod, naprawa zapisu kolonii (limit 2 MB), lekka lista kolonii bez `state`; po wdrożeniu: kontrola dostępu `/api/users`, `/api/groups` (T11), RODO (T12: usunięcie konta, eksport danych, retencja, `/privacy`) a następnie **gra bez kont** (T14, D18: zapisy kolonii i mapy wyłącznie w przeglądarce IndexedDB/localStorage, eksport/import pliku zapisu, komunikaty dla gracza, brak cookies; bazy Turso usunięte), T15: backend odchudzony do minimalnego serwera (bez bazy, TSOA, JWT, migracji; zależności prod: `express`, `dotenv-flow`), T16: `storage.persist()`, przypomnienie o kopii zapasowej, CSP wymuszane (`connect-src 'self'`, `'wasm-unsafe-eval'` dla dekodera three.js). D19: usunięte Vercel, Render i Docker (produkcja = sam frontend w przeglądarce).
 
 ---
 
-## Deployment (Faza 8, stan po T15)
+## Uruchamianie i hosting (D19)
 
-- Frontend: Vercel (`vercel.json`). Gra działa bez kont i bez API: zapisy i mapy w przeglądarce (D18).
-- API: minimalny serwer (`Dockerfile.api`, `render.yaml`, Render Free) bez bazy i sekretów; obecnie nieużywany
-  przez frontend (usługę można wstrzymać do fazy gry sieciowej). Bazy Turso usunięte.
-- Runbook i historia decyzji: [`.docs/faza-8/DEPLOYMENT.md`](.docs/faza-8/DEPLOYMENT.md), `.docs/faza-8/QUEUE.md`.
+- **Produkcja:** wyłącznie statyczny frontend (`vite build` → `dist/`) działający w przeglądarce. Bez API, kont i cookies;
+  zapisy i mapy w IndexedDB/localStorage (D18). Platforma hostingu nie jest związana z repo (Vercel/Render/Docker usunięte).
+- **Dev lokalnie:** `npm run dev` = Vite + serwer Node/Express (`src_backend`, `/api/health`, CORS, `serve_frontend`).
+- **Przyszłość (gra sieciowa):** każdy może uruchomić serwer Node u siebie, a w grze wybrać grę lokalną albo połączenie
+  z serwerem Mars Terraform (adres serwera konfigurowalny; dziś `VITE_API_URL` + allowlista `cors_origins`).
+- Historia Fazy 8: `.docs/faza-8/` (runbook Vercel/Render jest historyczny).
 - Prywatność: `/privacy` (brak danych osobowych i cookies), kontakt projektu `mars_terraform@proton.me`.
 
 ---
@@ -209,5 +212,5 @@ Zrobione:
 ## Nowa Roadmapa Projektu (Next-Gen Milestones)
 
 ### Faza 8: Infrastruktura Produkcyjna i Hosting — ZAKOŃCZONA (gra bez kont, D18)
-Frontend na Vercel bez kont i bez API. Następna duża faza: gra sieciowa bez kont (podpisany stan gry, pokoje z kodem) - plan w `.docs/`.
+Produkcja = sam frontend w przeglądarce, bez kont i API (D19). Następna duża faza: gra sieciowa bez kont (podpisany stan gry, pokoje z kodem) - plan w `.docs/`.
 Follow-upy: `.docs/faza-8/QUEUE.md`.

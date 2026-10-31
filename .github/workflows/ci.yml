@@ -1,7 +1,5 @@
 # CI — Faza 8, T8 (decyzja D5 = tak).
 # verify:     lint + typy (front i backend) + testy (front i backend) + build.
-# docker-api: build obrazu `Dockerfile.api` (bez push) + smoke test kontenera (T15: bez bazy).
-#             D9: to JEDYNA weryfikacja obrazu API (sesje agentów nie mogą go zbudować).
 # Bez sekretów repo: wszystkie wartości env są jawnymi, testowymi atrapami.
 name: CI
 
@@ -32,9 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node 24 (Active LTS), a NIE `.nvmrc` (v25, wydanie nie-LTS używane lokalnie):
-      # produkcja (`Dockerfile.api`, monolityczny `Dockerfile`) działa na node:24,
-      # więc CI testuje tę wersję.
+      # Node 24 (Active LTS), a NIE `.nvmrc` (v25, wydanie nie-LTS używane lokalnie).
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -60,92 +56,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-
-  docker-api:
-    name: API image build and smoke test
-    needs: verify
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Build Dockerfile.api
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.api
-          push: false
-          load: true
-          tags: mars-api:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # T15: serwer bez bazy i bez sekretów.
-      - name: Smoke - start container
-        run: |
-          docker run -d -p 8080:8080 \
-            --name api mars-api:ci
-
-      - name: Smoke - wait for /api/health (max 30 s)
-        run: |
-          for i in $(seq 1 30); do
-            if curl -fsS --max-time 2 http://localhost:8080/api/health 2>/dev/null; then
-              echo
-              echo "healthy after ~${i} s"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "::error::/api/health did not respond within 30 s"
-          exit 1
-
-
-      - name: Smoke - /generate is a 404 JSON (API-only image)
-        run: |
-          code=$(curl -sS -o /tmp/generate.body -w '%{http_code} %{content_type}' http://localhost:8080/generate)
-          echo "GET /generate -> ${code}"
-          cat /tmp/generate.body; echo
-          if [[ "${code}" != "404 application/json"* ]]; then
-            echo "::error::expected 404 application/json for /generate, got '${code}'"
-            exit 1
-          fi
-
-      - name: Smoke - no .env, src/ or public/ in image
-        run: docker exec api sh -c 'test ! -e /app/.env && test ! -d /app/src && test ! -d /app/public'
-
-      - name: Smoke - runs as non-root (USER node)
-        run: |
-          uid=$(docker exec api id -u)
-          echo "uid=${uid}"
-          if [ "${uid}" = "0" ]; then
-            echo "::error::container runs as root"
-            exit 1
-          fi
-
-      - name: Smoke - graceful stop (tini forwards SIGTERM)
-        run: |
-          start=$(date +%s%N)
-          docker stop -t 10 api
-          end=$(date +%s%N)
-          ms=$(( (end - start) / 1000000 ))
-          echo "docker stop took ${ms} ms"
-          if [ "${ms}" -gt 5000 ]; then
-            echo "::error::docker stop took ${ms} ms (> 5 s): SIGTERM likely not forwarded to node"
-            exit 1
-          fi
-
-      - name: Image size summary
-        run: |
-          size=$(docker image inspect mars-api:ci --format '{{.Size}}')
-          {
-            echo "### mars-api:ci"
-            echo ""
-            echo "Image size: $(( size / 1024 / 1024 )) MiB (${size} bytes)"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Container logs
-        if: failure()
-        run: docker logs api || true

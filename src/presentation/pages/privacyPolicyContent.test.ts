@@ -31,7 +31,8 @@ describe("privacyPolicyContent (T14: gra bez kont)", () => {
 
   it("wskazuje hosting i kontakt e-mail projektu, bez danych osobowych autora ani pól do uzupełnienia", () => {
     expect(CONTACT_EMAIL).toBe("mars_terraform@proton.me");
-    expect(text(pl)).toContain("Vercel");
+    expect(text(pl)).toContain("statyczne pliki gry");
+    expect(text(pl)).not.toContain("Vercel");
     expect(text(pl)).toContain(CONTACT_EMAIL);
     expect(text(en)).toContain(CONTACT_EMAIL);
     expect(JSON.stringify(pl)).not.toContain("UZUPEŁNIJ");

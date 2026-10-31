@@ -58,7 +58,8 @@ Ten dokument stanowi centralny rejestr zrealizowanych kamieni milowych oraz plan
 - [x] **Krok 4: System Sterowania RTS (`feat/rts-unit-control-and-combat`)**: Selekcja ramką (Drag Box), rozkazy PPM (Ruch, Atak, Naprawa), grupy bojowe `Ctrl + 1..9`, paski HP i panel dowodzenia jednostkami (`UnitCommandCard.tsx`).
 - [x] **Krok 5: Taktyczna Mini-mapa i Radar Zagrożeń (`feat/tactical-minimap-and-radar`)**: Interaktywna mini-mapa 2D Canvas z podglądem bazy, wrogów i stożka kamery, radar zagrożeń poza ekranem (Offscreen Radar ze skokiem kamery).
 
-### Faza 8: Infrastruktura Produkcyjna i Hosting (Vercel; gra bez kont, D18)
+### Faza 8: Infrastruktura Produkcyjna i Hosting (gra bez kont, D18)
+> **D19 (2026-10-03):** Vercel, Render i Docker usunięte. Produkcja = sam frontend w przeglądarce; serwer Node tylko lokalnie (dev), w przyszłości opcjonalny serwer gry (własny albo Mars Terraform). Pozycje poniżej to historia.
 Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.docs/faza-8/DEPLOYMENT.md`](.docs/faza-8/DEPLOYMENT.md). Plan i decyzje: `.docs/faza-8/PLAN.md`, `.docs/faza-8/QUEUE.md`.
 - [x] **Frontend na Vercel (`vercel.json`)**: build tylko frontendu (`tsc -b && vite build`), SPA rewrite, cache `immutable` dla `/assets/*`, `max-age` + `stale-while-revalidate` dla `/models`, `/textures`, `/icons`, nagłówki bezpieczeństwa i CSP Report-Only; test konfiguracji.
 - [x] **Resolver `VITE_API_URL`** (`apiConfig.ts`): wszystkie wywołania `/api` przez jeden bazowy URL.
@@ -83,6 +84,7 @@ Konfiguracja gotowa w kodzie; wdrożenie wykonuje człowiek według runbooka [`.
 - [x] Rotacja sekretów i baseline migracji produkcyjnej bazy (naprawa stanu C + wariant A, 2026-09-26).
 - [x] Wdrożenie frontendu (Vercel) i API (Render), smoke test (2026-09-27).
 - [x] T11–T13: kontrola dostępu, RODO, konta bez danych osobowych; **T14: gra bez kont** (zapisy w przeglądarce, informacja dla gracza); **T15: backend bez bazy** (minimalny serwer).
+- [x] **D19**: usunięte `vercel.json`, `render.yaml`, `Dockerfile*`, job CI `docker-api` i testy konfiguracji; produkcja = sam frontend w przeglądarce.
 - [ ] Follow-upy po wdrożeniu (CSP `connect-src` / `report-to`, HSTS przed domeną własną i inne): `.docs/faza-8/QUEUE.md` → „Follow-upy”.
 
 ---
