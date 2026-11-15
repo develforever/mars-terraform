@@ -17,7 +17,9 @@ export default defineConfig({
   server: {
     port: 5174,
     proxy: {
-      '/api': 'http://localhost:3000'
+      '/api': 'http://localhost:3000',
+      // F9-T5: WebSocket serwera gry; Host strony zostaje (bez changeOrigin), więc kontrola Origin przechodzi.
+      '/ws': { target: 'ws://localhost:3000', ws: true },
     },
     allowedHosts: ['10ac-195-136-136-86.ngrok-free.app', '39bc-195-136-136-89.ngrok-free.app'],
   },

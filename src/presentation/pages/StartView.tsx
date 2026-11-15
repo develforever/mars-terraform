@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { StartScene3D } from "../components/game/MarsStartScene";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -7,6 +7,7 @@ import { useModalStore } from "../../ui/ModalManager/store";
 import { useGameStore } from "../../application/store/useGameStore";
 import { LocalDataNotice } from "../components/ui/LocalDataNotice";
 import { useUIStore } from "../../application/store/useUIStore";
+import { useNetworkStore } from "../../application/store/useNetworkStore";
 import { LocalSaveService } from "../../application/service/localSaveService";
 import type { DifficultyLevel } from "../../domain/services/TerraformingService";
 import { DIFFICULTY_TARGETS } from "../../domain/services/TerraformingService";
@@ -26,6 +27,16 @@ export default function StartView() {
     const isLaunching = useUIStore((s) => s.isLaunching);
     const [selected, setSelected] = useState<DifficultyLevel>("normal");
     const [selectedMode, setSelectedMode] = useState<GameMode>("exploration");
+    const serverAvailable = useNetworkStore((s) => s.serverAvailable);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const joinCode = searchParams.get("join");
+
+    // F9-T5: link zaproszenia `/?join=MARS-XXXX` otwiera okno dołączenia z kodem.
+    useEffect(() => {
+        if (!joinCode) return;
+        open("network-game", { code: joinCode });
+        setSearchParams({}, { replace: true });
+    }, [joinCode, open, setSearchParams]);
 
     const localSave = LocalSaveService.loadLocal();
     const hasLocalSave = !!(localSave && localSave.colonyName);
@@ -112,6 +123,11 @@ export default function StartView() {
                     <button className="start-btn-secondary" onClick={handleLoad} disabled={isLaunching}>
                         {t("start.load")}
                     </button>
+                    {serverAvailable && (
+                        <button className="start-btn-secondary" onClick={() => open("network-game")} disabled={isLaunching}>
+                            {t("network.menuButton")}
+                        </button>
+                    )}
                 </div>
             </div>
 

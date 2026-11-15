@@ -5,6 +5,7 @@ import { useGameStore } from "../../../application/store/useGameStore";
 import { useUIStore } from "../../../application/store/useUIStore";
 import { useMapConfigStore } from "../../../application/store/useMapConfigStore";
 import { useModalStore } from "../../../ui/ModalManager/store";
+import { useNetworkStore } from "../../../application/store/useNetworkStore";
 import { BUILDING_DEFINITIONS } from "../../../domain/config/buildings";
 import type { ResourceKey } from "../../../domain/entities/Resources";
 import { HintService } from "../../../domain/services/HintService";
@@ -27,6 +28,7 @@ import { RTSSelectionBox } from "./RTSSelectionBox";
 import { UnitCommandCard } from "./UnitCommandCard";
 import { TacticalMinimap } from "./TacticalMinimap";
 import { OffscreenThreatRadar } from "./OffscreenThreatRadar";
+import { NetworkRoomPanel } from "./NetworkRoomPanel";
 import "./HUD.css";
 
 export const HUD = () => {
@@ -73,6 +75,9 @@ export const HUD = () => {
     const dismissDefeatModal    = useGameStore((state) => state.dismissDefeatModal);
     const togglePause           = useGameStore((state) => state.togglePause);
     const openModal             = useModalStore((state) => state.open);
+    const inNetworkGame         = useGameStore((state) => state.remoteCommandSink !== null);
+    const gameServerAvailable   = useNetworkStore((state) => state.serverAvailable);
+    const networkPhase          = useNetworkStore((state) => state.phase);
 
     const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "ok" | "err">("idle");
     const [showBackupHint, setShowBackupHint] = useState(false);
@@ -184,6 +189,7 @@ export const HUD = () => {
             <UnitCommandCard />
             <TacticalMinimap />
             <OffscreenThreatRadar />
+            <NetworkRoomPanel />
             {import.meta.env.DEV && <DebugOverlay />}
             <EmergencyLifeSupportAlert />
             {gameMode === "survival" && alienState.wave > 0 && (alienState.ships.length > 0 || alienState.groundUnits.length > 0) && (
@@ -343,11 +349,16 @@ export const HUD = () => {
                             <button
                                 type="button"
                                 onClick={handleLoad}
-                                disabled={!colonyName}
+                                disabled={!colonyName || inNetworkGame}
                                 title={t("hud.load")}
                             >
                                 {t("hud.load")}
                             </button>
+                            {gameServerAvailable && networkPhase === "idle" && (
+                                <button type="button" onClick={() => openModal("network-game")}>
+                                    {t("network.inviteButton")}
+                                </button>
+                            )}
                         </>
                 </div>
 

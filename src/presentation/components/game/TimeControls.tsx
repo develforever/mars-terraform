@@ -8,6 +8,8 @@ export const TimeControls = () => {
     const togglePause = useGameStore((state) => state.togglePause);
     const setGameSpeed = useGameStore((state) => state.setGameSpeed);
     const setIsPaused = useGameStore((state) => state.setIsPaused);
+    // F9-T5: w grze sieciowej czas liczy serwer (stały 1 tick/s), więc pauza i prędkość nie działają.
+    const inNetworkGame = useGameStore((state) => state.remoteCommandSink !== null);
 
     const handleSpeedChange = (speed: 1 | 2 | 4) => {
         setGameSpeed(speed);
@@ -15,6 +17,8 @@ export const TimeControls = () => {
             setIsPaused(false);
         }
     };
+
+    if (inNetworkGame) return null;
 
     return (
         <div className="time-controls" data-testid="time-controls">
