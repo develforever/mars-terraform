@@ -6,6 +6,7 @@ import { LocalSaveService } from "../service/localSaveService";
 const BASE_TICK_INTERVAL = 1000; // 1 second at 1x speed
 const AUTOSAVE_INTERVAL_MS = 30000; // 30 seconds
 
+/** Lokalny tick i autozapis gry solo. W grze sieciowej (F9-T5) tick liczy serwer, a autozapis jest wyłączony. */
 export function useEconomy() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -20,7 +21,7 @@ export function useEconomy() {
 
     const state = useGameStore.getState();
     if (document.visibilityState === "hidden") {
-      if (state.alive && !state.won && state.colonyName && !state.isDevFixture) {
+      if (state.alive && !state.won && state.colonyName && !state.isDevFixture && !state.remoteCommandSink) {
         LocalSaveService.saveLocal(state);
       }
       if (!state.isPaused) {
@@ -92,7 +93,7 @@ export function useEconomy() {
   useEffect(() => {
     autosaveTimerRef.current = setInterval(() => {
       const state = useGameStore.getState();
-      if (state.alive && !state.won && state.colonyName && !state.isDevFixture) {
+      if (state.alive && !state.won && state.colonyName && !state.isDevFixture && !state.remoteCommandSink) {
         LocalSaveService.saveLocal(state);
       }
     }, AUTOSAVE_INTERVAL_MS);
@@ -108,7 +109,7 @@ export function useEconomy() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       const state = useGameStore.getState();
-      if (state.alive && !state.won && state.colonyName && !state.isDevFixture) {
+      if (state.alive && !state.won && state.colonyName && !state.isDevFixture && !state.remoteCommandSink) {
         LocalSaveService.saveLocal(state);
       }
     };

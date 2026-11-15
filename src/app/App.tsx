@@ -6,6 +6,7 @@ import { useModalStore } from "../ui/ModalManager/store";
 import { useGameStore } from "../application/store/useGameStore";
 import { useUIStore } from "../application/store/useUIStore";
 import { useEconomy } from "../application/hooks/useEconomy";
+import { useNetworkStore } from "../application/store/useNetworkStore";
 
 const StartView = lazy(() => import("../presentation/pages/StartView"));
 const MarsView = lazy(() => import("../presentation/pages/MarsView"));
@@ -154,7 +155,12 @@ export default function App() {
     const { start, stop } = useEconomy();
     const location = useLocation();
     const isGenerator = location.pathname === '/generate';
+    const checkGameServer = useNetworkStore(state => state.checkServer);
 
+    // F9-T5: gra sieciowa tylko wtedy, gdy stronę serwuje serwer gry (D3).
+    useEffect(() => {
+        void checkGameServer();
+    }, [checkGameServer]);
 
     useEffect(() => {
         if (alive) {
