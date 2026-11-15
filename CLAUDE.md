@@ -11,8 +11,8 @@
 
 Stack:
 - Frontend: React 19, TypeScript, Vite, react-three-fiber (r3f), @react-three/drei, Zustand, TailwindCSS 4
-- Backend: Node.js, TypeScript, Express (minimalny serwer bez bazy i kont: `/api/health`, CORS, obsługa błędów; T15).
-  Tylko lokalnie (dev, `npm run dev`); produkcja to sam frontend w przeglądarce (D19).
+- Backend: Node.js, TypeScript, Express (minimalny serwer bez bazy i kont: `/api/health`, CORS, obsługa błędów; T15)
+  + serwer gry WebSocket (`ws`, F9-T4). Lokalnie / u gospodarza gry sieciowej; produkcja to sam frontend w przeglądarce (D19).
 - Testy: Vitest (`npm run build`, testy w `*.test.ts`)
 - Zależności istotne dla generatora: `three`, `@react-three/fiber`, `@react-three/drei`,
   `@react-three/postprocessing`, `postprocessing`, `simplex-noise`, `zustand`, `zod`
@@ -202,8 +202,10 @@ Zrobione:
 - **Produkcja:** wyłącznie statyczny frontend (`vite build` → `dist/`) działający w przeglądarce. Bez API, kont i cookies;
   zapisy i mapy w IndexedDB/localStorage (D18). Platforma hostingu nie jest związana z repo (Vercel/Render/Docker usunięte).
 - **Dev lokalnie:** `npm run dev` = Vite + serwer Node/Express (`src_backend`, `/api/health`, CORS, `serve_frontend`).
-- **Przyszłość (gra sieciowa):** każdy może uruchomić serwer Node u siebie, a w grze wybrać grę lokalną albo połączenie
-  z serwerem Mars Terraform (adres serwera konfigurowalny; dziś `VITE_API_URL` + allowlista `cors_origins`).
+- **Gra sieciowa (Faza 9, D3):** serwer gry uruchamia gospodarz u siebie. Ten sam proces Node serwuje frontend
+  i WebSocket `/ws` (same-origin, `src_backend/game/`: `gameServer.ts` z kontrolą `Origin`, `RoomManager.ts` z pokojami
+  w pamięci i limitami D7). Protokół i stan pokoju wspólne z klientem: `src/domain/network/`. Gra przez internet = tunel
+  u gospodarza (Cloudflare quick tunnel / ngrok). Plan i postęp: `.docs/faza-9/`.
 - Historia Fazy 8: `.docs/faza-8/` (runbook Vercel/Render jest historyczny).
 - Prywatność: `/privacy` (brak danych osobowych i cookies), kontakt projektu `mars_terraform@proton.me`.
 

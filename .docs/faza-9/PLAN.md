@@ -17,7 +17,8 @@ Poza zakresem: rankingi globalne, profile graczy, czat tekstowy (moderacja = dan
 - Brak bazy. Stan pokoju tylko w pamięci serwera; po końcu gry / bezczynności znika.
 - Serwer nie zapisuje adresów IP ani pseudonimów do logów (logi bez treści wiadomości).
 - Notka `/privacy` musi zostać zaktualizowana **przed** uruchomieniem (IP przetwarzane w trakcie połączenia).
-- CSP (T16): `connect-src` trzeba rozszerzyć o domenę serwera gry (`wss://...`).
+- CSP: po D19 nie ma `vercel.json`, więc nagłówki (w tym CSP) ustawia serwer gry. Frontend i WebSocket
+  z jednego originu (D3), więc wystarcza `connect-src 'self'` (przeglądarki z CSP3 dopasowują `'self'` do `ws:`/`wss:` tego hosta).
 
 ## 3. Stan obecny kodu (ustalenia)
 
@@ -55,11 +56,45 @@ Przeglądarka (React/r3f)                         Serwer gry (Node, 1 proces)
 |---|---|---|
 | D1 | Tryb pierwszej wersji: kooperacja (wspólna kolonia) czy rywalizacja (osobne kolonie na jednej mapie)? | **Kooperacja 2 graczy** (mniej balansu, prostszy stan) |
 | D2 | Transport: biblioteka `ws` (mała, standard) czy Socket.IO (cięższa, reconnect/rooms w pakiecie)? | **`ws`** (wymaga zgody na paczkę npm) |
-| D3 | Hosting serwera gry | Render Free na prototyp (usypia po 15 min, 1 instancja); płatny plan przed publicznym startem |
+| D3 | Hosting serwera gry | ~~Render Free~~ (nieaktualne po D19). **Self-host u gospodarza**, szczegóły niżej |
 | D4 | Synchronizacja: snapshot co tick czy komendy + deterministyczny lockstep? | **Snapshot co tick** na start (prościej, odporne na rozjazd) |
 | D5 | Co z zapisem gry sieciowej? | Brak trwałego zapisu na serwerze; gospodarz może pobrać plik zapisu na końcu |
 | D6 | Pseudonimy | Wpisywane per pokój, filtr długości/znaków, bez zapisu; brak czatu |
 | D7 | Limity ochronne | max 4 graczy/pokój, max N pokoi/proces, TTL pokoju 30 min bezczynności, limit komend/s na połączenie |
+
+### D3 (zmiana 2026-10-31): serwer gry u gospodarza
+
+Zgodnie z D19 autor nie utrzymuje żadnego serwera. Grę sieciową uruchamia **gospodarz** u siebie:
+
+- Jeden proces Node (`serve_frontend=true`) serwuje frontend (`dist/`) **i** WebSocket (np. ścieżka `/ws`)
+  pod tym samym originem. Klient łączy się z `ws(s)://${location.host}/ws`; nie ma pola „adres serwera” w grze.
+- Pozostali gracze otwierają w przeglądarce adres gospodarza: LAN (`http://192.168.x.x:port`), przekierowanie portu
+  albo tunel (np. https przez tunel → `wss` działa bez dodatkowej konfiguracji, bo origin jest wspólny).
+- Statyczny frontend z dowolnego hostingu zostaje **tylko solo**. Tryb sieciowy w UI pokazuje się wyłącznie,
+  gdy strona jest serwowana przez serwer gry (wykrycie np. przez `/api/health`).
+- Koszt dla autora: 0. Autor nie przetwarza IP graczy; danymi połączenia (IP) dysponuje gospodarz.
+- Bezpieczeństwo: przy upgrade WebSocket serwer sprawdza nagłówek `Origin` (tylko własny origin, ochrona przed
+  cross-site WebSocket hijacking), limity D7 obowiązują bez zmian.
+- Gra przez internet: **tunel u gospodarza**. Domyślnie Cloudflare quick tunnel
+  (`cloudflared tunnel --url http://localhost:PORT`, bez konta, adres `*.trycloudflare.com`, obsługuje WebSocket);
+  alternatywy: ngrok (wymaga konta, darmowy plan pokazuje stronę ostrzegawczą), Tailscale Funnel, playit.gg.
+  Tunel daje https, więc `wss` działa bez zmian w kodzie i CSP. Gospodarz udostępnia link: adres tunelu + kod pokoju.
+  IP graczy widzi wtedy dostawca tunelu wybrany przez gospodarza (informacja w instrukcji i w `/privacy`).
+
+### D9 (odłożone): katalog serwerów
+
+Opcjonalny, osobny projekt (np. `mars-terraform-directory`): serwery gospodarzy zgłaszają się heartbeatem,
+gra pokazuje listę otwartych pokoi. **Decyzja dopiero po F9-T7** (gdy będzie wiadomo, czy jest popyt i kto go utrzymuje).
+Założenia, jeśli powstanie:
+
+- Bez kont; stan tylko w pamięci, bez logów; wpis wygasa po ok. 60 s bez heartbeatu.
+- Nazwy pokoi generowane (bez wolnego tekstu = bez moderacji).
+- Weryfikacja zgłoszenia: katalog sprawdza `/api/health` (z wersją gry) pod zgłoszonym adresem; limity zgłoszeń (ochrona przed
+  publikowaniem dowolnych URL, np. phishing).
+- Ostrzeżenie przy dołączaniu do obcego serwera: frontend pochodzi od gospodarza i może być zmodyfikowany.
+- Katalog przetwarza IP gospodarzy i przeglądających, więc wymaga administratora i notki prywatności.
+  Jeśli utrzymuje go autor, to świadome odejście od D19.
+- Poza zakresem: własny relay / tunel (koszt ruchu, nadużycia, odpowiedzialność operatora).
 
 ## 6. Zadania (kolejność, każde z testami)
 
@@ -68,10 +103,10 @@ Przeglądarka (React/r3f)                         Serwer gry (Node, 1 proces)
 | F9-T1 | Deterministyczny RNG + wstrzyknięcie do `WeatherService`, `AlienService` (bez zmiany zachowania solo) | — | średnie (testy losowości) |
 | F9-T2 | Wydzielenie `GameSimulation.step` z `applyEconomyTick` (store woła rdzeń; testy porównawcze stan-przed/po) | T1 | **wysokie** (największy refaktor) |
 | F9-T3 | Model komend gracza (buduj, ulepsz, rozbierz, badania, rozkazy RTS) + walidacja (zod) | T2 | średnie |
-| F9-T4 | Serwer: WebSocket (D2), pokoje w pamięci, pętla ticka, rozsyłanie snapshotów, limity (D7) | T3 | średnie |
-| F9-T5 | Klient: tryb sieciowy (utwórz/dołącz kod, lobby, render ze snapshotów, wysyłka komend, reconnect) | T4 | średnie |
-| F9-T6 | Prywatność i bezpieczeństwo: notka `/privacy`, CSP `connect-src wss://...`, logi bez danych, testy obciążeniowe pokoju | T4 | niskie |
-| F9-T7 | Wdrożenie serwera (D3) + smoke test 2 przeglądarek | T5, T6 | niskie |
+| F9-T4 | Serwer: WebSocket (D2) na tym samym serwerze HTTP co frontend (D3), kontrola `Origin`, pokoje w pamięci, pętla ticka, rozsyłanie snapshotów, limity (D7) | T3 | średnie |
+| F9-T5 | Klient: tryb sieciowy (same-origin `/ws`, widoczny tylko na serwerze gry; utwórz/dołącz kod, lobby, render ze snapshotów, wysyłka komend, reconnect) | T4 | średnie |
+| F9-T6 | Prywatność i bezpieczeństwo: notka `/privacy` (gra sieciowa = serwer gospodarza, autor nie przetwarza IP), nagłówki i CSP `connect-src 'self'` z serwera gry, logi bez danych, testy obciążeniowe pokoju | T4 | niskie |
+| F9-T7 | Instrukcja dla gospodarza (skrypt startowy, port, LAN / przekierowanie, tunel: Cloudflare quick tunnel domyślnie, ngrok jako alternatywa, link adres + kod pokoju) + smoke test 2 przeglądarek w LAN i przez tunel | T5, T6 | niskie |
 
 Proponowany pierwszy kamień milowy: **T1 + T2** (bez żadnych zmian widocznych dla gracza; czysty zysk
 architektoniczny i testowalność), potem decyzja, czy iść dalej z siecią.
@@ -80,7 +115,8 @@ architektoniczny i testowalność), potem decyzja, czy iść dalej z siecią.
 
 - **Refaktor store (T2)**: logika ticka jest spleciona z UI-stanem Zustand; ryzyko regresji w trybie solo.
   Ograniczenie: testy „złote” (zapis stanu po N tickach przed i po refaktorze, ten sam seed).
-- **Koszt serwera**: darmowy plan usypia; gra sieciowa na żywo wymaga stałej instancji (płatny plan).
+- **Dostępność przez internet (D3)**: gospodarz za NAT musi otworzyć port albo użyć tunelu; to bariera dla
+  mniej technicznych graczy. Ograniczenie: tunel bez konta i czytelna instrukcja (F9-T7); katalog serwerów = D9 (odłożone).
 - **Wydajność**: symulacja wielu pokoi w jednym procesie Node; limity D7 i pomiar przed startem.
 - **Prawo**: przetwarzanie IP w trakcie gry = formalnie dane osobowe; minimalizacja (bez logów, bez zapisu),
   aktualizacja notki, ewentualnie ponowne rozważenie danych usługodawcy (ustawa o świadczeniu usług drogą elektroniczną, art. 5).
@@ -88,4 +124,4 @@ architektoniczny i testowalność), potem decyzja, czy iść dalej z siecią.
 ## 8. Szacunek
 
 T1–T2: kilka zadań agentowych (refaktor + testy), bez zmian dla gracza. T3–T7: osobna, większa faza
-(serwer + klient sieciowy), ok. 2–3 razy więcej pracy niż T1–T2. Koszt hostingu: 0 $ na prototyp, płatny plan przy starcie publicznym.
+(serwer + klient sieciowy), ok. 2–3 razy więcej pracy niż T1–T2. Koszt hostingu dla autora: 0 $ (serwer u gospodarza, D3).
