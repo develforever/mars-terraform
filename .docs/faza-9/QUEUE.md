@@ -24,7 +24,7 @@
 | F9-T1 | Deterministyczny RNG (`src/domain/random/Rng.ts`, mulberry32) wstrzyknięty do `WeatherService`, `AlienService` (domyślnie `Math.random`, solo bez zmian); id encji z `rng` | — | DONE(9cba849) |
 | F9-T2 | Wydzielenie `stepSimulation` (`src/domain/simulation/GameSimulation.ts`) z `applyEconomyTick`; store woła rdzeń; test złoty z ziarnem | T1 | DONE(2eade90) |
 | F9-T3 | Model komend gracza + walidacja (zod): `src/domain/simulation/PlayerCommands.ts`, store deleguje | T2 | DONE(ab5b575) |
-| F9-T4 | Serwer: WebSocket (`ws`) na serwerze HTTP frontendu, kontrola `Origin`, pokoje w pamięci, pętla ticka, snapshoty, limity | T3 | DONE (commit w dzienniku) |
+| F9-T4 | Serwer: WebSocket (`ws`) na serwerze HTTP frontendu, kontrola `Origin`, pokoje w pamięci, pętla ticka, snapshoty, limity | T3 | DONE(fa8dc26) |
 | F9-T5 | Klient: tryb sieciowy (same-origin `/ws`, tylko na serwerze gry; utwórz/dołącz kod, lobby, snapshoty, komendy, reconnect) | T4 | TODO |
 | F9-T6 | Prywatność i bezpieczeństwo: `/privacy` (serwer gospodarza), nagłówki i CSP `connect-src 'self'` z serwera gry, logi bez danych, test obciążenia | T4 | TODO |
 | F9-T7 | Instrukcja dla gospodarza (start, port, LAN / przekierowanie, tunel: Cloudflare quick tunnel / ngrok, link adres + kod) + smoke test 2 przeglądarek w LAN i przez tunel | T5, T6 | TODO |
