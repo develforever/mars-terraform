@@ -39,4 +39,16 @@ describe("privacyPolicyContent (T14: gra bez kont)", () => {
     expect(JSON.stringify(en)).not.toContain("TO FILL IN");
     expect(text(pl)).not.toContain("Administrator");
   });
+
+  it("gra sieciowa (F9-T6): serwer gospodarza, autor nie przetwarza IP, tunel, brak zapisu i logów z danymi", () => {
+    expect(text(pl)).toContain("Gra sieciowa");
+    expect(text(pl)).toContain("gospodarz");
+    expect(text(pl)).toContain("nie przetwarza Twojego adresu IP");
+    expect(text(pl)).toContain("operatora tunelu");
+    expect(text(pl)).toContain("niczego nie zapisuje na dysku");
+    expect(text(pl)).toContain("Logi serwera nie zawierają pseudonimów, kodów pokoi ani adresów IP");
+    expect(text(en)).toContain("Online play");
+    expect(text(en)).toContain("does not process your IP address");
+    expect(text(pl)).not.toContain("Jeśli dodamy funkcje sieciowe");
+  });
 });

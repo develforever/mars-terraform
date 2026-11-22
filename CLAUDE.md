@@ -205,7 +205,8 @@ Zrobione:
 - **Gra sieciowa (Faza 9, D3):** serwer gry uruchamia gospodarz u siebie. Ten sam proces Node serwuje frontend
   i WebSocket `/ws` (same-origin, `src_backend/game/`: `gameServer.ts` z kontrolą `Origin`, `RoomManager.ts` z pokojami
   w pamięci i limitami D7). Protokół i stan pokoju wspólne z klientem: `src/domain/network/`. Klient (F9-T5):
-  `networkClient.ts`, `useNetworkStore.ts`, `NetworkGameModal`/`NetworkRoomPanel`; widoczny tylko, gdy strona pochodzi z serwera gry. Gra przez internet = tunel
+  `networkClient.ts`, `useNetworkStore.ts`, `NetworkGameModal`/`NetworkRoomPanel`; widoczny tylko, gdy strona pochodzi z serwera gry.
+  Nagłówki i CSP ustawia serwer gry (`src_backend/middleware/securityHeaders.ts`, F9-T6); test obciążenia: `roomLoad.test.ts`. Gra przez internet = tunel
   u gospodarza (Cloudflare quick tunnel / ngrok). Plan i postęp: `.docs/faza-9/`.
 - Historia Fazy 8: `.docs/faza-8/` (runbook Vercel/Render jest historyczny).
 - Prywatność: `/privacy` (brak danych osobowych i cookies), kontakt projektu `mars_terraform@proton.me`.

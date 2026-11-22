@@ -16,6 +16,8 @@ export interface GameServerOptions {
   readonly tickIntervalMs?: number;
   /** Okres pingu wykrywającego zerwane połączenia w ms. */
   readonly heartbeatIntervalMs?: number;
+  /** Maksymalna liczba otwartych połączeń WebSocket; kolejne dostają 503 (F9-T6, ochrona pamięci). */
+  readonly maxConnections?: number;
   readonly rooms?: Partial<RoomManagerOptions>;
 }
 
@@ -29,6 +31,11 @@ export const MAX_MESSAGE_BYTES = 2 * 1024 * 1024;
 /** Kolejne błędne wiadomości, po których połączenie jest zamykane. */
 export const MAX_BAD_MESSAGES = 5;
 export const CLOSE_POLICY_VIOLATION = 1008;
+/**
+ * Domyślny limit połączeń: pełne pokoje (20 × 4, D7) plus zapas na łączących się i wracających po zerwaniu
+ * (stare połączenie znika dopiero po heartbeat).
+ */
+export const DEFAULT_MAX_CONNECTIONS = 120;
 
 const firstHeader = (value: string | string[] | undefined): string | undefined =>
   Array.isArray(value) ? value[0] : value;
@@ -67,7 +74,12 @@ const parseMessage = (data: RawData, isBinary: boolean) => {
 };
 
 export const attachGameServer = (server: Server, options: GameServerOptions): GameServer => {
-  const { allowedOrigins, tickIntervalMs = 1000, heartbeatIntervalMs = 30_000 } = options;
+  const {
+    allowedOrigins,
+    tickIntervalMs = 1000,
+    heartbeatIntervalMs = 30_000,
+    maxConnections = DEFAULT_MAX_CONNECTIONS,
+  } = options;
   const rooms = new RoomManager(options.rooms);
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES });
   const alive = new WeakMap<WebSocket, boolean>();
@@ -80,6 +92,10 @@ export const attachGameServer = (server: Server, options: GameServerOptions): Ga
     }
     if (!isOriginAllowed(req, allowedOrigins)) {
       rejectUpgrade(socket, "403 Forbidden");
+      return;
+    }
+    if (wss.clients.size >= maxConnections) {
+      rejectUpgrade(socket, "503 Service Unavailable");
       return;
     }
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
