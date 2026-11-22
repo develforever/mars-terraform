@@ -106,7 +106,8 @@ describe("serwer gry WebSocket (F9-T4)", () => {
     expect((await guestJoined).players).toHaveLength(2);
     expect((await hostSeesGuest).players.map((p) => p.nickname)).toEqual(["Host", "Ania"]);
 
-    const hostSnapshot = next(host, "snapshot");
+    // Tick co 20 ms też wysyła snapshoty, więc czekamy na ten ze skutkiem komendy (inaczej wyścig na CI).
+    const hostSnapshot = next(host, "snapshot", (m) => m.state.placed[0].disabled === true);
     guest.send(JSON.stringify({ type: "command", command: { type: "toggle_building_power", buildingId: "b-1" } }));
     expect((await hostSnapshot).state.placed[0].disabled).toBe(true);
 
