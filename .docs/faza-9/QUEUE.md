@@ -27,7 +27,7 @@
 | F9-T4 | Serwer: WebSocket (`ws`) na serwerze HTTP frontendu, kontrola `Origin`, pokoje w pamięci, pętla ticka, snapshoty, limity | T3 | DONE(fa8dc26) |
 | F9-T5 | Klient: tryb sieciowy (same-origin `/ws`, tylko na serwerze gry; utwórz/dołącz kod, lobby, snapshoty, komendy, reconnect) | T4 | DONE(6fb5cf8) |
 | F9-T6 | Prywatność i bezpieczeństwo: `/privacy` (serwer gospodarza), nagłówki i CSP `connect-src 'self'` z serwera gry, logi bez danych, test obciążenia | T4 | DONE(cc240ca) |
-| F9-T7 | Instrukcja dla gospodarza (start, port, LAN / przekierowanie, tunel: Cloudflare quick tunnel / ngrok, link adres + kod) + smoke test 2 przeglądarek w LAN i przez tunel | T5, T6 | DONE |
+| F9-T7 | Instrukcja dla gospodarza (start, port, LAN / przekierowanie, tunel: Cloudflare quick tunnel / ngrok, link adres + kod) + smoke test 2 przeglądarek w LAN i przez tunel | T5, T6 | DONE(6cdfdb5) |
 
 ## Dziennik
 
