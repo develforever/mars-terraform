@@ -1,6 +1,7 @@
 /**
  * Informacja o prywatności (T14, D18: gra BEZ kont). Aplikacja nie przetwarza danych osobowych na serwerze:
- * zapisy gry i mapy są wyłącznie w przeglądarce gracza. Kontakt: e-mail projektu (bez danych osobowych autora).
+ * zapisy gry i mapy są wyłącznie w przeglądarce gracza. Gra sieciowa (F9-T6, D3) działa na serwerze gospodarza,
+ * nie autora. Kontakt: e-mail projektu (bez danych osobowych autora).
  * Dokument utrzymywany w całości per język (nie w plikach tłumaczeń).
  */
 
@@ -20,7 +21,7 @@ export interface PolicyContent {
 
 const PL: PolicyContent = {
   title: "Prywatność",
-  updated: "Ostatnia aktualizacja: 30 września 2026",
+  updated: "Ostatnia aktualizacja: 22 listopada 2026",
   sections: [
     {
       heading: "1. W skrócie",
@@ -43,15 +44,24 @@ const PL: PolicyContent = {
       ],
     },
     {
-      heading: "4. Kontakt",
+      heading: "4. Gra sieciowa",
+      paragraphs: [
+        "Wspólną grę prowadzi serwer, który jeden z graczy (gospodarz) uruchamia na swoim komputerze. Autor gry nie prowadzi serwerów gry, nie widzi rozgrywek i nie przetwarza Twojego adresu IP.",
+        "Łącząc się z pokojem, przesyłasz swój adres IP do serwera gospodarza, a jeśli gospodarz używa tunelu (np. Cloudflare albo ngrok) - także do operatora tunelu. Gospodarz odpowiada za swój serwer i łącze.",
+        "Serwer gry trzyma stan pokoju, pseudonimy i kod pokoju tylko w pamięci, dopóki pokój istnieje, i niczego nie zapisuje na dysku. Pseudonim wybierasz sam na czas jednej gry; nie podawaj w nim danych osobowych. Logi serwera nie zawierają pseudonimów, kodów pokoi ani adresów IP.",
+        "Wejście do pokoju oznacza, że inni gracze w pokoju widzą Twój pseudonim i Twoje działania w kolonii.",
+      ],
+    },
+    {
+      heading: "5. Kontakt",
       paragraphs: [
         `Pytania i zgłoszenia dotyczące gry i prywatności: ${CONTACT_EMAIL}.`,
       ],
     },
     {
-      heading: "5. Zmiany",
+      heading: "6. Zmiany",
       paragraphs: [
-        "Jeśli dodamy funkcje sieciowe (np. wspólną grę), zaktualizujemy tę informację przed ich uruchomieniem.",
+        "Jeśli zmienimy sposób działania gry sieciowej albo dodamy nowe funkcje sieciowe, zaktualizujemy tę informację przed ich uruchomieniem.",
       ],
     },
   ],
@@ -59,7 +69,7 @@ const PL: PolicyContent = {
 
 const EN: PolicyContent = {
   title: "Privacy",
-  updated: "Last updated: 30 September 2026",
+  updated: "Last updated: 22 November 2026",
   sections: [
     {
       heading: "1. In short",
@@ -82,15 +92,24 @@ const EN: PolicyContent = {
       ],
     },
     {
-      heading: "4. Contact",
+      heading: "4. Online play",
+      paragraphs: [
+        "Multiplayer games run on a server that one of the players (the host) starts on their own computer. The game's author does not run game servers, cannot see games and does not process your IP address.",
+        "When you join a room, your IP address is sent to the host's server and, if the host uses a tunnel (e.g. Cloudflare or ngrok), to the tunnel operator. The host is responsible for their server and connection.",
+        "The game server keeps the room state, nicknames and the room code in memory only while the room exists and writes nothing to disk. You choose your nickname for a single game; do not put personal data in it. Server logs contain no nicknames, room codes or IP addresses.",
+        "Joining a room means the other players in it can see your nickname and your actions in the colony.",
+      ],
+    },
+    {
+      heading: "5. Contact",
       paragraphs: [
         `Questions and reports about the game and privacy: ${CONTACT_EMAIL}.`,
       ],
     },
     {
-      heading: "5. Changes",
+      heading: "6. Changes",
       paragraphs: [
-        "If we add online features (e.g. multiplayer), we will update this notice before launching them.",
+        "If we change how online play works or add new online features, we will update this notice before launching them.",
       ],
     },
   ],

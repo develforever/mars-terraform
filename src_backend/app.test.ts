@@ -7,6 +7,7 @@ import path from "path";
 import type { Express } from "express";
 import { createApp, JSON_BODY_LIMIT_BYTES, type CreateAppOptions } from "./app";
 import { HttpError } from "./errors/HttpError";
+import { CONTENT_SECURITY_POLICY, staticCacheControl } from "./middleware/securityHeaders";
 
 const ALLOWED = "https://mars.example.org";
 const INDEX_HTML = "<!doctype html><title>spa</title>";
@@ -307,5 +308,60 @@ describe("error handler", () => {
     });
     expect(res.status).toBe(413);
     expect(await res.json()).toEqual({ error: "Payload Too Large" });
+  });
+});
+
+describe("nagłówki bezpieczeństwa (F9-T6)", () => {
+  const expectSecurityHeaders = (res: Response): void => {
+    expect(res.headers.get("content-security-policy")).toBe(CONTENT_SECURITY_POLICY);
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(res.headers.get("x-frame-options")).toBe("DENY");
+    expect(res.headers.get("permissions-policy")).toContain("camera=()");
+    expect(res.headers.get("x-powered-by")).toBeNull();
+    // Serwer gospodarza działa po HTTP; HSTS należy do tunelu (TLS).
+    expect(res.headers.get("strict-transport-security")).toBeNull();
+  };
+
+  it("CSP pozwala tylko na własny origin (w tym WebSocket gry) i blokuje osadzanie", () => {
+    expect(CONTENT_SECURITY_POLICY).toContain("connect-src 'self' blob: data:");
+    expect(CONTENT_SECURITY_POLICY).toContain("frame-ancestors 'none'");
+    expect(CONTENT_SECURITY_POLICY).toContain("object-src 'none'");
+    expect(CONTENT_SECURITY_POLICY).not.toMatch(/https?:|wss?:|\*/);
+  });
+
+  it("są na SPA, plikach statycznych, /api/health i odpowiedziach błędów", async () => {
+    const { baseUrl, distPath } = await start();
+    mkdirSync(path.join(distPath, "assets"));
+    writeFileSync(path.join(distPath, "assets", "index-abc123.js"), "console.log(1)");
+
+    for (const route of ["/", "/mars", "/assets/index-abc123.js", "/api/health", "/api/nieistniejace"]) {
+      const res = await fetch(`${baseUrl}${route}`);
+      expectSecurityHeaders(res);
+    }
+  });
+
+  it("index.html zawsze sprawdzany, pliki z hashem niezmienne", async () => {
+    const { baseUrl, distPath } = await start();
+    mkdirSync(path.join(distPath, "assets"));
+    writeFileSync(path.join(distPath, "assets", "index-abc123.js"), "console.log(1)");
+
+    expect((await fetch(`${baseUrl}/`)).headers.get("cache-control")).toBe("no-cache");
+    expect((await fetch(`${baseUrl}/mars`)).headers.get("cache-control")).toBe("no-cache");
+    expect((await fetch(`${baseUrl}/assets/index-abc123.js`)).headers.get("cache-control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
+    expect((await fetch(`${baseUrl}/api/health`)).headers.get("cache-control")).toBe("no-store");
+  });
+
+  it.each([
+    ["assets/index-abc.js", "public, max-age=31536000, immutable"],
+    ["assets\\index-abc.js","public, max-age=31536000, immutable"],
+    ["models/mars/rover.glb", "public, max-age=86400, stale-while-revalidate=604800"],
+    ["textures/2k_mars.jpg", "public, max-age=86400, stale-while-revalidate=604800"],
+    ["index.html", "no-cache"],
+    ["vite.svg", "no-cache"],
+  ])("staticCacheControl(%s)", (file, expected) => {
+    expect(staticCacheControl(file)).toBe(expected);
   });
 });

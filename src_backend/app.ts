@@ -1,5 +1,7 @@
+import path from "path";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import { createCorsMiddleware } from "./middleware/corsMiddleware";
+import { securityHeaders, staticCacheControl } from "./middleware/securityHeaders";
 import { createHealthHandler, READINESS_CHECK_TIMEOUT_MS } from "./health";
 
 export interface CreateAppOptions {
@@ -99,6 +101,8 @@ export const createApp = (options: CreateAppOptions): Express => {
   } = options;
 
   const app = express();
+  app.disable("x-powered-by");
+  app.use(securityHeaders);
   app.use(createCorsMiddleware(corsOrigins));
   app.use(express.json({ limit: JSON_BODY_LIMIT_BYTES }));
 
@@ -107,7 +111,13 @@ export const createApp = (options: CreateAppOptions): Express => {
   registerRoutes?.(app);
 
   if (serveFrontend) {
-    app.use(express.static(distPath));
+    app.use(
+      express.static(distPath, {
+        setHeaders: (res, filePath) => {
+          res.setHeader("Cache-Control", staticCacheControl(path.relative(distPath, filePath)));
+        },
+      }),
+    );
 
     app.use((req: Request, res: Response, next: NextFunction): void => {
       if (req.path === "/api" || req.path.startsWith("/api/")) {
@@ -115,6 +125,7 @@ export const createApp = (options: CreateAppOptions): Express => {
         return;
       }
       // `root` zamiast pełnej ścieżki: katalog z kropką w ścieżce (np. `.claude/…`) nie jest traktowany jak plik ukryty.
+      res.setHeader("Cache-Control", staticCacheControl("index.html"));
       res.sendFile("index.html", { root: distPath });
     });
   }
