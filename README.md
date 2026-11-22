@@ -91,6 +91,13 @@ npm run dev:front  # Vite dev server on http://localhost:5173
 npm run dev:back   # Express API server on http://localhost:3000
 ```
 
+### Multiplayer (host your own server)
+```bash
+npm run host                      # build + start the game server (page + WebSocket /ws)
+npm run smoke -- <public-address> # check that players can connect (LAN or tunnel)
+```
+Co-op games run on a server started by one of the players. LAN, tunnels (Cloudflare / ngrok) and inviting players: [HOSTING.md](HOSTING.md) (Polish).
+
 ### Tests and Verification
 ```bash
 npm run test       # Runs full test suite (395 tests, frontend + backend)

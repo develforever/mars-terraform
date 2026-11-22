@@ -10,6 +10,8 @@
     "build:back": "vite build -c vite.config.backend.ts",
     "build": "npm run build:back && tsc -b && vite build",
     "start": "node dist_backend/index.js",
+    "host": "npm run build && npm start",
+    "smoke": "tsx --tsconfig src_backend/tsconfig.json src_backend/tools/smoke.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "test:front": "vitest run",

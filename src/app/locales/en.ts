@@ -381,6 +381,7 @@ const en = {
             you:               "you",
             copyLink:          "Copy link",
             copied:            "Copied",
+            copyManual:        "Copy the link manually (Ctrl+C):",
             leave:             "Leave",
             leftSolo:          "The game continues locally as single-player.",
             rejected:          "The server rejected the action: {{reason}}",

@@ -321,6 +321,8 @@ describe("nagłówki bezpieczeństwa (F9-T6)", () => {
     expect(res.headers.get("x-powered-by")).toBeNull();
     // Serwer gospodarza działa po HTTP; HSTS należy do tunelu (TLS).
     expect(res.headers.get("strict-transport-security")).toBeNull();
+    // COOP w LAN (http) jest ignorowany z błędem w konsoli (F9-T7).
+    expect(res.headers.get("cross-origin-opener-policy")).toBeNull();
   };
 
   it("CSP pozwala tylko na własny origin (w tym WebSocket gry) i blokuje osadzanie", () => {

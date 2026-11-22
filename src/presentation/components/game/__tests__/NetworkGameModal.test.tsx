@@ -99,4 +99,28 @@ describe("NetworkRoomPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Opuść" }));
     expect(leaveRoom).toHaveBeenCalledTimes(1);
   });
+
+  it("bez schowka (LAN po http) pokazuje link zaproszenia do ręcznego skopiowania", async () => {
+    await i18n.changeLanguage("pl");
+    const original = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+    try {
+      useNetworkStore.setState({
+        phase: "in_room",
+        roomCode: "MARS-4K7Q",
+        playerId: "p1",
+        players: [{ id: "p1", nickname: "Ania" }],
+        issue: null,
+        lastRejected: null,
+      });
+      render(<NetworkRoomPanel />);
+      fireEvent.click(screen.getByRole("button", { name: "Kopiuj link" }));
+      const field = await screen.findByLabelText(/Skopiuj link ręcznie/);
+      expect(field).toHaveValue(`${window.location.origin}/?join=MARS-4K7Q`);
+    } finally {
+      if (original) Object.defineProperty(navigator, "clipboard", original);
+      else Reflect.deleteProperty(navigator, "clipboard");
+    }
+  });
 });
+
