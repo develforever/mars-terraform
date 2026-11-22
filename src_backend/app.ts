@@ -1,5 +1,4 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
-import path from "path";
 import { createCorsMiddleware } from "./middleware/corsMiddleware";
 import { createHealthHandler, READINESS_CHECK_TIMEOUT_MS } from "./health";
 
@@ -115,7 +114,8 @@ export const createApp = (options: CreateAppOptions): Express => {
         next();
         return;
       }
-      res.sendFile(path.join(distPath, "index.html"));
+      // `root` zamiast pełnej ścieżki: katalog z kropką w ścieżce (np. `.claude/…`) nie jest traktowany jak plik ukryty.
+      res.sendFile("index.html", { root: distPath });
     });
   }
 

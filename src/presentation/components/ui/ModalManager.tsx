@@ -4,9 +4,10 @@ import { ColonyNameModal } from "../game/ColonyNameModal";
 import { ScenarioSelectModal } from "../game/ScenarioSelectModal";
 import { ExitConfirmModal } from "../game/ExitConfirmModal";
 import { LoadGameModal } from "../game/LoadGameModal";
+import { NetworkGameModal } from "../game/NetworkGameModal";
 
 export default function ModalManager() {
-    const { isOpen, modalType, close } = useModalStore();
+    const { isOpen, modalType, modalData, close } = useModalStore();
 
     useEffect(() => {
         if (!isOpen) return;
@@ -31,6 +32,8 @@ export default function ModalManager() {
                 return <ExitConfirmModal onClose={close} />;
             case "load-game":
                 return <LoadGameModal onClose={close} />;
+            case "network-game":
+                return <NetworkGameModal onClose={close} initialCode={(modalData as { code?: string } | null)?.code} />;
             default:
                 return null;
         }

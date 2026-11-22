@@ -36,6 +36,7 @@ import type { RTSOrder } from "../../domain/services/RTSCommandService";
 import { stepSimulation } from "../../domain/simulation/GameSimulation";
 import { applyCommand, type PlayerCommand } from "../../domain/simulation/PlayerCommands";
 import { LocalSaveService, type SavedGame } from "../service/localSaveService";
+import type { HexGridWire, NetworkSnapshot } from "../../domain/network/NetworkProtocol";
 
 export interface GameState {
   // Resources and colony state
@@ -100,6 +101,12 @@ export interface GameState {
   // Campaign Quest Engine
   activeQuests: QuestState[];
 
+  /**
+   * F9-T5: gra sieciowa. Ustawione = komendy idą do serwera gry (bez lokalnego wykonania),
+   * lokalny tick stoi, a stan przychodzi w snapshotach. `null` = gra solo.
+   */
+  remoteCommandSink: ((command: PlayerCommand) => void) | null;
+
   // Actions
   setSun: (factor: number) => void;
   setColonyName: (name: string) => void;
@@ -142,6 +149,21 @@ export interface GameState {
   dismissVictoryModal: () => void;
   /** Dismiss the defeat modal */
   dismissDefeatModal: () => void;
+  /**
+   * F9-T5: wejście do pokoju gry sieciowej. Gospodarz zostaje przy swoim świecie (`keepLocalWorld`),
+   * gość buduje siatkę heksów z danych serwera.
+   */
+  enterNetworkGame: (args: {
+    roomCode: string;
+    hexGrid: HexGridWire;
+    snapshot: NetworkSnapshot;
+    sink: (command: PlayerCommand) => void;
+    keepLocalWorld: boolean;
+  }) => void;
+  /** F9-T5: stan autorytatywny z serwera. */
+  applyNetworkSnapshot: (snapshot: NetworkSnapshot) => void;
+  /** F9-T5: koniec gry sieciowej; bieżący stan zostaje i dalej działa jak gra solo. */
+  exitNetworkGame: () => void;
 }
 
 function getInitialGameState(
@@ -312,6 +334,7 @@ function getInitialGameState(
       active: false,
       secondsRemaining: EMERGENCY_LIFE_SUPPORT_DEFAULT_SECONDS,
     },
+    remoteCommandSink: null,
   };
 }
 
@@ -319,10 +342,19 @@ function getInitialGameState(
 export const useGameStore = create<GameState>()(
   devtools(
     (set, get) => {
-      /** Wykonuje komendę gracza na bieżącym stanie; `true` = wykonana i zapisana. */
+      /**
+       * Wykonuje komendę gracza na bieżącym stanie; `true` = wykonana i zapisana.
+       * Gra sieciowa (F9-T5): komenda jest tylko sprawdzana lokalnie i trafia do serwera, który ją wykona
+       * i odeśle wynik w snapshocie (D4, bez lokalnej predykcji).
+       */
       const runCommand = (command: PlayerCommand): boolean => {
-        const result = applyCommand(get(), command);
+        const state = get();
+        const result = applyCommand(state, command);
         if (!result.ok) return false;
+        if (state.remoteCommandSink) {
+          state.remoteCommandSink(command);
+          return true;
+        }
         set(result.update);
         return true;
       };
@@ -439,7 +471,7 @@ export const useGameStore = create<GameState>()(
       /** F9-T2: tick liczy czysty rdzeń symulacji (`stepSimulation`); store tylko podaje stan i zapisuje wynik. */
       applyEconomyTick: () => {
         const state = get();
-        if (state.isPaused || !state.alive) return;
+        if (state.isPaused || !state.alive || state.remoteCommandSink) return;
         const { forcedWeather } = useDebugStore.getState();
         set(stepSimulation(state, { forcedWeather }));
       },
@@ -477,6 +509,45 @@ export const useGameStore = create<GameState>()(
 
       dismissDefeatModal: () => {
         set({ defeatModalDismissed: true });
+      },
+
+      enterNetworkGame: ({ roomCode, hexGrid, snapshot, sink, keepLocalWorld }) => {
+        let world: Partial<GameState> = {};
+        if (!keepLocalWorld) {
+          const grid = HexGrid.fromJSON(hexGrid);
+          const decorations = generateDecor(grid, hexGrid.seed);
+          world = {
+            hexGrid: grid,
+            decorations,
+            decor: decorations,
+            currentMapData: null,
+            mapSeed: hexGrid.seed,
+            colonyName: roomCode,
+            currentScenarioId: null,
+          };
+          const centerHab = snapshot.placed.find((b) => b.id === "colony-center-hab");
+          if (centerHab) {
+            useUIStore.getState().setCameraFrustum([], { x: centerHab.position.x, y: centerHab.position.y ?? 0, z: centerHab.position.z });
+          }
+        }
+        set({
+          ...world,
+          ...snapshot,
+          remoteCommandSink: sink,
+          isPaused: false,
+          gameSpeed: 1,
+          isDevFixture: false,
+          victoryModalDismissed: false,
+          defeatModalDismissed: false,
+        });
+      },
+
+      applyNetworkSnapshot: (snapshot) => {
+        if (get().remoteCommandSink) set(snapshot);
+      },
+
+      exitNetworkGame: () => {
+        set({ remoteCommandSink: null });
       },
 
       resetGame: () => {

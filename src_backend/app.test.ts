@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Server } from "http";
 import type { AddressInfo } from "net";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import path from "path";
 import type { Express } from "express";
@@ -125,6 +125,21 @@ describe("createApp", () => {
     const res = await fetch(`${baseUrl}/generate`);
     expect(res.status).toBe(200);
     expect(await res.text()).toBe(INDEX_HTML);
+  });
+
+  it("serves the SPA fallback when the frontend lives under a dot directory", async () => {
+    const parent = mkdtempSync(path.join(tmpdir(), "mars-app-test-"));
+    const distPath = path.join(parent, ".hidden", "dist");
+    mkdirSync(distPath, { recursive: true });
+    writeFileSync(path.join(distPath, "index.html"), INDEX_HTML);
+    try {
+      const { baseUrl } = await start({ distPath });
+      const res = await fetch(`${baseUrl}/mars`);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe(INDEX_HTML);
+    } finally {
+      rmSync(parent, { recursive: true, force: true });
+    }
   });
 
   it("answers unknown /api paths with a JSON 404 when serving the frontend", async () => {
