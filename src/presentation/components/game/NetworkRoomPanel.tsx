@@ -13,6 +13,7 @@ export const NetworkRoomPanel = () => {
     const { t } = useTranslation();
     const { phase, roomCode, playerId, players, issue, lastRejected, leaveRoom, clearIssue } = useNetworkStore();
     const [copied, setCopied] = useState(false);
+    const [manualLink, setManualLink] = useState<string | null>(null);
     const [showRejected, setShowRejected] = useState(false);
 
     useEffect(() => {
@@ -40,14 +41,19 @@ export const NetworkRoomPanel = () => {
         return null;
     }
 
+    // Schowek działa tylko w bezpiecznym kontekście (https / localhost). W LAN po http pokazujemy link do skopiowania ręcznie.
     const handleCopy = async () => {
         if (!roomCode) return;
+        const link = inviteLink(window.location.origin, roomCode);
         try {
-            await navigator.clipboard.writeText(inviteLink(window.location.origin, roomCode));
+            if (!navigator.clipboard) throw new Error("clipboard unavailable");
+            await navigator.clipboard.writeText(link);
+            setManualLink(null);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
         } catch {
             setCopied(false);
+            setManualLink(link);
         }
     };
 
@@ -71,6 +77,18 @@ export const NetworkRoomPanel = () => {
             </ul>
             {showRejected && lastRejected && <p className="mb-2 text-amber-300">{t("network.rejected", { reason: lastRejected })}</p>}
             {issue && <p className="mb-2 text-amber-300">{t(`network.issue.${issue}`)}</p>}
+            {manualLink && (
+                <label className="mb-2 flex flex-col gap-1 text-gray-400">
+                    {t("network.copyManual")}
+                    <input
+                        readOnly
+                        autoFocus
+                        value={manualLink}
+                        onFocus={(event) => event.currentTarget.select()}
+                        className="rounded-md border border-white/15 bg-black/40 px-2 py-1 font-mono text-[11px] text-white"
+                    />
+                </label>
+            )}
             <div className="flex gap-2">
                 <button type="button" className={button} onClick={handleCopy} disabled={!roomCode}>
                     {copied ? t("network.copied") : t("network.copyLink")}

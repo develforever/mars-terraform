@@ -1,6 +1,7 @@
 import type { BuildingDefinition, PlacedBuilding, BuildingUpgrade } from "../entities/Building";
 import type { Resources, ResourceCost, ResourceDelta } from "../entities/Resources";
 import { keyFromCell } from "../entities/Position";
+import { createEntityId } from "../random/entityId";
 import { worldToHex, hexesInRadius } from "../../presentation/generator/hex/HexMath";
 import type { ResourceNode, ResourceType } from "../mapEditorTypes";
 
@@ -114,7 +115,7 @@ export class BuildingService {
     }
 
     const building: PlacedBuilding = {
-      id: crypto.randomUUID(),
+      id: createEntityId(),
       definitionId: definition.id,
       position: { x: cell.x, y: heightY, z: cell.z },
       condition: 100,

@@ -32,7 +32,8 @@ export const SECURITY_HEADERS: Readonly<Record<string, string>> = Object.freeze(
   "Referrer-Policy": "no-referrer",
   "X-Frame-Options": "DENY",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
-  "Cross-Origin-Opener-Policy": "same-origin",
+  // Bez `Cross-Origin-Opener-Policy`: w LAN (http) przeglądarka go ignoruje i zgłasza błąd w konsoli (F9-T7),
+  // a przed osadzeniem chronią `frame-ancestors 'none'` i `X-Frame-Options`.
 });
 
 export const securityHeaders = (_req: Request, res: Response, next: NextFunction): void => {

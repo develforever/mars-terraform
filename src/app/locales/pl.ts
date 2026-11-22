@@ -381,6 +381,7 @@ const pl = {
             you:               "ty",
             copyLink:          "Kopiuj link",
             copied:            "Skopiowano",
+            copyManual:        "Skopiuj link ręcznie (Ctrl+C):",
             leave:             "Opuść",
             leftSolo:          "Gra toczy się dalej lokalnie jako gra solo.",
             rejected:          "Serwer odrzucił akcję: {{reason}}",
